@@ -6,7 +6,6 @@ import setuptools
 import pathlib
 from pkg_resources import Distribution, get_distribution
 from setuptools import setup, Extension
-from setuptools import Extension
 from setuptools.command.build_ext import build_ext, copy_file
 from distutils import log
 
@@ -23,6 +22,7 @@ class LiefDistribution(setuptools.Distribution):
         ('lief-test', None, 'Build and make tests'),
         ('ninja', None, 'Use Ninja as build system'),
         ('sdk', None, 'Build SDK package'),
+        ('doc', None, 'Build LIEF documentation'),
 
         ('lief-no-json', None, 'Disable JSON module'),
         ('lief-no-logging', None, 'Disable logging module'),
@@ -56,6 +56,7 @@ class LiefDistribution(setuptools.Distribution):
         self.lief_no_vdex  = False
 
         self.lief_no_android  = False
+        self.doc = False
         super().__init__(attrs)
 
 
@@ -73,10 +74,6 @@ class BuildLibrary(build_ext):
             raise RuntimeError("CMake must be installed to build the following extensions: " +
                                ", ".join(e.name for e in self.extensions))
 
-        #if platform.system() == "Windows":
-        #    cmake_version = LooseVersion(re.search(r'version\s*([\d.]+)', out.decode()).group(1))
-        #    if cmake_version < '3.1.0':
-        #        raise RuntimeError("CMake >= 3.1.0 is required on Windows")
         for ext in self.extensions:
             self.build_extension(ext)
         self.copy_extensions_to_source()
@@ -86,7 +83,7 @@ class BuildLibrary(build_ext):
         try:
             subprocess.check_call(['ninja', '--version'])
             return True
-        except Exception as e:
+        except Exception:
             return False
 
     @staticmethod
@@ -104,7 +101,6 @@ class BuildLibrary(build_ext):
         filename = self.get_ext_filename(fullname)
 
         jobs = self.parallel if self.parallel else 1
-
 
         source_dir                     = ext.sourcedir
         build_temp                     = self.build_temp
@@ -131,6 +127,10 @@ class BuildLibrary(build_ext):
         if self.distribution.lief_no_logging:
             log.info("LIEF logging module disabled")
             cmake_args += ["-DLIEF_LOGGING=off"]
+
+        if self.distribution.doc:
+            log.info("LIEF documentation enabled")
+            cmake_args += ["-DLIEF_DOC=on"]
 
         # Main formats
         # ============
@@ -208,6 +208,9 @@ class BuildLibrary(build_ext):
         if self.distribution.sdk:
             targets['sdk'] = "package"
 
+        if self.distribution.doc:
+            targets['doc'] = "doc-lief"
+
         if platform.system() == "Windows":
             build_cmd = ['cmake', '--build', '.', '--target', "lief_samples"] + build_args
             #log.info(" ".join(build_cmd))
@@ -235,6 +238,12 @@ class BuildLibrary(build_ext):
 
                 if 'sdk' in targets:
                     subprocess.check_call(['ninja', targets['sdk']], cwd=self.build_temp)
+
+                if 'doc' in targets:
+                    try:
+                        subprocess.check_call(['ninja', targets['doc']], cwd=self.build_temp)
+                    except Exception as e:
+                        log.error("Documentation failed: %s" % e)
             else:
                 log.info("Using {} jobs".format(jobs))
                 if self.distribution.lief_test:
@@ -247,6 +256,12 @@ class BuildLibrary(build_ext):
 
                 if 'sdk' in targets:
                     subprocess.check_call(['make', '-j', str(jobs), targets['sdk']], cwd=self.build_temp)
+
+                if 'doc' in targets:
+                    try:
+                        subprocess.check_call(['make', '-j', str(jobs), targets['doc']], cwd=self.build_temp)
+                    except Exception as e:
+                        log.error("Documentation failed: %s" % e)
         pylief_dst  = os.path.join(self.build_lib, self.get_ext_filename(self.get_ext_fullname(ext.name)))
 
 
@@ -285,10 +300,10 @@ class BuildLibrary(build_ext):
 # From setuptools-git-version
 command       = 'git describe --tags --long --dirty'
 is_tagged_cmd = 'git tag --list --points-at=HEAD'
-fmt           = '{tag}.dev0'
+fmt_dev       = '{tag}.dev0'
 fmt_tagged    = '{tag}'
 
-def format_version(version, fmt=fmt, is_dev=False):
+def format_version(version: str, fmt: str = fmt_dev, is_dev: bool = False):
     parts = version.split('-')
     assert len(parts) in (3, 4)
     dirty = len(parts) == 4
@@ -296,30 +311,29 @@ def format_version(version, fmt=fmt, is_dev=False):
     MA, MI, PA = map(int, tag.split(".")) # 0.9.0 -> (0, 9, 0)
 
     if is_dev:
-        tag = "{}.{}.{}".format(MA, MI + 1, PA)
+        tag = "{}.{}.{}".format(MA, MI + 1, 0)
 
     if count == '0' and not dirty:
         return tag
     return fmt.format(tag=tag, gitsha=sha.lstrip('g'))
 
 
-def get_git_version(is_tagged):
+def get_git_version(is_tagged: bool) -> str:
     git_version = subprocess.check_output(command.split()).decode('utf-8').strip()
     if is_tagged:
         return format_version(version=git_version, fmt=fmt_tagged)
-    return format_version(version=git_version, fmt=fmt, is_dev=True)
+    return format_version(version=git_version, fmt=fmt_dev, is_dev=True)
 
-def check_if_tagged():
+def check_if_tagged() -> bool:
     output = subprocess.check_output(is_tagged_cmd.split()).decode('utf-8').strip()
     return output != ""
 
 def get_pkg_info_version(pkg_info_file):
-    dist_info = Distribution.from_filename(os.path.join(CURRENT_DIR, "{}.egg-info".format(PACKAGE_NAME)))
-    pkg = get_distribution('lief')
+    pkg = get_distribution(PACKAGE_NAME)
     return pkg.version
 
 
-def get_version():
+def get_version() -> str:
     version   = "0.0.0"
     pkg_info  = os.path.join(CURRENT_DIR, "{}.egg-info".format(PACKAGE_NAME), "PKG-INFO")
     git_dir   = os.path.join(CURRENT_DIR, ".git")
@@ -327,18 +341,18 @@ def get_version():
         is_tagged = False
         try:
             is_tagged = check_if_tagged()
-        except:
+        except Exception:
             is_tagged = False
 
         try:
             return get_git_version(is_tagged)
-        except Exception as e:
+        except Exception:
             pass
 
     if os.path.isfile(pkg_info):
         return get_pkg_info_version(pkg_info)
 
-
+    return version
 
 version = get_version()
 print(version)
