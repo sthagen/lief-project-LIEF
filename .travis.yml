@@ -1,121 +1,90 @@
 language: cpp
+
 git:
   depth: false
 
 
-matrix:
+jobs:
     include:
-        # Linux gcc 5.0 - Python 2.7
-        #- os: linux
-        #  dist: trusty
-        #  compiler: gcc
-        #  addons:
-        #    apt:
-        #      sources: ['ubuntu-toolchain-r-test']
-        #      packages: ['g++-5', 'ccache', 'libpython2.7']
-        #  env: >
-        #    [
-        #    CXX_COMPILER=g++-5                        ,
-        #    C_COMPILER=gcc-5                          ,
-        #    PYTHON_VERSION=2.7                        ,
-        #    PYTHON_INCLUDE_DIR=/usr/include/python2.7 ,
-        #    PYTHON_LIBRARY=/usr/lib/libpython2.7.so   ,
-        #    PYTHON_BINARY=/usr/bin/python2.7          ,
-        #    ]
+      - os: linux
+        dist: xenial
+        services: docker
+        env: >
+          [
+          PYTHON_VERSION=3.5                                 ,
+          PYTHON_BINARY=/opt/python/cp35-cp35m/bin/python3.5 ,
+          ]
 
+      - os: linux
+        dist: xenial
+        services: docker
+        env: >
+          [
+          PYTHON_VERSION=3.6                                 ,
+          PYTHON_BINARY=/opt/python/cp36-cp36m/bin/python3.6 ,
+          ]
 
-        - sudo: required
-          services:
-            - docker
-          env: >
-            [
-            PYTHON_VERSION=3.5                                 ,
-            PYTHON_BINARY=/opt/python/cp35-cp35m/bin/python3.5 ,
-            ]
+      - os: linux
+        dist: xenial
+        services: docker
+        env: >
+          [
+          PYTHON_VERSION=3.7                                 ,
+          PYTHON_BINARY=/opt/python/cp37-cp37m/bin/python3.7 ,
+          ]
 
-        - sudo: required
-          services:
-            - docker
-          env: >
-            [
-            PYTHON_VERSION=3.6                                 ,
-            PYTHON_BINARY=/opt/python/cp36-cp36m/bin/python3.6 ,
-            ]
-
-        - sudo: required
-          services:
-            - docker
-          env: >
-            [
-            PYTHON_VERSION=3.7                                 ,
-            PYTHON_BINARY=/opt/python/cp37-cp37m/bin/python3.7 ,
-            ]
-
-        - sudo: required
-          services:
-            - docker
-          env: >
-            [
-            PYTHON_VERSION=3.8                                 ,
-            PYTHON_BINARY=/opt/python/cp38-cp38/bin/python3.8 ,
-            ]
-
-        # OSX 10.11 - xcode 7.3 - Python 2.7
-        #- os: osx
-        #  osx_image: xcode7.3
-        #  compiler: clang
-        #  env: >
-        #    [
-        #    CXX_COMPILER=clang++ ,
-        #    C_COMPILER=clang     ,
-        #    PYTHON_VERSION=2.7   ,
-        #    ]
+      - services: docker
+        env: >
+          [
+          PYTHON_VERSION=3.8                                 ,
+          PYTHON_BINARY=/opt/python/cp38-cp38/bin/python3.8 ,
+          ]
 
         # OSX 10.12 - xcode 8.3 - Python 3.5
-        - os: osx
-          osx_image: xcode8.3
-          compiler: clang
-          env: >
-            [
-            CXX=clang++ ,
-            CC=clang     ,
-            PYTHON_VERSION=3.5   ,
-            ]
+      - os: osx
+        osx_image: xcode8.3
+        compiler: clang
+        env: >
+          [
+          CXX=clang++ ,
+          CC=clang     ,
+          PYTHON_VERSION=3.5   ,
+          ]
 
 
-        # OSX 10.12 - xcode 8.3 - Python 3.6
-        - os: osx
-          osx_image: xcode8.3
-          compiler: clang
-          env: >
-            [
-            CXX=clang++ ,
-            CC=clang     ,
-            PYTHON_VERSION=3.6   ,
-            ]
+      # OSX 10.12 - xcode 8.3 - Python 3.6
+      - os: osx
+        osx_image: xcode8.3
+        compiler: clang
+        env: >
+          [
+          CXX=clang++ ,
+          CC=clang     ,
+          PYTHON_VERSION=3.6   ,
+          ]
 
 
-        # OSX 10.12 - xcode 10.1 - Python 3.7
-        - os: osx
-          osx_image: xcode10.1
-          compiler: clang
-          env: >
-            [
-            CXX=clang++ ,
-            CC=clang     ,
-            PYTHON_VERSION=3.7   ,
-            ]
+      # OSX 10.12 - xcode 10.1 - Python 3.7
+      - os: osx
+        osx_image: xcode10.1
+        compiler: clang
+        env: >
+          [
+          CXX=clang++ ,
+          CC=clang     ,
+          PYTHON_VERSION=3.7   ,
+          ]
 
-        # OSX 10.12 - xcode 10.1 - Python 3.8
-        - os: osx
-          osx_image: xcode10.1
-          compiler: clang
-          env: >
-            [
-            CXX=clang++ ,
-            CC=clang     ,
-            PYTHON_VERSION=3.8   ,
-            ]
+      # OSX 10.12 - xcode 10.1 - Python 3.8
+      - os: osx
+        osx_image: xcode10.1
+        compiler: clang
+        env: >
+          [
+          CXX=clang++ ,
+          CC=clang     ,
+          PYTHON_VERSION=3.8   ,
+          ]
 
 #branches:
 #  only:
@@ -126,8 +95,6 @@ notifications:
   email:
     on_success: never
     on_failure: always
-
-sudo: required
 
 cache:
   - apt
@@ -155,19 +122,19 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then pyenv install --list  ;fi
 
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "2.7" ]]; then pyenv install 2.7.12; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.5" ]]; then pyenv install 3.5.0; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.6" ]]; then pyenv install 3.6.0; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.7" ]]; then pyenv install 3.7.0; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.8" ]]; then pyenv install 3.8.0; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.5" ]]; then pyenv install --skip-existing 3.5.9; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.6" ]]; then pyenv install --skip-existing 3.6.0; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.7" ]]; then pyenv install --skip-existing 3.7.0; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.8" ]]; then pyenv install --skip-existing 3.8.0; fi
   #- if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.7" ]]; then ls -alR $(pyenv root)/versions/3.7.0a1; fi
 
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "2.7" ]]; then export PYTHON_INCLUDE_DIR=$(pyenv root)/versions/2.7.12/include/python2.7  ;fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "2.7" ]]; then export PYTHON_LIBRARY=$(pyenv root)/versions/2.7.12/lib/libpython2.7.dylib ;fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "2.7" ]]; then export PYTHON_BINARY=$(pyenv root)/versions/2.7.12/bin/python2.7           ;fi
 
-  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.5" ]]; then export PYTHON_INCLUDE_DIR=$(pyenv root)/versions/3.5.0/include/python3.5m ;fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.5" ]]; then export PYTHON_LIBRARY=$(pyenv root)/versions/3.5.0/lib/libpython3.dylib   ;fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.5" ]]; then export PYTHON_BINARY=$(pyenv root)/versions/3.5.0/bin/python3.5           ;fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.5" ]]; then export PYTHON_INCLUDE_DIR=$(pyenv root)/versions/3.5.9/include/python3.5m ;fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.5" ]]; then export PYTHON_LIBRARY=$(pyenv root)/versions/3.5.9/lib/libpython3.dylib   ;fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.5" ]]; then export PYTHON_BINARY=$(pyenv root)/versions/3.5.9/bin/python3.5           ;fi
 
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.6" ]]; then export PYTHON_INCLUDE_DIR=$(pyenv root)/versions/3.6.0/include/python3.6m ;fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$PYTHON_VERSION" == "3.6" ]]; then export PYTHON_LIBRARY=$(pyenv root)/versions/3.6.0/lib/libpython3.dylib   ;fi
@@ -207,13 +174,12 @@ after_success:
 
 deploy:
   provider: releases
-  api_key:
+  token:
     - secure: LTJMZp9kJ9/tmv73YGktP3Bdhh3moettDNooiRlQfUEgUemRlp9K+ybbufN0ya0Md0bouOJ/7nWqFToWl1G5/kcRr4MjV/P2c+iH8W7mvWcFupLGdwm1+aqpin3hiGsdYz0a1TK37y6DANspFwHILjq1SPf5L8kGEHnYSIfyUFHaETbv7GHL+4gf1XG/55KVuyFa3vZ2BPa3sIXr4bRypdNsqssFOZ7qeoJawtcI3TbjmLqx+sOGR2aiG+9lX+/vcYVGECHOE4KdV5BbTFitDLkJ0toAQrgN4XuB6XMXEnijU0RGtpkvsUAYJUuYaNcV2ea4bwLPCKz0IJvzTw3gtyB/pioP4OUx0xY2csuNuGfppZ0Fb+BWhPx9wOg209lrPjtoWszK8vo4PywKlEUviNG+3hEYx9x382IbtbXvIxp+c2iYdRicudFIdjjSZt7fy1MwBvHhWoBRl1hVw5fpFvRIC6Q1/B6MV55Jc3LVYCs+QHPAXq2KJ1KWK/Q7mmlriG3O+dvswcE1l0/AmeqKuXLsgUMuzScYa4fMFvXL3l/B8bKw205ynMzKvbb61P3sGrJJ+AFDEoHDk8yNtSaTowoUveu75DbL1s1p02QjYeVt7AJS8AsqUm7QPcUU5iXW1gSgt50jD/46/uvK7NZCFj2LzkiVzM5JIbiUANx8pKA=
   file_glob: true
   file:
     - ${TRAVIS_BUILD_DIR}/dist/*.whl
     - ${TRAVIS_BUILD_DIR}/build/*.tar.gz
-  skip_cleanup: true
   on:
     #branch: master
     tags: true
