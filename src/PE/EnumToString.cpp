@@ -380,8 +380,8 @@ const char* to_string(RELOCATIONS_BASE_TYPES e) {
     { RELOCATIONS_BASE_TYPES::IMAGE_REL_BASED_THUMB_MOV32,    "REL | ARM_MOV32T | THUMB_MOV32 | RISCV_LOW12I"      },
     { RELOCATIONS_BASE_TYPES::IMAGE_REL_BASED_RISCV_LOW12I,   "REL | ARM_MOV32T | THUMB_MOV32 | RISCV_LOW12I"      },
     { RELOCATIONS_BASE_TYPES::IMAGE_REL_BASED_RISCV_LOW12S,   "RISCV_LOW12S"                                       },
-    { RELOCATIONS_BASE_TYPES::IMAGE_REL_BASED_MIPS_JMPADDR16, "MIPS_JMPADDR16 | IA64_DIR64"                        },
-    { RELOCATIONS_BASE_TYPES::IMAGE_REL_BASED_IA64_IMM64,     "MIPS_JMPADDR16 | IA64_DIR64"                        },
+    { RELOCATIONS_BASE_TYPES::IMAGE_REL_BASED_MIPS_JMPADDR16, "MIPS_JMPADDR16 | IA64_IMM64"                        },
+    { RELOCATIONS_BASE_TYPES::IMAGE_REL_BASED_IA64_IMM64,     "MIPS_JMPADDR16 | IA64_IMM64"                        },
     { RELOCATIONS_BASE_TYPES::IMAGE_REL_BASED_DIR64,          "DIR64"                                              },
     { RELOCATIONS_BASE_TYPES::IMAGE_REL_BASED_HIGH3ADJ,       "HIGH3ADJ"                                           },
   };
@@ -392,24 +392,25 @@ const char* to_string(RELOCATIONS_BASE_TYPES e) {
 
 
 const char* to_string(DEBUG_TYPES e) {
-  CONST_MAP(DEBUG_TYPES, const char*, 17) enumStrings {
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_UNKNOWN,       "UNKNOWN"       },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_COFF,          "COFF"          },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_CODEVIEW,      "CODEVIEW"      },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_FPO,           "FPO"           },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_MISC,          "MISC"          },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_EXCEPTION,     "EXCEPTION"     },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_FIXUP,         "FIXUP"         },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_OMAP_TO_SRC,   "OMAP_TO_SRC"   },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_OMAP_FROM_SRC, "OMAP_FROM_SRC" },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_BORLAND,       "BORLAND"       },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_RESERVED10,    "RESERVED"      },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_CLSID,         "CLSID"         },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_VC_FEATURE,    "VC_FEATURE"    },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_POGO,          "POGO"          },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_ILTCG,         "ILTCG"         },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_MPX,           "MPX"           },
-    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_REPRO,         "REPRO"         },
+  CONST_MAP(DEBUG_TYPES, const char*, 18) enumStrings {
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_UNKNOWN,               "UNKNOWN"               },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_COFF,                  "COFF"                  },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_CODEVIEW,              "CODEVIEW"              },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_FPO,                   "FPO"                   },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_MISC,                  "MISC"                  },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_EXCEPTION,             "EXCEPTION"             },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_FIXUP,                 "FIXUP"                 },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_OMAP_TO_SRC,           "OMAP_TO_SRC"           },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_OMAP_FROM_SRC,         "OMAP_FROM_SRC"         },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_BORLAND,               "BORLAND"               },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_RESERVED10,            "RESERVED"              },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_CLSID,                 "CLSID"                 },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_VC_FEATURE,            "VC_FEATURE"            },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_POGO,                  "POGO"                  },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_ILTCG,                 "ILTCG"                 },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_MPX,                   "MPX"                   },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_REPRO,                 "REPRO"                 },
+    { DEBUG_TYPES::IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS, "EX_DLLCHARACTERISTICS" },
   };
 
   auto   it  = enumStrings.find(e);

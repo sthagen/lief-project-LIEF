@@ -1,5 +1,6 @@
 /* Copyright 2017 R. Thomas
  * Copyright 2017 Quarkslab
+ * Copyright 2020 K. Nakagawa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#include "LIEF/logging++.hpp"
 
 #include "LIEF/PE/json.hpp"
 #include "LIEF/hash.hpp"
@@ -148,6 +151,16 @@ void JsonVisitor::visit(const Binary& binary) {
     this->node_["signature"] = visitor.get();
   }
 
+  std::vector<json> symbols;
+  for (const Symbol& symbol : binary.symbols()) {
+    JsonVisitor visitor;
+    visitor(symbol);
+    symbols.emplace_back(visitor.get());
+  }
+  if (!symbols.empty()) {
+    this->node_["symbols"] = symbols;
+  }
+
   // Load Configuration
   if (binary.has_configuration()) {
     JsonVisitor visitor;
@@ -272,6 +285,7 @@ void JsonVisitor::visit(const Section& section) {
   this->node_["pointerto_line_numbers"] = section.pointerto_line_numbers();
   this->node_["numberof_relocations"]   = section.numberof_relocations();
   this->node_["numberof_line_numbers"]  = section.numberof_line_numbers();
+  this->node_["entropy"]                = section.entropy();
   this->node_["characteristics"]        = characteristics;
   this->node_["types"]                  = types;
 }
@@ -429,6 +443,14 @@ void JsonVisitor::visit(const ImportEntry& import_entry) {
   this->node_["hint"]        = import_entry.hint();
 }
 
+void JsonVisitor::visit(const ResourceData& resource_data) {
+  this->node_["code_page"] = resource_data.code_page();
+  this->node_["reserved"]  = resource_data.reserved();
+  this->node_["offset"]    = resource_data.offset();
+  this->node_["hash"]      = Hash::hash(resource_data.content());
+
+}
+
 void JsonVisitor::visit(const ResourceNode& resource_node) {
   this->node_["id"] = resource_node.id();
 
@@ -449,51 +471,92 @@ void JsonVisitor::visit(const ResourceNode& resource_node) {
 
 }
 
-void JsonVisitor::visit(const ResourceData& resource_data) {
-  this->node_["code_page"] = resource_data.code_page();
-  this->node_["hash"]      = Hash::hash(resource_data.content());
-
-}
-
 void JsonVisitor::visit(const ResourceDirectory& resource_directory) {
+  this->node_["id"] = resource_directory.id();
+
+  if (resource_directory.has_name()) {
+    this->node_["name"] = u16tou8(resource_directory.name());
+  }
+
   this->node_["characteristics"]       = resource_directory.characteristics();
   this->node_["time_date_stamp"]       = resource_directory.time_date_stamp();
   this->node_["major_version"]         = resource_directory.major_version();
   this->node_["minor_version"]         = resource_directory.minor_version();
   this->node_["numberof_name_entries"] = resource_directory.numberof_name_entries();
   this->node_["numberof_id_entries"]   = resource_directory.numberof_id_entries();
+
+  if (resource_directory.childs().size() > 0) {
+    std::vector<json> childs;
+    for (const ResourceNode& rsrc : resource_directory.childs()) {
+      JsonVisitor visitor;
+      rsrc.accept(visitor);
+      childs.emplace_back(visitor.get());
+    }
+
+    this->node_["childs"] = childs;
+  }
 }
 
 
 void JsonVisitor::visit(const ResourcesManager& resources_manager) {
   if (resources_manager.has_manifest()) {
-    this->node_["manifest"] = resources_manager.manifest();
+    try {
+      this->node_["manifest"] = resources_manager.manifest();
+    } catch (const LIEF::exception& e) {
+      LOG(WARNING) << e.what();
+    }
   }
 
   if (resources_manager.has_version()) {
     JsonVisitor version_visitor;
-    version_visitor(resources_manager.version());
-    this->node_["version"] = version_visitor.get();
+    try {
+      version_visitor(resources_manager.version());
+      this->node_["version"] = version_visitor.get();
+    } catch (const LIEF::exception& e) {
+      LOG(WARNING) << e.what();
+    }
   }
 
   if (resources_manager.has_icons()) {
     std::vector<json> icons;
-    for (const ResourceIcon& icon : resources_manager.icons()) {
-      JsonVisitor icon_visitor;
-      icon_visitor(icon);
-      icons.emplace_back(icon_visitor.get());
+    try {
+      for (const ResourceIcon& icon : resources_manager.icons()) {
+        JsonVisitor icon_visitor;
+        icon_visitor(icon);
+        icons.emplace_back(icon_visitor.get());
+      }
+      this->node_["icons"] = icons;
+    } catch (const LIEF::exception& e) {
+      LOG(WARNING) << e.what();
     }
-    this->node_["icons"] = icons;
   }
 
   if (resources_manager.has_dialogs()) {
     std::vector<json> dialogs;
-    for (const ResourceDialog& dialog : resources_manager.dialogs()) {
-      JsonVisitor dialog_visitor;
-      dialog_visitor(dialog);
-      dialogs.emplace_back(dialog_visitor.get());
+    try {
+      for (const ResourceDialog& dialog : resources_manager.dialogs()) {
+        JsonVisitor dialog_visitor;
+        dialog_visitor(dialog);
+        dialogs.emplace_back(dialog_visitor.get());
+      }
+      this->node_["dialogs"] = dialogs;
+    } catch (const LIEF::exception& e) {
+      LOG(WARNING) << e.what();
     }
-    this->node_["dialogs"] = dialogs;
+  }
+
+  if (resources_manager.has_string_table()) {
+    std::vector<json> string_table_json;
+    try {
+      for (const ResourceStringTable& string_table : resources_manager.string_table()) {
+        JsonVisitor string_table_visitor;
+        string_table_visitor(string_table);
+        string_table_json.emplace_back(string_table_visitor.get());
+        this->node_["string_table"] = string_table_json;
+      }
+    } catch (const LIEF::exception& e) {
+      LOG(WARNING) << e.what();
+    }
   }
 }
 
@@ -633,6 +696,11 @@ void JsonVisitor::visit(const ResourceDialogItem& dialog_item) {
     this->node_["help_id"] = dialog_item.help_id();
   }
 
+}
+
+void JsonVisitor::visit(const ResourceStringTable& string_table) {
+  this->node_["length"] = string_table.length();
+  this->node_["name"] = u16tou8(string_table.name());
 }
 
 void JsonVisitor::visit(const Signature& signature) {
@@ -788,6 +856,7 @@ void JsonVisitor::visit(const Pogo& pogo) {
     v(entry);
     entries.emplace_back(v.get());
   }
+  this->node_["entries"] = entries;
 }
 
 void JsonVisitor::visit(const PogoEntry& entry) {
