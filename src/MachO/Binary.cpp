@@ -1520,6 +1520,16 @@ SegmentCommand* Binary::get_segment(const std::string& name) {
   return const_cast<SegmentCommand*>(static_cast<const Binary*>(this)->get_segment(name));
 }
 
+uint64_t Binary::virtual_size(void) const {
+  uint64_t virtual_size = 0;
+  for (const LIEF::MachO::SegmentCommand& segment : this->segments()) {
+    virtual_size = std::max(virtual_size, segment.virtual_address() + segment.virtual_size());
+  }
+  virtual_size -= this->imagebase();
+  virtual_size = align(virtual_size, static_cast<uint64_t>(getpagesize()));
+  return virtual_size;
+}
+
 uint64_t Binary::imagebase(void) const {
   it_const_segments segments = this->segments();
   auto&& it_text_segment = std::find_if(
@@ -1925,15 +1935,36 @@ const DynamicSymbolCommand& Binary::dynamic_symbol_command(void) const {
 // CodeSignature command
 // +++++++++++++++++++++
 bool Binary::has_code_signature(void) const {
-  return this->has_command<CodeSignature>();
+  return this->has(LOAD_COMMAND_TYPES::LC_CODE_SIGNATURE);
 }
 
 CodeSignature& Binary::code_signature(void) {
-  return this->command<CodeSignature>();
+  return const_cast<CodeSignature&>(static_cast<const Binary*>(this)->code_signature());
 }
 
 const CodeSignature& Binary::code_signature(void) const {
-  return this->command<CodeSignature>();
+  if (not this->has_code_signature()) {
+    throw not_found("Code signature not found!");
+  }
+  return reinterpret_cast<const CodeSignature&>(this->get(LOAD_COMMAND_TYPES::LC_CODE_SIGNATURE));
+}
+
+
+// CodeSignatureDir command
+// ++++++++++++++++++++++++
+bool Binary::has_code_signature_dir(void) const {
+  return this->has(LOAD_COMMAND_TYPES::LC_DYLIB_CODE_SIGN_DRS);
+}
+
+CodeSignature& Binary::code_signature_dir(void) {
+  return const_cast<CodeSignature&>(static_cast<const Binary*>(this)->code_signature_dir());
+}
+
+const CodeSignature& Binary::code_signature_dir(void) const {
+  if (not this->has_code_signature_dir()) {
+    throw not_found("Code signature dir not found!");
+  }
+  return reinterpret_cast<const CodeSignature&>(this->get(LOAD_COMMAND_TYPES::LC_DYLIB_CODE_SIGN_DRS));
 }
 
 

@@ -96,8 +96,11 @@ void create<Binary>(py::module& m) {
     .def_property_readonly("imagebase",
         &Binary::imagebase,
         "Return binary's ``image base`` which is the base address\
-        where segments are mapped (without PIE). ``0`` if not relevant.",
-        py::return_value_policy::reference_internal)
+        where segments are mapped (without PIE). ``0`` if not relevant.")
+
+    .def_property_readonly("virtual_size",
+        &Binary::virtual_size,
+        "Binary's memory size when mapped")
 
     .def_property_readonly("fat_offset",
         &Binary::fat_offset,
@@ -247,6 +250,17 @@ void create<Binary>(py::module& m) {
 
     .def_property_readonly("code_signature",
         static_cast<no_const_getter<CodeSignature&>>(&Binary::code_signature),
+        "Return binary's " RST_CLASS_REF(lief.MachO.CodeSignature) " if any.",
+        py::return_value_policy::reference)
+
+    .def_property_readonly("has_code_signature_dir",
+        &Binary::has_code_signature_dir,
+        "``True`` if the binary is signed (i.e. has a " RST_CLASS_REF(lief.MachO.CodeSignature) " command) "
+        "with the command LC_DYLIB_CODE_SIGN_DRS",
+        py::return_value_policy::reference_internal)
+
+    .def_property_readonly("code_signature_dir",
+        static_cast<no_const_getter<CodeSignature&>>(&Binary::code_signature_dir),
         "Return binary's " RST_CLASS_REF(lief.MachO.CodeSignature) " if any.",
         py::return_value_policy::reference)
 

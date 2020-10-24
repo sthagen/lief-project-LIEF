@@ -18,6 +18,7 @@
 #include <numeric>
 #include <sstream>
 #include <map>
+#include <cctype>
 
 #include "LIEF/DWARF/enums.hpp"
 
@@ -1356,6 +1357,12 @@ Section& Binary::extend(const Section& section, uint64_t size) {
   this->shift_symbols(from_address, shift);
   this->shift_relocations(from_address, shift);
 
+  if (this->type() == ELF_CLASS::ELFCLASS32) {
+    this->fix_got_entries<ELF32>(from_address, shift);
+  } else {
+    this->fix_got_entries<ELF64>(from_address, shift);
+  }
+
 
   if (this->header().entrypoint() >= from_address) {
     this->header().entrypoint(this->header().entrypoint() + shift);
@@ -2373,9 +2380,10 @@ LIEF::Binary::functions_t Binary::eh_frame_functions(void) const {
     return functions;
   }
 
-  uint64_t eh_frame_addr = this->get(SEGMENT_TYPES::PT_GNU_EH_FRAME).virtual_address();
+  const uint64_t eh_frame_addr = this->get(SEGMENT_TYPES::PT_GNU_EH_FRAME).virtual_address();
+  const uint64_t eh_frame_rva  = eh_frame_addr - this->imagebase();
   uint64_t eh_frame_off  = this->virtual_address_to_offset(eh_frame_addr);
-  auto&& it_load_segment = std::find_if(
+  auto it_load_segment = std::find_if(
       std::begin(this->segments_),
       std::end(this->segments_),
       [eh_frame_addr] (const Segment* s) {
@@ -2445,7 +2453,7 @@ LIEF::Binary::functions_t Binary::eh_frame_functions(void) const {
     switch (table_bias) {
       case DWARF::EH_ENCODING::PCREL:
         {
-          bias = (eh_frame_addr + vs.pos());
+          bias = (eh_frame_rva + vs.pos());
           break;
         }
 
@@ -2457,7 +2465,7 @@ LIEF::Binary::functions_t Binary::eh_frame_functions(void) const {
 
       case DWARF::EH_ENCODING::DATAREL:
         {
-          bias = eh_frame_addr;
+          bias = eh_frame_rva;
           break;
         }
 
@@ -2486,11 +2494,10 @@ LIEF::Binary::functions_t Binary::eh_frame_functions(void) const {
     VLOG(VDEBUG) << "Address: "          << address;
     VLOG(VDEBUG) << "Bias: "             << std::hex << bias;
     const size_t saved_pos = vs.pos();
-
+    VLOG(VDEBUG) << "Go to " << std::hex << eh_frame_off + address - bias;
     // Go to the FDE structure
     vs.setpos(eh_frame_off + address - bias);
     {
-
       // Beginning of the FDE structure (to continue)
       uint64_t fde_length  = vs.read<uint32_t>();
       fde_length = fde_length == static_cast<uint32_t>(-1) ? vs.read<uint64_t>() : fde_length;
@@ -2539,6 +2546,7 @@ LIEF::Binary::functions_t Binary::eh_frame_functions(void) const {
         VLOG(VDEBUG) << "Version: " << version;
 
         std::string cie_augmentation_string = vs.read_string();
+        VLOG(VDEBUG) << "CIE Augmentation " << cie_augmentation_string;
         if (cie_augmentation_string.find("eh") != std::string::npos) {
           if (is64) {
             /* uint64_t eh_data = */ vs.read<uint64_t>();
@@ -2568,11 +2576,11 @@ LIEF::Binary::functions_t Binary::eh_frame_functions(void) const {
 
       // Go back to FDE Structure
       vs.setpos(saved_pos);
-      int32_t function_begin = eh_frame_addr + vs.pos() + vs.read_dwarf_encoded(augmentation_data);
+      int32_t function_begin = eh_frame_rva + vs.pos() + vs.read_dwarf_encoded(augmentation_data);
       int32_t size           = vs.read_dwarf_encoded(augmentation_data);
 
       // Create the function
-      Function f{static_cast<uint64_t>(initial_location)};
+      Function f{static_cast<uint64_t>(initial_location + this->imagebase())};
       f.size(size);
       functions.push_back(std::move(f));
       VLOG(VDEBUG) << "PC BEGIN/SIZE: " << std::hex << function_begin << " : " << size  << std::endl;

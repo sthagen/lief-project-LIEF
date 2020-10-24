@@ -349,6 +349,9 @@ class LIEF_API Binary : public LIEF::Binary {
   //! @return The segment added. `Virtual address` and `File Offset` may have changed
   Segment& add(const Segment& segment, uint64_t base = 0);
 
+  //! Replace the segment given in 2nd parameter with the segment given in the first one and return the updated segment.
+  //!
+  //! @warning .The ``original_segment`` is no longer valid after this function
   Segment& replace(const Segment& new_segment, const Segment& original_segment, uint64_t base = 0);
 
   Segment& extend(const Segment& segment, uint64_t size);
@@ -558,6 +561,9 @@ class LIEF_API Binary : public LIEF::Binary {
   void shift_dynamic_entries(uint64_t from, uint64_t shift);
   void shift_symbols(uint64_t from, uint64_t shift);
   void shift_relocations(uint64_t from, uint64_t shift);
+
+  template<class ELF_T>
+  void fix_got_entries(uint64_t from, uint64_t shift);
 
   LIEF::Binary::functions_t eh_frame_functions(void) const;
   LIEF::Binary::functions_t armexid_functions(void) const;

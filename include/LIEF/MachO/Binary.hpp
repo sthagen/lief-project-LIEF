@@ -181,6 +181,9 @@ class LIEF_API Binary : public LIEF::Binary  {
   //! Return binary's imagebase. ``0`` if not relevant
   uint64_t imagebase(void) const;
 
+  //! Size of the binary in memory when mapped
+  uint64_t virtual_size(void) const;
+
   //! Return binary's loader (e.g. ``/usr/lib/dyld``)
   const std::string& loader(void) const;
 
@@ -379,12 +382,19 @@ class LIEF_API Binary : public LIEF::Binary  {
   DynamicSymbolCommand&       dynamic_symbol_command(void);
   const DynamicSymbolCommand& dynamic_symbol_command(void) const;
 
-  //! ``true`` if the binary is signed.
+  //! ``true`` if the binary is signed with `LC_CODE_SIGNATURE` command
   bool has_code_signature(void) const;
 
-  //! Return the MachO::Signature
+  //! Return the MachO::CodeSignature
   CodeSignature&       code_signature(void);
   const CodeSignature& code_signature(void) const;
+
+  //! ``true`` if the binary is signed with the command `DYLIB_CODE_SIGN_DRS`
+  bool has_code_signature_dir(void) const;
+
+  //! Return the MachO::CodeSignature
+  CodeSignature&       code_signature_dir(void);
+  const CodeSignature& code_signature_dir(void) const;
 
   //! ``true`` if the binaryhas a MachO::DataInCode command.
   bool has_data_in_code(void) const;
