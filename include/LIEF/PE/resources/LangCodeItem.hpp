@@ -18,7 +18,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include <map>
+#include <unordered_map>
 
 #include "LIEF/visibility.h"
 
@@ -31,46 +31,47 @@ namespace PE {
 
 class ResourcesManager;
 
-//! @brief It's basically a map of key/value
+//! It's basically a map of key/value
 //!
 //! @see LIEF::PE::ResourceStringFileInfo
 //!
-//! see: https://msdn.microsoft.com/fr-fr/library/windows/desktop/ms646992(v=vs.85).aspx
+//! see: https://docs.microsoft.com/en-us/windows/win32/menurc/stringtable
 class LIEF_API LangCodeItem : public Object {
 
   friend class ResourcesManager;
 
   public:
+  using items_t = std::unordered_map<std::u16string, std::u16string>;
   LangCodeItem(void);
 
   LangCodeItem(const LangCodeItem&);
   LangCodeItem& operator=(const LangCodeItem&);
   virtual ~LangCodeItem(void);
 
-  //! @brief The type of data in the version resource
+  //! The type of data in the version resource
   //! * ``1`` if it contains text data
   //! * ``0`` if it contains binary data
   uint16_t type(void) const;
 
-  //! @brief A 8-digit hexadecimal number stored as an Unicode string.
+  //! A 8-digit hexadecimal number stored as an Unicode string.
   //! * The four most significant digits represent the language identifier.
   //! * The four least significant digits represent the code page for which the data is formatted.
   //!
   //! @see LangCodeItem::code_page, LangCodeItem::lang, LangCodeItem::sublang
   const std::u16string& key(void) const;
 
-  //! @brief @link https://msdn.microsoft.com/en-us/library/windows/desktop/dd317756(v=vs.85).aspx Code page @endlink
-  //! for which @link LangCodeItem::items items @endlink are defined
+  //! [Code page](https://docs.microsoft.com/en-us/windows/win32/intl/code-page-identifiers)
+  //! for which LangCodeItem::items are defined
   CODE_PAGES code_page(void) const;
 
-  //! @brief Lang for which @link LangCodeItem::items items @endlink are defined
+  //! Lang for which LangCodeItem::items are defined
   RESOURCE_LANGS lang(void) const;
 
-  //! @brief Sublang for which @link LangCodeItem::items items @endlink are defined
+  //! Sublang for which LangCodeItem::items are defined
   RESOURCE_SUBLANGS sublang(void) const;
 
-  const std::map<std::u16string, std::u16string>& items(void) const;
-  std::map<std::u16string, std::u16string>&       items(void);
+  const items_t& items(void) const;
+  items_t&       items(void);
 
   void type(uint16_t type);
   void key(const std::u16string& key);
@@ -80,7 +81,7 @@ class LIEF_API LangCodeItem : public Object {
   void lang(RESOURCE_LANGS lang);
   void sublang(RESOURCE_SUBLANGS lang);
 
-  void items(const std::map<std::u16string, std::u16string>& items);
+  void items(const items_t& items);
 
 
   virtual void accept(Visitor& visitor) const override;
@@ -93,8 +94,7 @@ class LIEF_API LangCodeItem : public Object {
   private:
   uint16_t       type_;
   std::u16string key_;
-  std::map<std::u16string, std::u16string> items_;
-
+  items_t        items_;
 };
 
 

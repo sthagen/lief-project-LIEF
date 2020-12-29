@@ -24,30 +24,7 @@
 #include "LIEF/Abstract/Binary.hpp"
 
 #include "LIEF/MachO/type_traits.hpp"
-#include "LIEF/MachO/Structures.hpp"
 #include "LIEF/MachO/Header.hpp"
-#include "LIEF/MachO/LoadCommand.hpp"
-#include "LIEF/MachO/SegmentCommand.hpp"
-#include "LIEF/MachO/DylibCommand.hpp"
-#include "LIEF/MachO/DylinkerCommand.hpp"
-#include "LIEF/MachO/UUIDCommand.hpp"
-#include "LIEF/MachO/Symbol.hpp"
-#include "LIEF/MachO/SymbolCommand.hpp"
-#include "LIEF/MachO/MainCommand.hpp"
-#include "LIEF/MachO/DynamicSymbolCommand.hpp"
-#include "LIEF/MachO/DyldInfo.hpp"
-#include "LIEF/MachO/FunctionStarts.hpp"
-#include "LIEF/MachO/SourceVersion.hpp"
-#include "LIEF/MachO/VersionMin.hpp"
-#include "LIEF/MachO/ThreadCommand.hpp"
-#include "LIEF/MachO/RPathCommand.hpp"
-#include "LIEF/MachO/CodeSignature.hpp"
-#include "LIEF/MachO/DataInCode.hpp"
-#include "LIEF/MachO/SegmentSplitInfo.hpp"
-#include "LIEF/MachO/SubFramework.hpp"
-#include "LIEF/MachO/DyldEnvironment.hpp"
-#include "LIEF/MachO/EncryptionInfo.hpp"
-#include "LIEF/MachO/BuildVersion.hpp"
 
 namespace LIEF {
 namespace MachO {
@@ -55,6 +32,28 @@ namespace MachO {
 class BinaryParser;
 class Builder;
 class DyldInfo;
+class BuildVersion;
+class EncryptionInfo;
+class DyldEnvironment;
+class SubFramework;
+class SegmentSplitInfo;
+class DataInCode;
+class CodeSignature;
+class RPathCommand;
+class ThreadCommand;
+class VersionMin;
+class SourceVersion;
+class FunctionStarts;
+class DynamicSymbolCommand;
+class MainCommand;
+class SymbolCommand;
+class Symbol;
+class UUIDCommand;
+class DylinkerCommand;
+class DylibCommand;
+class SegmentCommand;
+class LoadCommand;
+class Header;
 
 //! Class which represent a MachO binary
 class LIEF_API Binary : public LIEF::Binary  {
@@ -277,14 +276,15 @@ class LIEF_API Binary : public LIEF::Binary  {
   //!
   //! @param[in] address Address to patch
   //! @param[in] patch_value Patch to apply
+  //! @param[in] addr_type Specify if the address should be used as an absolute virtual address or an RVA
   virtual void patch_address(uint64_t address, const std::vector<uint8_t>& patch_value, LIEF::Binary::VA_TYPES addr_type = LIEF::Binary::VA_TYPES::AUTO) override;
-
 
   //! Patch the address with the given value
   //!
   //! @param[in] address Address to patch
   //! @param[in] patch_value Patch to apply
   //! @param[in] size Size of the value in **bytes** (1, 2, ... 8)
+  //! @param[in] addr_type Specify if the address should be used as an absolute virtual address or an RVA
   virtual void patch_address(uint64_t address, uint64_t patch_value, size_t size = sizeof(uint64_t), LIEF::Binary::VA_TYPES addr_type = LIEF::Binary::VA_TYPES::AUTO) override;
 
   //! Return the content located at virtual address

@@ -36,7 +36,7 @@ template<>
 void create<LangCodeItem>(py::module& m) {
   py::class_<LangCodeItem, LIEF::Object>(m, "LangCodeItem",
       "Class which modelize the childs of the " RST_CLASS_REF(lief.PE.ResourceStringFileInfo) "\n\n"
-      "See: https://msdn.microsoft.com/fr-fr/library/windows/desktop/ms646992(v=vs.85).aspx")
+      "See: https://docs.microsoft.com/en-us/windows/win32/menurc/stringtable")
 
     .def_property("type",
         static_cast<getter_t<uint16_t>>(&LangCodeItem::type),
@@ -74,8 +74,14 @@ void create<LangCodeItem>(py::module& m) {
         "" RST_CLASS_REF(lief.PE.CODE_PAGES) " for which :attr:`~lief.PE.LangCodeItem.items` are defined")
 
     .def_property("items",
-        static_cast<std::map<std::u16string, std::u16string>& (LangCodeItem::*)(void)>(&LangCodeItem::items),
-        static_cast<setter_t<const std::map<std::u16string, std::u16string>&>>(&LangCodeItem::items))
+        [] (const LangCodeItem& item) -> py::dict {
+          py::dict output;
+          for (const auto& p : item.items()) {
+            output[u16tou8(p.first).c_str()] = py::bytes(u16tou8(p.second));
+          }
+          return output;
+        },
+        static_cast<setter_t<const LangCodeItem::items_t&>>(&LangCodeItem::items))
 
 
     .def("__eq__", &LangCodeItem::operator==)

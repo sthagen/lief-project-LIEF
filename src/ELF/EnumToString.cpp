@@ -60,7 +60,7 @@ const char* to_string(VERSION e) {
 
 
 const char* to_string(ARCH e) {
-  CONST_MAP(ARCH, const char*, 175) enumStrings {
+  CONST_MAP(ARCH, const char*, 176) enumStrings {
     { ARCH::EM_NONE,          "None" },
     { ARCH::EM_M32,           "M32"},
     { ARCH::EM_SPARC,         "SPARC"},
@@ -235,7 +235,8 @@ const char* to_string(ARCH e) {
     { ARCH::EM_COOL,          "COOL"},
     { ARCH::EM_NORC,          "NORC"},
     { ARCH::EM_CSR_KALIMBA,   "CSR_KALIMBA"},
-    { ARCH::EM_AMDGPU,        "AMDGPU"}
+    { ARCH::EM_AMDGPU,        "AMDGPU"},
+    { ARCH::EM_BPF,           "BPF"}
   };
   auto   it  = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
@@ -274,7 +275,7 @@ const char* to_string(SEGMENT_TYPES e) {
 }
 
 const char* to_string(DYNAMIC_TAGS e) {
-  CONST_MAP(DYNAMIC_TAGS, const char*, 87) enumStrings {
+  CONST_MAP(DYNAMIC_TAGS, const char*, 97) enumStrings {
     { DYNAMIC_TAGS::DT_NULL,                       "NULL"},
     { DYNAMIC_TAGS::DT_NEEDED,                     "NEEDED"},
     { DYNAMIC_TAGS::DT_PLTRELSZ,                   "PLTRELSZ"},
@@ -362,7 +363,17 @@ const char* to_string(DYNAMIC_TAGS e) {
     { DYNAMIC_TAGS::DT_MIPS_GP_VALUE,              "MIPS_GP_VALUE"},
     { DYNAMIC_TAGS::DT_MIPS_AUX_DYNAMIC,           "MIPS_AUX_DYNAMIC"},
     { DYNAMIC_TAGS::DT_MIPS_PLTGOT,                "MIPS_PLTGOT"},
-    { DYNAMIC_TAGS::DT_MIPS_RWPLT,                 "MIPS_RWPLT"}
+    { DYNAMIC_TAGS::DT_MIPS_RWPLT,                 "MIPS_RWPLT"},
+    { DYNAMIC_TAGS::DT_ANDROID_REL_OFFSET,         "ANDROID_REL_OFFSET"},
+    { DYNAMIC_TAGS::DT_ANDROID_REL_SIZE,           "ANDROID_REL_SIZE"},
+    { DYNAMIC_TAGS::DT_ANDROID_REL,                "ANDROID_REL"},
+    { DYNAMIC_TAGS::DT_ANDROID_RELSZ,              "ANDROID_RELSZ"},
+    { DYNAMIC_TAGS::DT_ANDROID_RELA,               "ANDROID_RELA"},
+    { DYNAMIC_TAGS::DT_ANDROID_RELASZ,             "ANDROID_RELASZ"},
+    { DYNAMIC_TAGS::DT_RELR,                       "RELR"},
+    { DYNAMIC_TAGS::DT_RELRSZ,                     "RELRSZ"},
+    { DYNAMIC_TAGS::DT_RELRENT,                    "RELRENT"},
+    { DYNAMIC_TAGS::DT_RELRCOUNT,                  "RELRCOUNT"}
   };
   auto   it  = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
@@ -370,7 +381,7 @@ const char* to_string(DYNAMIC_TAGS e) {
 
 
 const char* to_string(ELF_SECTION_TYPES e) {
-  CONST_MAP(ELF_SECTION_TYPES, const char*, 35) enumStrings {
+  CONST_MAP(ELF_SECTION_TYPES, const char*, 39) enumStrings {
     { ELF_SECTION_TYPES::SHT_NULL,               "NULL"},
     { ELF_SECTION_TYPES::SHT_PROGBITS,           "PROGBITS"},
     { ELF_SECTION_TYPES::SHT_SYMTAB,             "SYMTAB"},
@@ -389,6 +400,10 @@ const char* to_string(ELF_SECTION_TYPES e) {
     { ELF_SECTION_TYPES::SHT_GROUP,              "GROUP"},
     { ELF_SECTION_TYPES::SHT_SYMTAB_SHNDX,       "SYMTAB_SHNDX"},
     { ELF_SECTION_TYPES::SHT_LOOS,               "LOOS"},
+    { ELF_SECTION_TYPES::SHT_ANDROID_REL,        "ANDROID_REL"},
+    { ELF_SECTION_TYPES::SHT_ANDROID_RELA,       "ANDROID_RELA"},
+    { ELF_SECTION_TYPES::SHT_LLVM_ADDRSIG,       "LLVM_ADDRSIG"},
+    { ELF_SECTION_TYPES::SHT_RELR,               "RELR"},
     { ELF_SECTION_TYPES::SHT_GNU_ATTRIBUTES,     "GNU_ATTRIBUTES"},
     { ELF_SECTION_TYPES::SHT_GNU_HASH,           "GNU_HASH"},
     { ELF_SECTION_TYPES::SHT_GNU_verdef,         "GNU_VERDEF"},
@@ -988,6 +1003,125 @@ const char* to_string(RELOC_POWERPC64 e) {
   { RELOC_POWERPC64::R_PPC64_REL16_LO,            "REL16_LO" },
   { RELOC_POWERPC64::R_PPC64_REL16_HI,            "REL16_HI" },
   { RELOC_POWERPC64::R_PPC64_REL16_HA,            "REL16_HA" },
+  };
+  auto   it  = enumStrings.find(e);
+  return it == enumStrings.end() ? "UNDEFINED" : it->second;
+}
+
+const char* to_string(RELOC_MIPS e) {
+  CONST_MAP(RELOC_MIPS, const char*, 111) enumStrings {
+    {  RELOC_MIPS::R_MICROMIPS_26_S1,           "MIRCRO_MIPS_26_S1" },
+    {  RELOC_MIPS::R_MICROMIPS_CALL16,          "MIRCRO_MIPS_CALL16" },
+    {  RELOC_MIPS::R_MICROMIPS_CALL_HI16,       "MIRCRO_MIPS_CALL_HI16" },
+    {  RELOC_MIPS::R_MICROMIPS_CALL_LO16,       "MIRCRO_MIPS_CALL_LO16" },
+    {  RELOC_MIPS::R_MICROMIPS_GOT16,           "MIRCRO_MIPS_GOT16" },
+    {  RELOC_MIPS::R_MICROMIPS_GOT_DISP,        "MIRCRO_MIPS_GOT_DISP" },
+    {  RELOC_MIPS::R_MICROMIPS_GOT_HI16,        "MIRCRO_MIPS_GOT_HI16" },
+    {  RELOC_MIPS::R_MICROMIPS_GOT_LO16,        "MIRCRO_MIPS_GOT_LO16" },
+    {  RELOC_MIPS::R_MICROMIPS_GOT_OFST,        "MIRCRO_MIPS_GOT_OFST" },
+    {  RELOC_MIPS::R_MICROMIPS_GOT_PAGE,        "MIRCRO_MIPS_GOT_PAGE" },
+    {  RELOC_MIPS::R_MICROMIPS_GPREL16,         "MIRCRO_MIPS_GPREL16" },
+    {  RELOC_MIPS::R_MICROMIPS_GPREL7_S2,       "MIRCRO_MIPS_GPREL7_S2" },
+    {  RELOC_MIPS::R_MICROMIPS_HI0_LO16,        "MIRCRO_MIPS_HI0_LO16" },
+    {  RELOC_MIPS::R_MICROMIPS_HI16,            "MIRCRO_MIPS_HI16" },
+    {  RELOC_MIPS::R_MICROMIPS_HIGHER,          "MIRCRO_MIPS_HIGHER" },
+    {  RELOC_MIPS::R_MICROMIPS_HIGHEST,         "MIRCRO_MIPS_HIGHEST" },
+    {  RELOC_MIPS::R_MICROMIPS_JALR,            "MIRCRO_MIPS_JALR" },
+    {  RELOC_MIPS::R_MICROMIPS_LITERAL,         "MIRCRO_MIPS_LITERAL" },
+    {  RELOC_MIPS::R_MICROMIPS_LO16,            "MIRCRO_MIPS_LO16" },
+    {  RELOC_MIPS::R_MICROMIPS_PC10_S1,         "MIRCRO_MIPS_PC10_S1" },
+    {  RELOC_MIPS::R_MICROMIPS_PC16_S1,         "MIRCRO_MIPS_PC16_S1" },
+    {  RELOC_MIPS::R_MICROMIPS_PC18_S3,         "MIRCRO_MIPS_PC18_S3" },
+    {  RELOC_MIPS::R_MICROMIPS_PC19_S2,         "MIRCRO_MIPS_PC19_S2" },
+    {  RELOC_MIPS::R_MICROMIPS_PC21_S2,         "MIRCRO_MIPS_PC21_S2" },
+    {  RELOC_MIPS::R_MICROMIPS_PC23_S2,         "MIRCRO_MIPS_PC23_S2" },
+    {  RELOC_MIPS::R_MICROMIPS_PC26_S2,         "MIRCRO_MIPS_PC26_S2" },
+    {  RELOC_MIPS::R_MICROMIPS_PC7_S1,          "MIRCRO_MIPS_PC7_S1" },
+    {  RELOC_MIPS::R_MICROMIPS_SCN_DISP,        "MIRCRO_MIPS_SCN_DISP" },
+    {  RELOC_MIPS::R_MICROMIPS_SUB,             "MIRCRO_MIPS_SUB" },
+    {  RELOC_MIPS::R_MICROMIPS_TLS_DTPREL_HI16, "MIRCRO_MIPS_TLS_DTPREL_HI16" },
+    {  RELOC_MIPS::R_MICROMIPS_TLS_DTPREL_LO16, "MIRCRO_MIPS_TLS_DTPREL_LO16" },
+    {  RELOC_MIPS::R_MICROMIPS_TLS_GD,          "MIRCRO_MIPS_TLS_GD" },
+    {  RELOC_MIPS::R_MICROMIPS_TLS_GOTTPREL,    "MIRCRO_MIPS_TLS_GOTTPREL" },
+    {  RELOC_MIPS::R_MICROMIPS_TLS_LDM,         "MIRCRO_MIPS_TLS_LDM" },
+    {  RELOC_MIPS::R_MICROMIPS_TLS_TPREL_HI16,  "MIRCRO_MIPS_TLS_TPREL_HI16" },
+    {  RELOC_MIPS::R_MICROMIPS_TLS_TPREL_LO16,  "MIRCRO_MIPS_TLS_TPREL_LO16" },
+    {  RELOC_MIPS::R_MIPS_16,                   "MIPS16_16"},
+    {  RELOC_MIPS::R_MIPS16_26,                 "MIPS16_26" },
+    {  RELOC_MIPS::R_MIPS16_CALL16,             "MIPS16_CALL16" },
+    {  RELOC_MIPS::R_MIPS16_GOT16,              "MIPS16_GOT16" },
+    {  RELOC_MIPS::R_MIPS16_GPREL,              "MIPS16_GPREL" },
+    {  RELOC_MIPS::R_MIPS16_HI16,               "MIPS16_HI16" },
+    {  RELOC_MIPS::R_MIPS16_LO16,               "MIPS16_LO16" },
+    {  RELOC_MIPS::R_MIPS16_TLS_DTPREL_HI16,    "MIPS16_TLS_DTPREL_HI16" },
+    {  RELOC_MIPS::R_MIPS16_TLS_DTPREL_LO16,    "MIPS16_TLS_DTPREL_LO16" },
+    {  RELOC_MIPS::R_MIPS16_TLS_GD,             "MIPS16_TLS_GD" },
+    {  RELOC_MIPS::R_MIPS16_TLS_GOTTPREL,       "MIPS16_TLS_GOTTPREL" },
+    {  RELOC_MIPS::R_MIPS16_TLS_LDM,            "MIPS16_TLS_LDM" },
+    {  RELOC_MIPS::R_MIPS16_TLS_TPREL_HI16,     "MIPS16_TLS_TPREL_HI16" },
+    {  RELOC_MIPS::R_MIPS16_TLS_TPREL_LO16,     "MIPS16_TLS_TPREL_LO16" },
+    {  RELOC_MIPS::R_MIPS_26,                   "MIPS_26" },
+    {  RELOC_MIPS::R_MIPS_32,                   "MIPS_32" },
+    {  RELOC_MIPS::R_MIPS_64,                   "MIPS_64" },
+    {  RELOC_MIPS::R_MIPS_ADD_IMMEDIATE,        "MIPS_ADD_IMMEDIATE" },
+    {  RELOC_MIPS::R_MIPS_CALL16,               "MIPS_CALL16" },
+    {  RELOC_MIPS::R_MIPS_CALL_HI16,            "MIPS_CALL_HI16" },
+    {  RELOC_MIPS::R_MIPS_CALL_LO16,            "MIPS_CALL_LO16" },
+    {  RELOC_MIPS::R_MIPS_COPY,                 "MIPS_COPY" },
+    {  RELOC_MIPS::R_MIPS_DELETE,               "MIPS_DELETE" },
+    {  RELOC_MIPS::R_MIPS_EH,                   "MIPS_EH" },
+    {  RELOC_MIPS::R_MIPS_GLOB_DAT,             "MIPS_GLOB_DAT" },
+    {  RELOC_MIPS::R_MIPS_GOT16,                "MIPS_GOT16" },
+    {  RELOC_MIPS::R_MIPS_GOT_DISP,             "MIPS_GOT_DISP" },
+    {  RELOC_MIPS::R_MIPS_GOT_HI16,             "MIPS_GOT_HI16" },
+    {  RELOC_MIPS::R_MIPS_GOT_LO16,             "MIPS_GOT_LO16" },
+    {  RELOC_MIPS::R_MIPS_GOT_OFST,             "MIPS_GOT_OFST" },
+    {  RELOC_MIPS::R_MIPS_GOT_PAGE,             "MIPS_GOT_PAGE" },
+    {  RELOC_MIPS::R_MIPS_GPREL16,              "MIPS_GPREL16" },
+    {  RELOC_MIPS::R_MIPS_GPREL32,              "MIPS_GPREL32" },
+    {  RELOC_MIPS::R_MIPS_HI16,                 "MIPS_HI16" },
+    {  RELOC_MIPS::R_MIPS_HIGHER,               "MIPS_HIGHER" },
+    {  RELOC_MIPS::R_MIPS_HIGHEST,              "MIPS_HIGHEST" },
+    {  RELOC_MIPS::R_MIPS_INSERT_A,             "MIPS_INSERT_A" },
+    {  RELOC_MIPS::R_MIPS_INSERT_B,             "MIPS_INSERT_B" },
+    {  RELOC_MIPS::R_MIPS_JALR,                 "MIPS_JALR" },
+    {  RELOC_MIPS::R_MIPS_JUMP_SLOT,            "MIPS_JUMP_SLOT" },
+    {  RELOC_MIPS::R_MIPS_LITERAL,              "MIPS_LITERAL" },
+    {  RELOC_MIPS::R_MIPS_LO16,                 "MIPS_LO16" },
+    {  RELOC_MIPS::R_MIPS_NONE,                 "MIPS_NONE"},
+    {  RELOC_MIPS::R_MIPS_NUM,                  "MIPS_NUM" },
+    {  RELOC_MIPS::R_MIPS_PC16,                 "MIPS_PC16" },
+    {  RELOC_MIPS::R_MIPS_PC18_S3,              "MIPS_PC18_S3" },
+    {  RELOC_MIPS::R_MIPS_PC19_S2,              "MIPS_PC19_S2" },
+    {  RELOC_MIPS::R_MIPS_PC21_S2,              "MIPS_PC21_S2" },
+    {  RELOC_MIPS::R_MIPS_PC26_S2,              "MIPS_PC26_S2" },
+    {  RELOC_MIPS::R_MIPS_PC32,                 "MIPS_PC32" },
+    {  RELOC_MIPS::R_MIPS_PCHI16,               "MIPS_PCHI16" },
+    {  RELOC_MIPS::R_MIPS_PCLO16,               "MIPS_PCLO16" },
+    {  RELOC_MIPS::R_MIPS_PJUMP,                "MIPS_PJUMP" },
+    {  RELOC_MIPS::R_MIPS_REL16,                "MIPS_REL16" },
+    {  RELOC_MIPS::R_MIPS_REL32,                "MIPS_REL32" },
+    {  RELOC_MIPS::R_MIPS_RELGOT,               "MIPS_RELGOT" },
+    {  RELOC_MIPS::R_MIPS_SCN_DISP,             "MIPS_SCN_DISP" },
+    {  RELOC_MIPS::R_MIPS_SHIFT5,               "MIPS_SHIFT5" },
+    {  RELOC_MIPS::R_MIPS_SHIFT6,               "MIPS_SHIFT6" },
+    {  RELOC_MIPS::R_MIPS_SUB,                  "MIPS_SUB" },
+    {  RELOC_MIPS::R_MIPS_TLS_DTPMOD32,         "MIPS_TLS_DTPMOD32" },
+    {  RELOC_MIPS::R_MIPS_TLS_DTPMOD64,         "MIPS_TLS_DTPMOD64" },
+    {  RELOC_MIPS::R_MIPS_TLS_DTPREL32,         "MIPS_TLS_DTPREL32" },
+    {  RELOC_MIPS::R_MIPS_TLS_DTPREL64,         "MIPS_TLS_DTPREL64" },
+    {  RELOC_MIPS::R_MIPS_TLS_DTPREL_HI16,      "MIPS_TLS_DTPREL_HI16" },
+    {  RELOC_MIPS::R_MIPS_TLS_DTPREL_LO16,      "MIPS_TLS_DTPREL_LO16" },
+    {  RELOC_MIPS::R_MIPS_TLS_GD,               "MIPS_TLS_GD" },
+    {  RELOC_MIPS::R_MIPS_TLS_GOTTPREL,         "MIPS_TLS_GOTTPREL" },
+    {  RELOC_MIPS::R_MIPS_TLS_LDM,              "MIPS_TLS_LDM" },
+    {  RELOC_MIPS::R_MIPS_TLS_TPREL32,          "MIPS_TLS_TPREL32" },
+    {  RELOC_MIPS::R_MIPS_TLS_TPREL64,          "MIPS_TLS_TPREL64" },
+    {  RELOC_MIPS::R_MIPS_TLS_TPREL_HI16,       "MIPS_TLS_TPREL_HI16" },
+    {  RELOC_MIPS::R_MIPS_TLS_TPREL_LO16,       "MIPS_TLS_TPREL_LO16" },
+    {  RELOC_MIPS::R_MIPS_UNUSED1,              "MIPS_UNUSED1" },
+    {  RELOC_MIPS::R_MIPS_UNUSED2,              "MIPS_UNUSED2" },
+    {  RELOC_MIPS::R_MIPS_UNUSED3,              "MIPS_UNUSED3" },
   };
   auto   it  = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;

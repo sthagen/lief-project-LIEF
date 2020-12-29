@@ -167,7 +167,7 @@ Since we have exported a function we can now use ``dlopen`` on ``libcrackme101.s
 ``dlsym`` on ``check_found``
 
 .. code-block:: cpp
-  :emphasize-lines: 8,14
+  :emphasize-lines: 9,14
 
   #include <dlfcn.h>
   #include <stdio.h>
@@ -210,8 +210,9 @@ The transformation of the execution flow can be represented as follow:
   :align: center
 
 .. _glic229:
+
 Warning for glic >= 2.29 users
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you are using glibc >= 2.29 (or a close version depending on your Linux
 distribution), you might have encountered this error while using the `dlopen`
@@ -219,7 +220,7 @@ function:
 
 .. code::
 
- dlopen error: cannot dynamically load position-independent executable 
+ dlopen error: cannot dynamically load position-independent executable
 
 Loading PIE binaries as shared libraries wasn't indeed really an intended use
 case for ``dlopen``, and it used to work without really being properly
@@ -236,7 +237,7 @@ to deny calls to ``dlopen`` with PIE binaries. This is done by verifying the
 In order to circumvent this test, LIEF can be used to remove this ``DF_1_PIE`` flag:
 
 .. code-block:: python
-  :emphasize-lines: 4
+  :emphasize-lines: 5
 
   import lief
   import sys

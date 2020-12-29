@@ -21,7 +21,7 @@
 #include "LIEF/exception.hpp"
 #include "LIEF/utils.hpp"
 
-#include "LIEF/logging++.hpp"
+#include "logging.hpp"
 
 #include "LIEF/ELF/hash.hpp"
 
@@ -31,6 +31,11 @@
 #include "LIEF/ELF/NoteDetails.hpp"
 #include "LIEF/ELF/NoteDetails/AndroidNote.hpp"
 #include "LIEF/ELF/NoteDetails/NoteAbi.hpp"
+#include "LIEF/ELF/NoteDetails/core/CorePrStatus.hpp"
+#include "LIEF/ELF/NoteDetails/core/CorePrPsInfo.hpp"
+#include "LIEF/ELF/NoteDetails/core/CoreFile.hpp"
+#include "LIEF/ELF/NoteDetails/core/CoreAuxv.hpp"
+#include "LIEF/ELF/NoteDetails/core/CoreSigInfo.hpp"
 
 namespace LIEF {
 namespace ELF {
@@ -43,6 +48,7 @@ Note& Note::operator=(Note other) {
 }
 
 Note::Note(const Note& other):
+  Object(other),
   binary_(other.binary_),
   name_(other.name_),
   type_(other.type_),

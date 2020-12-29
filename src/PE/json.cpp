@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-#include "LIEF/logging++.hpp"
+#include "logging.hpp"
+
+#include "LIEF/hash.hpp"
 
 #include "LIEF/PE/json.hpp"
-#include "LIEF/hash.hpp"
 #include "LIEF/PE.hpp"
 
 namespace LIEF {
@@ -523,7 +524,7 @@ void JsonVisitor::visit(const ResourcesManager& resources_manager) {
     try {
       this->node_["manifest"] = escape_non_ascii(resources_manager.manifest()) ;
     } catch (const LIEF::exception& e) {
-      LOG(WARNING) << e.what();
+      LIEF_WARN("{}", e.what());
     }
   }
 
@@ -531,7 +532,7 @@ void JsonVisitor::visit(const ResourcesManager& resources_manager) {
     try {
       this->node_["html"] = resources_manager.html();
     } catch (const LIEF::exception& e) {
-      LOG(WARNING) << e.what();
+      LIEF_WARN("{}", e.what());
     }
   }
 
@@ -541,7 +542,7 @@ void JsonVisitor::visit(const ResourcesManager& resources_manager) {
       version_visitor(resources_manager.version());
       this->node_["version"] = version_visitor.get();
     } catch (const LIEF::exception& e) {
-      LOG(WARNING) << e.what();
+      LIEF_WARN("{}", e.what());
     }
   }
 
@@ -555,7 +556,7 @@ void JsonVisitor::visit(const ResourcesManager& resources_manager) {
       }
       this->node_["icons"] = icons;
     } catch (const LIEF::exception& e) {
-      LOG(WARNING) << e.what();
+      LIEF_WARN("{}", e.what());
     }
   }
 
@@ -569,7 +570,7 @@ void JsonVisitor::visit(const ResourcesManager& resources_manager) {
       }
       this->node_["dialogs"] = dialogs;
     } catch (const LIEF::exception& e) {
-      LOG(WARNING) << e.what();
+      LIEF_WARN("{}", e.what());
     }
   }
 
@@ -583,7 +584,7 @@ void JsonVisitor::visit(const ResourcesManager& resources_manager) {
         this->node_["string_table"] = string_table_json;
       }
     } catch (const LIEF::exception& e) {
-      LOG(WARNING) << e.what();
+      LIEF_WARN("{}", e.what());
     }
   }
 
@@ -597,7 +598,7 @@ void JsonVisitor::visit(const ResourcesManager& resources_manager) {
         this->node_["accelerator"] = accelerator_json;
       }
     } catch (const LIEF::exception& e) {
-      LOG(WARNING) << e.what();
+      LIEF_WARN("{}", e.what());
     }
   }
 }

@@ -85,8 +85,6 @@ target_include_directories(pyLIEF SYSTEM PRIVATE
   "${PYTHON_INCLUDE_DIR}"
   "${PYBIND11_SOURCE_DIR}/include")
 
-add_definitions(-DELPP_NO_DEFAULT_LOG_FILE)
-
 include("${CMAKE_CURRENT_SOURCE_DIR}/Abstract/CMakeLists.txt")
 
 if(LIEF_ELF)
@@ -122,12 +120,19 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/platforms/CMakeLists.txt")
 
 target_compile_features(pyLIEF PRIVATE cxx_attribute_deprecated)
 
-set_property(TARGET pyLIEF PROPERTY CXX_STANDARD          11)
-set_property(TARGET pyLIEF PROPERTY CXX_STANDARD_REQUIRED ON)
+set_target_properties(pyLIEF PROPERTIES
+  POSITION_INDEPENDENT_CODE    ON
+  CXX_STANDARD                 11
+  CXX_STANDARD_REQUIRED        ON
+  CXX_VISIBILITY_PRESET        hidden
+  C_VISIBILITY_PRESET          hidden
+)
 
 if (MSVC)
-  target_compile_options(pyLIEF PUBLIC /FIiso646.h)
-	set_property(TARGET pyLIEF PROPERTY LINK_FLAGS /NODEFAULTLIB:MSVCRT)
+  if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    target_compile_options(pyLIEF PUBLIC /FIiso646.h)
+  endif()
+  set_property(TARGET pyLIEF PROPERTY LINK_FLAGS /NODEFAULTLIB:MSVCRT)
 endif()
 
 set_target_properties(pyLIEF PROPERTIES PYTHON_VERSION ${PYTHON_VERSION})
@@ -166,6 +171,25 @@ endif()
 
 target_link_libraries(pyLIEF PUBLIC ${PYLIEF_DEPS_LIBRARIES})
 
+
+if (CMAKE_BUILD_TYPE MATCHES Release AND UNIX AND NOT APPLE)
+    add_custom_command(
+      TARGET pyLIEF
+      COMMENT "Strip LIEF Python bindings"
+      POST_BUILD
+      COMMAND ${CMAKE_STRIP} --strip-all $<TARGET_FILE:pyLIEF>
+    )
+endif()
+
+if (CMAKE_BUILD_TYPE MATCHES Release AND APPLE)
+  add_custom_command(
+    TARGET pyLIEF
+    COMMENT "Strip LIEF Python bindings"
+    POST_BUILD
+    COMMAND ${CMAKE_STRIP} -x -S $<TARGET_FILE:pyLIEF>
+  )
+endif()
+
 add_custom_command(TARGET pyLIEF POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pyLIEF> ${PROJECT_BINARY_DIR}/api/python/lief
 )
@@ -176,15 +200,3 @@ if (MSVC)
   )
 endif()
 
-
-if (CMAKE_BUILD_TYPE MATCHES Release AND UNIX)
-  add_custom_command(
-    TARGET pyLIEF
-    COMMENT "Strip LIEF Python bindings"
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND}
-      -DTARGET_FILE=$<TARGET_FILE:pyLIEF>
-      -DCMAKE_STRIP="${CMAKE_STRIP}"
-      -P ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/strip.cmake
-  )
-endif()

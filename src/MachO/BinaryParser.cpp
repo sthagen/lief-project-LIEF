@@ -17,16 +17,14 @@
 #include <iterator>
 #include <iostream>
 #include <algorithm>
-#include <regex>
 #include <stdexcept>
-#include <functional>
 
+#include "BinaryParser.tcc"
 
 #include "LIEF/BinaryStream/VectorStream.hpp"
 #include "LIEF/exception.hpp"
 
 #include "LIEF/MachO/BinaryParser.hpp"
-#include "BinaryParser.tcc"
 
 #include "LIEF/MachO/utils.hpp"
 #include "LIEF/MachO/Header.hpp"
@@ -37,6 +35,7 @@
 #include "LIEF/MachO/SymbolCommand.hpp"
 #include "LIEF/MachO/Symbol.hpp"
 #include "LIEF/MachO/EnumToString.hpp"
+#include "LIEF/MachO/ExportInfo.hpp"
 
 #include "filesystem/filesystem.h"
 
@@ -89,7 +88,7 @@ BinaryParser::BinaryParser(const std::string& file, const ParserConfig& conf) :
 }
 
 void BinaryParser::init(void) {
-  VLOG(VDEBUG) << "Parsing MachO" << std::endl;
+  LIEF_DEBUG("Parsing MachO");
   try {
     MACHO_TYPES type = static_cast<MACHO_TYPES>(this->stream_->peek<uint32_t>(0));
 
@@ -112,15 +111,13 @@ void BinaryParser::init(void) {
       this->parse<MachO32>();
     }
   } catch (const std::exception& e) {
-    VLOG(VDEBUG) << e.what();
+    LIEF_DEBUG("{}", e.what());
   }
 
 }
 
 
 void BinaryParser::parse_export_trie(uint64_t start, uint64_t end, const std::string& prefix) {
-  static std::set<uint64_t> visited;
-
   if (this->stream_->pos() >= end) {
     return;
   }
@@ -222,10 +219,10 @@ void BinaryParser::parse_export_trie(uint64_t start, uint64_t end, const std::st
       break;
     }
 
-    if (visited.count(start + child_node_offet) > 0) {
+    if (this->visited_.count(start + child_node_offet) > 0) {
       break;
     }
-    visited.insert(start + child_node_offet);
+    this->visited_.insert(start + child_node_offet);
     size_t current_pos = this->stream_->pos();
     this->stream_->setpos(start + child_node_offet);
     this->parse_export_trie(start, end, name);
@@ -253,7 +250,7 @@ void BinaryParser::parse_dyldinfo_export(void) {
       dyldinfo.export_trie({raw_trie, raw_trie + size});
     }
   } catch (const exception& e) {
-    LOG(WARNING) << e.what();
+    LIEF_DEBUG("{}", e.what());
   }
 
   this->stream_->setpos(offset);

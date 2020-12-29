@@ -15,6 +15,13 @@
  */
 #include "DynamicEntry.hpp"
 
+#include "LIEF/ELF/DynamicEntryFlags.hpp"
+#include "LIEF/ELF/DynamicSharedObject.hpp"
+#include "LIEF/ELF/DynamicEntryLibrary.hpp"
+#include "LIEF/ELF/DynamicEntryRpath.hpp"
+#include "LIEF/ELF/DynamicEntryRunPath.hpp"
+#include "LIEF/ELF/DynamicEntryArray.hpp"
+
 namespace LIEF {
 namespace ELF {
 
@@ -39,7 +46,6 @@ void init_c_dynamic_entries(Elf_Binary_t* c_binary, Binary* binary) {
 
           c_binary->dynamic_entries[i] = reinterpret_cast<Elf_DynamicEntry_t*>(e);
           break;
-          // cppcheck-suppress memleak
         }
 
       case DYNAMIC_TAGS::DT_SONAME:

@@ -16,9 +16,10 @@
 #include <numeric>
 #include <iomanip>
 
-#include "LIEF/logging++.hpp"
+#include "logging.hpp"
 #include "LIEF/MachO/hash.hpp"
 
+#include "LIEF/MachO/Structures.hpp"
 #include "LIEF/MachO/ThreadCommand.hpp"
 
 namespace LIEF {
@@ -100,7 +101,7 @@ uint64_t ThreadCommand::pc(void) const {
       }
     default:
       {
-        LOG(ERROR) << "Unknown architecture";
+        LIEF_ERR("Unknown architecture");
       }
   }
   return entry;

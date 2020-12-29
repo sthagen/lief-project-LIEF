@@ -23,8 +23,27 @@
 
 #include "LIEF/exception.hpp"
 #include "LIEF/utils.hpp"
-
+#include "LIEF/BinaryStream/VectorStream.hpp"
 #include "LIEF/ELF/Builder.hpp"
+
+#include "LIEF/ELF/Binary.hpp"
+#include "LIEF/ELF/Section.hpp"
+#include "LIEF/ELF/Segment.hpp"
+#include "LIEF/ELF/Symbol.hpp"
+#include "LIEF/ELF/DynamicEntry.hpp"
+#include "LIEF/ELF/DynamicEntryArray.hpp"
+#include "LIEF/ELF/DynamicEntryLibrary.hpp"
+#include "LIEF/ELF/DynamicSharedObject.hpp"
+#include "LIEF/ELF/DynamicEntryRunPath.hpp"
+#include "LIEF/ELF/DynamicEntryRpath.hpp"
+#include "LIEF/ELF/Relocation.hpp"
+#include "LIEF/ELF/SymbolVersion.hpp"
+#include "LIEF/ELF/SymbolVersionDefinition.hpp"
+#include "LIEF/ELF/SymbolVersionAux.hpp"
+#include "LIEF/ELF/SymbolVersionRequirement.hpp"
+#include "LIEF/ELF/SymbolVersionAuxRequirement.hpp"
+#include "LIEF/ELF/Note.hpp"
+
 #include "Builder.tcc"
 
 namespace LIEF {
@@ -93,7 +112,7 @@ void Builder::write(const std::string& filename) const {
 
 
 void Builder::build_empty_symbol_gnuhash(void) {
-  LOG(DEBUG) << "Build empty GNU Hash";
+  LIEF_DEBUG("Build empty GNU Hash");
   auto&& it_gnuhash = std::find_if(
       std::begin(this->binary_->sections_),
       std::end(this->binary_->sections_),

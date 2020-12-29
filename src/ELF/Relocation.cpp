@@ -20,9 +20,10 @@
 
 #include "LIEF/ELF/Relocation.hpp"
 #include "LIEF/ELF/EnumToString.hpp"
+#include "LIEF/ELF/Symbol.hpp"
 
 #include "RelocationSizes.hpp"
-#include "LIEF/logging++.hpp"
+#include "logging.hpp"
 
 namespace LIEF {
 namespace ELF {
@@ -211,7 +212,7 @@ size_t Relocation::size(void) const {
       {
         auto&& it = relocation_x86_64_sizes.find(static_cast<RELOC_x86_64>(this->type()));
         if (it == std::end(relocation_x86_64_sizes)) {
-          LOG(ERROR) << to_string(this->architecture()) << std::string(" - ") << to_string(static_cast<RELOC_x86_64>(this->type()));
+          LIEF_ERR("{} - {}", to_string(this->architecture()), to_string(static_cast<RELOC_x86_64>(this->type())));
           return -1u;
         }
         return it->second;
@@ -221,7 +222,7 @@ size_t Relocation::size(void) const {
       {
         auto&& it = relocation_i386_sizes.find(static_cast<RELOC_i386>(this->type()));
         if (it == std::end(relocation_i386_sizes)) {
-          LOG(ERROR) << to_string(this->architecture()) << std::string(" - ") << to_string(static_cast<RELOC_i386>(this->type()));
+          LIEF_ERR("{} - {}", to_string(this->architecture()), to_string(static_cast<RELOC_i386>(this->type())));
           return -1u;
         }
         return it->second;
@@ -231,7 +232,7 @@ size_t Relocation::size(void) const {
       {
         auto&& it = relocation_ARM_sizes.find(static_cast<RELOC_ARM>(this->type()));
         if (it == std::end(relocation_ARM_sizes)) {
-          LOG(ERROR) << to_string(this->architecture()) << std::string(" - ") << to_string(static_cast<RELOC_ARM>(this->type()));
+          LIEF_ERR("{} - {}", to_string(this->architecture()), to_string(static_cast<RELOC_ARM>(this->type())));
           return -1u;
         }
         return it->second;
@@ -241,17 +242,28 @@ size_t Relocation::size(void) const {
       {
         auto&& it = relocation_AARCH64_sizes.find(static_cast<RELOC_AARCH64>(this->type()));
         if (it == std::end(relocation_AARCH64_sizes)) {
-          LOG(ERROR) << to_string(this->architecture()) << std::string(" - ") << to_string(static_cast<RELOC_AARCH64>(this->type()));
+          LIEF_ERR("{} - {}", to_string(this->architecture()), to_string(static_cast<RELOC_AARCH64>(this->type())));
           return -1u;
         }
         return it->second;
       }
 
+    case ARCH::EM_MIPS:
+      {
+        auto&& it = relocation_MIPS_sizes.find(static_cast<RELOC_MIPS>(this->type()));
+        if (it == std::end(relocation_MIPS_sizes)) {
+          LIEF_ERR("{} - {}", to_string(this->architecture()), to_string(static_cast<RELOC_MIPS>(this->type())));
+          return -1u;
+        }
+        return it->second;
+      }
+
+
     case ARCH::EM_PPC:
       {
         auto&& it = relocation_PPC_sizes.find(static_cast<RELOC_POWERPC32>(this->type()));
         if (it == std::end(relocation_PPC_sizes)) {
-          LOG(ERROR) << to_string(this->architecture()) << std::string(" - ") << to_string(static_cast<RELOC_POWERPC32>(this->type()));
+          LIEF_ERR("{} - {}", to_string(this->architecture()), to_string(static_cast<RELOC_POWERPC32>(this->type())));
           return -1u;
         }
         return it->second;
@@ -261,7 +273,7 @@ size_t Relocation::size(void) const {
       {
         auto&& it = relocation_PPC64_sizes.find(static_cast<RELOC_POWERPC64>(this->type()));
         if (it == std::end(relocation_PPC64_sizes)) {
-          LOG(ERROR) << to_string(this->architecture()) << std::string(" - ") << to_string(static_cast<RELOC_POWERPC64>(this->type()));
+          LIEF_ERR("{} - {}", to_string(this->architecture()), to_string(static_cast<RELOC_POWERPC64>(this->type())));
           return -1u;
         }
         return it->second;
@@ -269,7 +281,7 @@ size_t Relocation::size(void) const {
 
     default:
       {
-        LOG(ERROR) << to_string(this->architecture()) << " not implemented";
+        LIEF_ERR("Architecture {} not implemented", to_string(this->architecture()));
         return -1u;
       }
   }
@@ -292,6 +304,10 @@ void Relocation::info(uint32_t v) {
 
 void Relocation::symbol(Symbol* sym) {
   this->symbol_ = sym;
+}
+
+void Relocation::section(Section* section) {
+  this->section_ = section;
 }
 
 
@@ -352,6 +368,12 @@ std::ostream& operator<<(std::ostream& os, const Relocation& entry) {
     case ARCH::EM_AARCH64:
       {
         relocation_type = to_string(static_cast<RELOC_AARCH64>(entry.type()));
+        break;
+      }
+
+    case ARCH::EM_MIPS:
+      {
+        relocation_type = to_string(static_cast<RELOC_MIPS>(entry.type()));
         break;
       }
 

@@ -1,4 +1,3 @@
-
 /* Copyright 2017 R. Thomas
  * Copyright 2017 Quarkslab
  *
@@ -16,8 +15,6 @@
  */
 #ifndef LIEF_MACHO_DATA_CODE_ENTRY_H_
 #define LIEF_MACHO_DATA_CODE_ENTRY_H_
-#include <string>
-#include <vector>
 #include <iostream>
 
 #include "LIEF/visibility.h"
@@ -27,6 +24,7 @@
 
 namespace LIEF {
 namespace MachO {
+struct data_in_code_entry;
 
 //! Interface of an entry in DataInCode
 class LIEF_API DataCodeEntry : public LIEF::Object {

@@ -8,8 +8,6 @@ Parser
 
 ----------
 
-.. _python-elf-binary-api-ref:
-
 Binary
 ******
 
@@ -549,6 +547,17 @@ Relocations AARCH64
 
 ----------
 
+Relocations MIPS
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: lief.ELF.RELOCATION_MIPS
+  :members:
+  :inherited-members:
+  :undoc-members:
+
+----------
+
+
 
 Dynamic symbols counting
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -641,12 +650,3 @@ Hexagon Processor flags
   :members:
   :inherited-members:
   :undoc-members:
-
-
-
-
-
-
-
-
-

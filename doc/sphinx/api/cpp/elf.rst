@@ -186,7 +186,7 @@ Core File
 Core File Entry
 ***************
 
-.. doxygenclass:: LIEF::ELF::CoreFileEntry
+.. doxygenstruct:: LIEF::ELF::CoreFileEntry
    :project: lief
 
 ----------
@@ -465,4 +465,11 @@ Relocations AARCH64
 ~~~~~~~~~~~~~~~~~~~
 
 .. doxygenenum:: LIEF::ELF::RELOC_AARCH64
+   :project: lief
+
+
+Relocations MIPS
+~~~~~~~~~~~~~~~~~~~
+
+.. doxygenenum:: LIEF::ELF::RELOC_MIPS
    :project: lief

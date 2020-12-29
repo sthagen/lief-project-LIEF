@@ -23,28 +23,39 @@
 #include <mbedtls/oid.h>
 #include <mbedtls/x509_crt.h>
 
-#include "LIEF/logging++.hpp"
+#include "filesystem/filesystem.h"
+
+#include "logging.hpp"
 
 #include "LIEF/exception.hpp"
 
 #include "LIEF/BinaryStream/VectorStream.hpp"
-
+#include "LIEF/Abstract/Relocation.hpp"
 #include "LIEF/PE/signature/Signature.hpp"
 #include "LIEF/PE/signature/SignatureParser.hpp"
 #include "LIEF/PE/signature/OIDToString.hpp"
-
-
 #include "LIEF/PE/CodeViewPDB.hpp"
-
 #include "LIEF/PE/Parser.hpp"
-#include "Parser.tcc"
-
 #include "LIEF/PE/utils.hpp"
-
-#include "filesystem/filesystem.h"
+#include "LIEF/PE/Section.hpp"
+#include "LIEF/PE/Binary.hpp"
+#include "LIEF/PE/DataDirectory.hpp"
+#include "LIEF/PE/ResourceData.hpp"
+#include "LIEF/PE/ResourceDirectory.hpp"
+#include "LIEF/PE/ResourceNode.hpp"
+#include "LIEF/PE/Export.hpp"
+#include "LIEF/PE/ExportEntry.hpp"
+#include "LIEF/PE/Pogo.hpp"
+#include "LIEF/PE/PogoEntry.hpp"
+#include "LIEF/PE/Relocation.hpp"
+#include "LIEF/PE/RelocationEntry.hpp"
+#include "LIEF/PE/Symbol.hpp"
+#include "LIEF/PE/Import.hpp"
+#include "LIEF/PE/ImportEntry.hpp"
+#include "LIEF/PE/EnumToString.hpp"
 
 #include "signature/pkcs7.h"
-
+#include "Parser.tcc"
 
 // Issue with VS2017
 #if defined(IMAGE_FILE_MACHINE_UNKNOWN)
@@ -104,11 +115,11 @@ void Parser::parse_dos_stub(void) {
   }
   const uint64_t sizeof_dos_stub = dos_header.addressof_new_exeheader() - sizeof(pe_dos_header);
 
-  VLOG(VDEBUG) << "Size of dos stub: " << std::hex << sizeof_dos_stub;
+  LIEF_DEBUG("DOS Stub size: 0x{:x}", sizeof_dos_stub);
 
   const uint8_t* ptr_to_dos_stub = this->stream_->peek_array<uint8_t>(sizeof(pe_dos_header), sizeof_dos_stub, /* check */false);
   if (ptr_to_dos_stub == nullptr) {
-    LOG(ERROR) << "Dost stub corrupted!";
+    LIEF_ERR("DOS stub is corrupted!");
   } else {
     this->binary_->dos_stub_ = {ptr_to_dos_stub, ptr_to_dos_stub + sizeof_dos_stub};
   }
@@ -116,7 +127,7 @@ void Parser::parse_dos_stub(void) {
 
 
 void Parser::parse_rich_header(void) {
-  VLOG(VDEBUG) << "Parsing Rich Header";
+  LIEF_DEBUG("Parsing rich header");
   const std::vector<uint8_t>& dos_stub = this->binary_->dos_stub();
   VectorStream stream{dos_stub};
   auto&& it_rich = std::search(
@@ -126,13 +137,13 @@ void Parser::parse_rich_header(void) {
       std::end(Rich_Magic));
 
   if (it_rich == std::end(dos_stub)) {
-    VLOG(VDEBUG) << "Rich header not found";
+    LIEF_DEBUG("Rich header not found!");
     return;
   }
 
 
   const uint64_t end_offset_rich_header = std::distance(std::begin(dos_stub), it_rich);
-  VLOG(VDEBUG) << "Offset to rich header: " << std::hex << end_offset_rich_header;
+  LIEF_DEBUG("Offset to rich header: 0x{:x}", end_offset_rich_header);
 
   if (not stream.can_read<uint32_t>(end_offset_rich_header + sizeof(Rich_Magic))) {
     return;
@@ -140,7 +151,7 @@ void Parser::parse_rich_header(void) {
   const uint32_t xor_key = stream.peek<uint32_t>(end_offset_rich_header + sizeof(Rich_Magic));
 
   this->binary_->rich_header().key(xor_key);
-  VLOG(VDEBUG) << "XOR Key: " << std::hex << xor_key;
+  LIEF_DEBUG("XOR key: 0x{:x}", xor_key);
 
 
   uint64_t curent_offset = end_offset_rich_header - sizeof(Rich_Magic);
@@ -173,15 +184,12 @@ void Parser::parse_rich_header(void) {
     uint16_t build_number = value & 0xFFFF;
     uint16_t id           = (value >> 16) & 0xFFFF;
 
-    VLOG(VDEBUG) << "ID: "           << std::hex << id << " "
-               << "Build Number: " << std::hex << build_number << " "
-               << "Count: "        << std::dec << count;
+    LIEF_DEBUG("ID:           0x{:04x}", id);
+    LIEF_DEBUG("Build Number: 0x{:04x}", build_number);
+    LIEF_DEBUG("Count:        0x{:d}", count);
 
     this->binary_->rich_header().add_entry(id, build_number, count);
   }
-
-  VLOG(VDEBUG) << this->binary_->rich_header();
-
 
   this->binary_->has_rich_header_ = true;
 
@@ -196,8 +204,7 @@ void Parser::parse_rich_header(void) {
 // TODO: Check offset etc
 void Parser::parse_sections(void) {
 
-  VLOG(VDEBUG) << "[+] Parsing sections";
-
+  LIEF_DEBUG("Parsing sections");
   const uint32_t sections_offset  =
     this->binary_->dos_header().addressof_new_exeheader() +
     sizeof(pe_header) +
@@ -208,7 +215,7 @@ void Parser::parse_sections(void) {
   const uint32_t numberof_sections = this->binary_->header().numberof_sections();
   const pe_section* sections = this->stream_->peek_array<pe_section>(sections_offset, numberof_sections, /* check */false);
   if (sections == nullptr) {
-    LOG(ERROR) << "Sections corrupted!";
+    LIEF_ERR("Section headers corrupted!");
     return;
   }
 
@@ -232,11 +239,11 @@ void Parser::parse_sections(void) {
 
 
     if (size_to_read > Parser::MAX_DATA_SIZE) {
-      LOG(WARNING) << "Section '" << section->name() << "' data is too large!";
+      LIEF_WARN("Data of section section '{}' is too large (0x{:x})", section->name(), size_to_read);
     } else {
       const uint8_t* ptr_to_rawdata = this->stream_->peek_array<uint8_t>(offset, size_to_read, /* check */false);
       if (ptr_to_rawdata == nullptr) {
-        LOG(ERROR) << "Section #" << std::dec << i << " corrupted!";
+        LIEF_ERR("Section #{:d} ({}) is corrupted", i, section->name());
       } else {
         section->content_ = {
           ptr_to_rawdata,
@@ -248,7 +255,7 @@ void Parser::parse_sections(void) {
   }
   const uint32_t last_section_header_offset = sections_offset + numberof_sections * sizeof(pe_section);
   this->binary_->available_sections_space_ = (first_section_offset - last_section_header_offset) / sizeof(pe_section) - 1;
-  VLOG(VDEBUG) << "Number of sections that could be added: " << std::dec << this->binary_->available_sections_space_;
+  LIEF_DEBUG("Number of sections that could be added: #{:d}", this->binary_->available_sections_space_);
 }
 
 
@@ -256,8 +263,7 @@ void Parser::parse_sections(void) {
 // parse relocations
 //
 void Parser::parse_relocations(void) {
-  VLOG(VDEBUG) << "[+] Parsing relocations";
-
+  LIEF_DEBUG("== Parsing relocations ==");
 
   const uint32_t offset = this->binary_->rva_to_offset(
       this->binary_->data_directory(DATA_DIRECTORY::BASE_RELOCATION_TABLE).RVA());
@@ -276,10 +282,10 @@ void Parser::parse_relocations(void) {
     std::unique_ptr<Relocation> relocation{new Relocation{&relocation_headers}};
 
     if (relocation_headers.BlockSize < sizeof(pe_base_relocation_block)) {
-      LOG(ERROR) << "Relocation corrupted: BlockSize is too small";
+      LIEF_ERR("Relocation corrupted: BlockSize is too small");
       break;
     } else if (relocation_headers.BlockSize > this->binary_->optional_header().sizeof_image()) {
-      LOG(ERROR) << "Relocation corrupted: BlockSize is out of bound the binary's virtual size";
+      LIEF_ERR("Relocation corrupted: BlockSize is out of bound the binary's virtual size");
       break;
     }
 
@@ -311,13 +317,13 @@ void Parser::parse_relocations(void) {
 // parse ressources
 //
 void Parser::parse_resources(void) {
-  VLOG(VDEBUG) << "[+] Parsing resources";
+  LIEF_DEBUG("== Parsing resources ==");
 
   const uint32_t resources_rva = this->binary_->data_directory(DATA_DIRECTORY::RESOURCE_TABLE).RVA();
-  VLOG(VDEBUG) << "Resources RVA: 0x" << std::hex << resources_rva;
+  LIEF_DEBUG("Resources RVA: 0x{:04x}", resources_rva);
 
   const uint32_t offset = this->binary_->rva_to_offset(resources_rva);
-  VLOG(VDEBUG) << "Resources Offset: 0x" << std::hex << offset;
+  LIEF_DEBUG("Resources Offset: 0x{:04x}", offset);
 
   if (not this->stream_->can_read<pe_resource_directory_table>(offset)) {
     return;
@@ -411,7 +417,7 @@ ResourceNode* Parser::parse_resource_node(
 
         directory->childs_.push_back(node.release());
       } else {
-        LOG(WARNING) << "The leaf is corrupted";
+        LIEF_WARN("The leaf is corrupted");
         break;
       }
     } else { // We are on a directory
@@ -420,7 +426,7 @@ ResourceNode* Parser::parse_resource_node(
       if (this->stream_->can_read<pe_resource_directory_table>(offset)) {
         const pe_resource_directory_table& nextDirectoryTable = this->stream_->peek<pe_resource_directory_table>(offset);
         if (this->resource_visited_.count(offset) > 0) {
-          LOG(WARNING) << "Infinite loop detected on resources";
+          LIEF_WARN("Infinite loop detected on resources");
           break;
         }
         this->resource_visited_.insert(offset);
@@ -432,7 +438,7 @@ ResourceNode* Parser::parse_resource_node(
           directory->childs_.push_back(node.release());
         }
       } else { // Corrupted
-        LOG(WARNING) << "The directory is corrupted";
+        LIEF_WARN("The directory is corrupted");
         break;
       }
     }
@@ -446,7 +452,7 @@ ResourceNode* Parser::parse_resource_node(
 // parse string table
 //
 void Parser::parse_string_table(void) {
-  VLOG(VDEBUG) << "[+] Parsing string table";
+  LIEF_DEBUG("== Parsing string table ==");
   uint32_t string_table_offset =
     this->binary_->header().pointerto_symbol_table() +
     this->binary_->header().numberof_symbols() * STRUCT_SIZES::Symbol16Size;
@@ -470,7 +476,7 @@ void Parser::parse_string_table(void) {
 // parse Symbols
 //
 void Parser::parse_symbols(void) {
-  VLOG(VDEBUG) << "[+] Parsing symbols";
+  LIEF_DEBUG("== Parsing symbols ==");
   uint32_t symbol_table_offset = this->binary_->header().pointerto_symbol_table();
   uint32_t nb_symbols          = this->binary_->header().numberof_symbols();
   uint32_t current_offset      = symbol_table_offset;
@@ -509,14 +515,14 @@ void Parser::parse_symbols(void) {
       // * Section Number: > 0
       if (symbol.storage_class() == SYMBOL_STORAGE_CLASS::IMAGE_SYM_CLASS_EXTERNAL and
           symbol.type() == 0x20 and symbol.section_number() > 0) {
-        VLOG(VDEBUG) << "Format1";
+        LIEF_DEBUG("Format1");
       }
 
 
       // Auxiliary Format 2: .bf and .ef Symbols
       // * Storage class : FUNCTION
       if (symbol.storage_class() == SYMBOL_STORAGE_CLASS::IMAGE_SYM_CLASS_FUNCTION) {
-        VLOG(VDEBUG) << "Function";
+        LIEF_DEBUG("Function");
       }
 
       // Auxiliary Format 3: Weak Externals
@@ -525,21 +531,21 @@ void Parser::parse_symbols(void) {
       // * Value         : 0
       if (symbol.storage_class() == SYMBOL_STORAGE_CLASS::IMAGE_SYM_CLASS_EXTERNAL and
           symbol.value() == 0 and static_cast<SYMBOL_SECTION_NUMBER>(symbol.section_number()) == SYMBOL_SECTION_NUMBER::IMAGE_SYM_UNDEFINED) {
-        VLOG(VDEBUG) << "Format 3";
+        LIEF_DEBUG("Format 3");
       }
 
       // Auxiliary Format 4: Files
       // * Storage class     : FILE
       // * Name **SHOULD** be: .file
       if (symbol.storage_class() == SYMBOL_STORAGE_CLASS::IMAGE_SYM_CLASS_FILE) {
-        VLOG(VDEBUG) << "Format 4";
+        LIEF_DEBUG("Format 4");
         //std::cout << reinterpret_cast<char*>(
       }
 
       // Auxiliary Format 5: Section Definitions
       // * Storage class     : STATIC
       if (symbol.storage_class() == SYMBOL_STORAGE_CLASS::IMAGE_SYM_CLASS_STATIC) {
-        VLOG(VDEBUG) << "Format 5";
+        LIEF_DEBUG("Format 5");
       }
 
       current_offset += STRUCT_SIZES::Symbol16Size;
@@ -559,7 +565,7 @@ void Parser::parse_symbols(void) {
 //
 
 void Parser::parse_debug(void) {
-  VLOG(VDEBUG) << "[+] Parsing Debug";
+  LIEF_DEBUG("== Parsing Debug ==");
 
   this->binary_->has_debug_ = true;
 
@@ -600,7 +606,7 @@ void Parser::parse_debug(void) {
 }
 
 void Parser::parse_debug_code_view(Debug& debug_info) {
-  VLOG(VDEBUG) << "Parsing Debug Code View";
+  LIEF_DEBUG("Parsing Debug Code View");
   //Debug& debug_info = this->binary_->debug();
 
   const uint32_t debug_off = debug_info.pointerto_rawdata();
@@ -631,7 +637,7 @@ void Parser::parse_debug_code_view(Debug& debug_info) {
 
     default:
       {
-        LOG(WARNING) << to_string(signature) << " is not implemented yet!";
+        LIEF_WARN("{} is not implemented yet!");
       }
   }
 
@@ -639,7 +645,7 @@ void Parser::parse_debug_code_view(Debug& debug_info) {
 }
 
 void Parser::parse_debug_pogo(Debug& debug_info) {
-  VLOG(VDEBUG) << "Parsing Debug POGO";
+  LIEF_DEBUG("== Parsing Debug POGO ==");
 
   const uint32_t debug_size = debug_info.sizeof_data();
   const uint32_t debug_off  = debug_info.pointerto_rawdata();
@@ -680,7 +686,7 @@ void Parser::parse_debug_pogo(Debug& debug_info) {
 
     default:
       {
-        LOG(WARNING) << "PGO '" << to_string(signature) << "' is not implemented yet!";
+        LIEF_WARN("PGO: {} is not implemented yet!", to_string(signature));
       }
   }
 }
@@ -689,7 +695,7 @@ void Parser::parse_debug_pogo(Debug& debug_info) {
 // Parse Export
 //
 void Parser::parse_exports(void) {
-  VLOG(VDEBUG) << "[+] Parsing exports";
+  LIEF_DEBUG("== Parsing exports ==");
   static constexpr uint32_t NB_ENTRIES_LIMIT   = 0x1000000;
   static constexpr size_t MAX_EXPORT_NAME_SIZE = 300;
 
@@ -699,6 +705,7 @@ void Parser::parse_exports(void) {
   std::pair<uint32_t, uint32_t> range = {exports_rva, exports_rva + exports_size};
 
   if (not this->stream_->can_read<pe_export_directory_table>(exports_offset)) {
+    LIEF_WARN("Can't read export table at 0x{:x}", exports_offset);
     return;
   }
 
@@ -708,7 +715,13 @@ void Parser::parse_exports(void) {
 
   Export export_object = &export_directory_table;
   uint32_t name_offset = this->binary_->rva_to_offset(export_directory_table.NameRVA);
-  export_object.name_  = this->stream_->peek_string_at(name_offset);
+  const std::string name = this->stream_->peek_string_at(name_offset, Parser::MAX_DLL_NAME_SIZE);
+  if (Parser::is_valid_dll_name(name)) {
+    export_object.name_  = std::move(name);
+    LIEF_DEBUG("Export name {}@0x{:x}", export_object.name_, name_offset);
+  } else {
+    LIEF_INFO("DLL name seems corrupted");
+  }
 
   // Parse Ordinal name table
   uint32_t ordinal_table_offset = this->binary_->rva_to_offset(export_directory_table.OrdinalTableRVA);
@@ -716,13 +729,14 @@ void Parser::parse_exports(void) {
   const uint16_t *ordinal_table = this->stream_->peek_array<uint16_t>(ordinal_table_offset, nbof_name_ptr, /* check */false);
 
   if (nbof_name_ptr > NB_ENTRIES_LIMIT) {
-    LOG(ERROR) << "Too many name pointer entries (" << std::dec << nbof_name_ptr << ")";
+    LIEF_ERR("Too many name pointer entries: #{:d} (limit: {:d})",
+        nbof_name_ptr, NB_ENTRIES_LIMIT);
     return;
   }
 
   // Parse Ordinal name table
   if (ordinal_table == nullptr) {
-    LOG(ERROR) << "Ordinal table corrupted";
+    LIEF_ERR("Ordinal table corrupted");
     return;
   }
 
@@ -732,19 +746,19 @@ void Parser::parse_exports(void) {
   const uint32_t nbof_addr_entries = export_directory_table.AddressTableEntries;
 
   if (nbof_addr_entries > NB_ENTRIES_LIMIT) {
-    LOG(ERROR) << "Too many address entries (" << std::dec << nbof_addr_entries << ")";
+    LIEF_ERR("Too many name address entries: #{:d}", nbof_addr_entries);
     return;
   }
 
   const uint32_t *address_table = this->stream_->peek_array<uint32_t>(address_table_offset, nbof_addr_entries, /* check */false);
 
   if (address_table == nullptr) {
-    LOG(ERROR) << "Address table corrupted";
+    LIEF_ERR("Address table corrupted");
     return;
   }
 
   if (nbof_addr_entries < nbof_name_ptr) {
-    LOG(ERROR) << "More exported names than addresses";
+    LIEF_ERR("More exported names than addresses");
     return;
   }
 
@@ -753,7 +767,7 @@ void Parser::parse_exports(void) {
   const uint32_t *name_table = this->stream_->peek_array<uint32_t>(name_table_offset, nbof_name_ptr, /* check */false);
 
   if (name_table == nullptr) {
-    LOG(ERROR) << "Name table corrupted!";
+    LIEF_ERR("Name table corrupted!");
     return;
   }
 
@@ -795,7 +809,7 @@ void Parser::parse_exports(void) {
 
   for (size_t i = 0; i < nbof_name_ptr; ++i) {
     if (ordinal_table[i] >= export_object.entries_.size()) {
-      LOG(ERROR) << "Export ordinal is outside the address table";
+      LIEF_ERR("Export ordinal is outside the address table");
       break;
     }
 
@@ -850,14 +864,14 @@ void Parser::parse_exports(void) {
 }
 
 void Parser::parse_signature(void) {
-  VLOG(VDEBUG) << "[+] Parsing signature";
+  LIEF_DEBUG("== Parsing signature ==");
 
   /*** /!\ In this data directory, RVA is used as an **OFFSET** /!\ ****/
   /*********************************************************************/
   const uint32_t signature_offset  = this->binary_->data_directory(DATA_DIRECTORY::CERTIFICATE_TABLE).RVA();
   const uint32_t signature_size    = this->binary_->data_directory(DATA_DIRECTORY::CERTIFICATE_TABLE).size();
-  VLOG(VDEBUG) << "Signature Offset: 0x" << std::hex << signature_offset;
-  VLOG(VDEBUG) << "Signature Size: 0x" << std::hex << signature_size;
+  LIEF_DEBUG("Signature Offset: 0x{:04x}", signature_offset);
+  LIEF_DEBUG("Signature Size: 0x{:04x}", signature_size);
 
   const uint8_t* signature_ptr = this->stream_->peek_array<uint8_t>(signature_offset, signature_size, /* check */false);
   if (signature_ptr == nullptr) {
@@ -872,7 +886,7 @@ void Parser::parse_signature(void) {
 
 
 void Parser::parse_overlay(void) {
-  VLOG(VDEBUG) << "Parsing Overlay";
+  LIEF_DEBUG("== Parsing Overlay ==");
   const uint64_t last_section_offset = std::accumulate(
       std::begin(this->binary_->sections_),
       std::end(this->binary_->sections_), 0,
@@ -880,12 +894,12 @@ void Parser::parse_overlay(void) {
         return std::max<uint64_t>(section->offset() + section->size(), offset);
       });
 
-  VLOG(VDEBUG) << "Overlay offset: 0x" << std::hex << last_section_offset;
+  LIEF_DEBUG("Overlay offset: 0x{:x}", last_section_offset);
 
   if (last_section_offset < this->stream_->size()) {
     const uint64_t overlay_size = this->stream_->size() - last_section_offset;
 
-    VLOG(VDEBUG) << "Overlay size: " << std::dec << overlay_size;
+    LIEF_DEBUG("Overlay size: 0x{:x}", overlay_size);
 
     const uint8_t* ptr_to_overlay = this->stream_->peek_array<uint8_t>(last_section_offset, overlay_size, /* check */false);
     if (ptr_to_overlay != nullptr) {
@@ -933,10 +947,7 @@ bool Parser::is_valid_dll_name(const std::string& name) {
   //! @brief Minimum size for a DLL's name
   static constexpr unsigned MIN_DLL_NAME_SIZE = 4;
 
-  // According to https://stackoverflow.com/a/265782/87207
-  static constexpr unsigned MAX_DLL_NAME_SIZE = 255;
-
-  if (name.size() < MIN_DLL_NAME_SIZE or name.size() > MAX_DLL_NAME_SIZE) {
+  if (name.size() < MIN_DLL_NAME_SIZE or name.size() > Parser::MAX_DLL_NAME_SIZE) {
     return false;
   }
 
