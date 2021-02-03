@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,7 +62,8 @@
 #include "LIEF/PE/AuxiliarySymbol.hpp"
 #include "LIEF/PE/CodeIntegrity.hpp"
 
-#include "LIEF/PE/signature/AuthenticatedAttributes.hpp"
+#include "LIEF/PE/signature/attributes.hpp"
+#include "LIEF/PE/signature/Attribute.hpp"
 #include "LIEF/PE/signature/ContentInfo.hpp"
 #include "LIEF/PE/signature/OIDToString.hpp"
 #include "LIEF/PE/signature/Signature.hpp"

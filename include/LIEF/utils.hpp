@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,6 +70,8 @@ LIEF_API std::string u16tou8(const std::u16string& string, bool remove_null_char
 LIEF_API std::u16string u8tou16(const std::string& string);
 
 LIEF_API std::string hex_str(uint8_t c);
+
+LIEF_API std::string hex_dump(const std::vector<uint8_t>& data, std::string sep = ":");
 
 //! Check if the given string in printable
 LIEF_API bool is_printable(const std::string& str);

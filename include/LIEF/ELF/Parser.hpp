@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ class LIEF_API Parser : public LIEF::Parser {
   //! @param[in] count_mtd Method used to count dynamic symbols. Default: LIEF::ELF::DYNSYM_COUNT_METHODS::COUNT_AUTO
   //!
   //! @return LIEF::ELF::Binary
-  LIEF_API static std::unique_ptr<Binary> parse(const std::string& file, DYNSYM_COUNT_METHODS count_mtd = DYNSYM_COUNT_METHODS::COUNT_AUTO);
+  static std::unique_ptr<Binary> parse(const std::string& file, DYNSYM_COUNT_METHODS count_mtd = DYNSYM_COUNT_METHODS::COUNT_AUTO);
 
   //! Parse the given raw data as an ELF binary and return a LIEF::ELF::Binary object
   //!
@@ -74,7 +74,7 @@ class LIEF_API Parser : public LIEF::Parser {
   //! @param[in] count_mtd Method used to count dynamic symbols. Default: LIEF::ELF::DYNSYM_COUNT_METHODS::COUNT_AUTO
   //!
   //! @return LIEF::ELF::Binary
-  LIEF_API static std::unique_ptr<Binary> parse(const std::vector<uint8_t>& data, const std::string& name = "", DYNSYM_COUNT_METHODS count_mtd = DYNSYM_COUNT_METHODS::COUNT_AUTO);
+  static std::unique_ptr<Binary> parse(const std::vector<uint8_t>& data, const std::string& name = "", DYNSYM_COUNT_METHODS count_mtd = DYNSYM_COUNT_METHODS::COUNT_AUTO);
 
   Parser& operator=(const Parser&) = delete;
   Parser(const Parser&)            = delete;

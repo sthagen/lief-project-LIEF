@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,13 +100,10 @@ int main(int argc, char **argv) {
     std::cout << binary->resources_manager() << std::endl;
   }
 
-
-  if (binary->has_signature()) {
+  for (const Signature& sig : binary->signatures()) {
     std::cout << "== Signature ==" << std::endl;
-    std::cout << binary->signature() << std::endl;
+    std::cout << sig << std::endl;
   }
-
-
 
   return 0;
 }

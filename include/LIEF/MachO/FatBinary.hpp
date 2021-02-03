@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #define LIEF_MACHO_FAT_BINARY_H_
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "LIEF/types.hpp"
 #include "LIEF/visibility.h"
@@ -61,6 +62,12 @@ class LIEF_API FatBinary {
 
   Binary&       operator[](size_t index);
   const Binary& operator[](size_t index) const;
+
+  //! Extract a MachO::Binary object. Gives ownership to the caller, and
+  //! remove it from this FatBinary object.
+  //!
+  //!  @warning: this invalidates any previously hold iterator!
+  std::unique_ptr<Binary> take(size_t index);
 
   //! Reconstruct the Fat binary object and write it in `filename`
   //! @param filename Path to write the reconstructed binary

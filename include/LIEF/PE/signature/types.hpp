@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,10 +24,13 @@
 namespace LIEF {
 namespace PE {
 class x509;
+class SignerInfo;
+class Attribute;
 
-using oid_t        = std::string;
-using issuer_t     = std::pair<std::string, std::vector<uint8_t>>;
-using it_const_crt = const_ref_iterator<const std::vector<x509>&>;
+using oid_t                 = std::string;
+using it_const_crt          = const_ref_iterator<const std::vector<x509>&>;
+using it_const_signers_t    = const_ref_iterator<const std::vector<SignerInfo>&>;
+using it_const_attributes_t = const_ref_iterator<std::vector<Attribute*>>;
 }
 }
 

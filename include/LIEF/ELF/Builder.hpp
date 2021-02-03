@@ -1,6 +1,6 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
- * Copyright 2020, NVIDIA CORPORATION. All rights reserved
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
+ * Copyright 2017 - 2021, NVIDIA CORPORATION. All rights reserved
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,7 +91,9 @@ class LIEF_API Builder {
   void build_symbol_hash(void);
 
   template<typename ELF_T>
-  void build_symbol_gnuhash(void);
+  void build_symbol_gnuhash(uint32_t new_symndx);
+
+  uint32_t sort_dynamic_symbols(void);
 
   void build_empty_symbol_gnuhash(void);
 

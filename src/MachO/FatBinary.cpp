@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,6 +91,16 @@ const Binary& FatBinary::operator[](size_t index) const {
   return this->at(index);
 }
 
+std::unique_ptr<Binary> FatBinary::take(size_t index) {
+  if (index >= binaries_.size()) {
+    return {};
+  }
+  auto it = binaries_.begin();
+  std::advance(it, index);
+  std::unique_ptr<Binary> ret(*it);
+  binaries_.erase(it);
+  return ret;
+}
 
 void FatBinary::write(const std::string& filename) {
   Builder::write(this, filename);

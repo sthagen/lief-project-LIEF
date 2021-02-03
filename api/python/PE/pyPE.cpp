@@ -1,6 +1,6 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
- * Copyright 2020 K. Nakagawa
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
+ * Copyright 2017 - 2021 K. Nakagawa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,6 @@ void init_python_module(py::module& m) {
 void init_objects(py::module& m) {
   CREATE(Parser, m);
 
-  CREATE(Binary, m);
   CREATE(DosHeader, m);
   CREATE(Header, m);
   CREATE(OptionalHeader, m);
@@ -77,11 +76,21 @@ void init_objects(py::module& m) {
   CREATE(ResourceStringTable, m);
   CREATE(ResourceAccelerator, m);
   CREATE(Signature, m);
+  CREATE(RsaInfo, m);
   CREATE(x509, m);
-  CREATE(SignerInfo, m);
   CREATE(ContentInfo, m);
-  CREATE(AuthenticatedAttributes, m);
+  CREATE(SignerInfo, m);
   CREATE(CodeIntegrity, m);
+  CREATE(Attribute, m);
+  CREATE(ContentType, m);
+  CREATE(GenericType, m);
+  CREATE(MsSpcNestedSignature, m);
+  CREATE(MsSpcStatementType, m);
+  CREATE(PKCS9AtSequenceNumber, m);
+  CREATE(PKCS9CounterSignature, m);
+  CREATE(PKCS9MessageDigest, m);
+  CREATE(PKCS9SigningTime, m);
+  CREATE(SpcSpOpusInfo, m);
 
   CREATE(LoadConfiguration, m);
   CREATE(LoadConfigurationV0, m);
@@ -93,6 +102,7 @@ void init_objects(py::module& m) {
   CREATE(LoadConfigurationV6, m);
   CREATE(LoadConfigurationV7, m);
 
+  CREATE(Binary, m);
   CREATE(Builder, m);
 
 }

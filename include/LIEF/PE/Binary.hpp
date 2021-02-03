@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 #include "LIEF/PE/TLS.hpp"
 #include "LIEF/PE/Export.hpp"
 #include "LIEF/PE/Debug.hpp"
+#include "LIEF/PE/Symbol.hpp"
 #include "LIEF/PE/signature/Signature.hpp"
 
 #include "LIEF/Abstract/Binary.hpp"
@@ -110,8 +111,8 @@ class LIEF_API Binary : public LIEF::Binary {
   //! @see Import
   bool has_imports(void) const;
 
-  //! Check if the current binary is signed
-  bool has_signature(void) const;
+  //! Check if the current binary conatains signatures
+  bool has_signatures(void) const;
 
   //! Check if the current binary has exports.
   //!
@@ -137,11 +138,37 @@ class LIEF_API Binary : public LIEF::Binary {
 
   //! Check if the current binary has been built has reproducible, replacing timestamps by a compile hash.
   //!
-  //!  @see Debug
+  //! @see Debug
   bool is_reproducible_build(void) const;
 
-  //! Return the Signature object if the bianry is signed
-  const Signature& signature(void) const;
+  //! Return the Signature object(s) if the bianry is signed
+  it_const_signatures signatures(void) const;
+
+  //! Verify the binary against the embedded signature(s) (if any)
+  //! First, it checks that the embedded signatures are correct (c.f. Signature::check)
+  //! and then it checks that the authentihash matches ContentInfo::digest
+  //!
+  //! One can tweak the verification process with the Signature::VERIFICATION_CHECKS flags
+  //!
+  //! @see LIEF::PE::Signature::check
+  Signature::VERIFICATION_FLAGS verify_signature(
+      Signature::VERIFICATION_CHECKS checks = Signature::VERIFICATION_CHECKS::DEFAULT) const;
+
+  //! Verify the binary with the Signature object provided in the first parameter
+  //! It can be used to verify a detached signature:
+  //!
+  //! \code{.cpp}
+  //! result<Signature> detached = LIEF::PE::SignatureParser::parse("sig.pkcs7")
+  //! if (detached) {
+  //!   binary->verify_signature(detached.value());
+  //! }
+  //! \endcode
+  Signature::VERIFICATION_FLAGS verify_signature(const Signature& sig,
+      Signature::VERIFICATION_CHECKS checks = Signature::VERIFICATION_CHECKS::DEFAULT) const;
+
+  //! Compute the authentihash according to the algorithm provided in the first
+  //! parameter
+  std::vector<uint8_t> authentihash(ALGORITHMS algo) const;
 
   //! Try to predict the RVA of the function `function` in the import library `library`
   //!
@@ -410,27 +437,26 @@ class LIEF_API Binary : public LIEF::Binary {
   void update_lookup_address_table_offset(void);
   void update_iat(void);
 
-  PE_TYPE              type_;
-  DosHeader            dos_header_;
-  RichHeader           rich_header_;
-  Header               header_;
-  OptionalHeader       optional_header_;
+  PE_TYPE        type_;
+  DosHeader      dos_header_;
+  RichHeader     rich_header_;
+  Header         header_;
+  OptionalHeader optional_header_;
 
-  int32_t             available_sections_space_;
+  int32_t available_sections_space_;
 
-  bool                 has_rich_header_;
-  bool                 has_tls_;
-  bool                 has_imports_;
-  bool                 has_signature_;
-  bool                 has_exports_;
-  bool                 has_resources_;
-  bool                 has_exceptions_;
-  bool                 has_relocations_;
-  bool                 has_debug_;
-  bool                 has_configuration_;
-  bool                 is_reproducible_build_;
+  bool has_rich_header_;
+  bool has_tls_;
+  bool has_imports_;
+  bool has_exports_;
+  bool has_resources_;
+  bool has_exceptions_;
+  bool has_relocations_;
+  bool has_debug_;
+  bool has_configuration_;
+  bool is_reproducible_build_;
 
-  Signature            signature_;
+  signatures_t         signatures_;
   TLS                  tls_;
   sections_t           sections_;
   data_directories_t   data_directories_;
@@ -441,8 +467,10 @@ class LIEF_API Binary : public LIEF::Binary {
   imports_t            imports_;
   Export               export_;
   debug_entries_t      debug_;
+  uint64_t overlay_offset_ = 0;
   std::vector<uint8_t> overlay_;
   std::vector<uint8_t> dos_stub_;
+  std::vector<uint8_t> section_offset_padding_;
 
   LoadConfiguration*   load_configuration_{nullptr};
 

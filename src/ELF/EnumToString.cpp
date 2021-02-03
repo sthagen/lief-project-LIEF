@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1009,7 +1009,7 @@ const char* to_string(RELOC_POWERPC64 e) {
 }
 
 const char* to_string(RELOC_MIPS e) {
-  CONST_MAP(RELOC_MIPS, const char*, 111) enumStrings {
+  CONST_MAP(RELOC_MIPS, const char*, 112) enumStrings {
     {  RELOC_MIPS::R_MICROMIPS_26_S1,           "MIRCRO_MIPS_26_S1" },
     {  RELOC_MIPS::R_MICROMIPS_CALL16,          "MIRCRO_MIPS_CALL16" },
     {  RELOC_MIPS::R_MICROMIPS_CALL_HI16,       "MIRCRO_MIPS_CALL_HI16" },

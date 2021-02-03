@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -528,7 +528,7 @@ CONST_MAP(RELOC_POWERPC64, uint32_t, 84) relocation_PPC64_sizes {
   { RELOC_POWERPC64::R_PPC64_REL16_HA,            16 },
 };
 
-CONST_MAP(RELOC_MIPS, uint32_t, 111) relocation_MIPS_sizes {
+CONST_MAP(RELOC_MIPS, uint32_t, 112) relocation_MIPS_sizes {
   { RELOC_MIPS::R_MICROMIPS_26_S1,           26 },
   { RELOC_MIPS::R_MICROMIPS_CALL16,          16 },
   { RELOC_MIPS::R_MICROMIPS_CALL_HI16,       16 },

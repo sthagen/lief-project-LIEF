@@ -2,6 +2,7 @@ if(__add_lief_options)
   return()
 endif()
 set(__add_lief_options ON)
+include(CMakeDependentOption)
 
 option(LIEF_TESTS          "Enable tests"                               OFF)
 option(LIEF_DOC            "Enable documentation"                       OFF)
@@ -40,6 +41,10 @@ option(LIEF_FUZZING "Fuzz LIEF" OFF)
 # Profiling
 option(LIEF_PROFILING "Enable performance profiling" OFF)
 
+# Install options
+cmake_dependent_option(LIEF_INSTALL_COMPILED_EXAMPLES "Install LIEF Compiled examples" OFF
+                       "LIEF_EXAMPLES" OFF)
+
 set(LIEF_ELF_SUPPORT 0)
 set(LIEF_PE_SUPPORT 0)
 set(LIEF_MACHO_SUPPORT 0)
@@ -51,7 +56,7 @@ set(LIEF_ART_SUPPORT 0)
 
 set(LIEF_JSON_SUPPORT 0)
 set(LIEF_LOGGING_SUPPORT 0)
-set(LIEF_LOGGING_DEBUG 0)
+set(LIEF_LOGGING_DEBUG_SUPPORT 0)
 set(LIEF_FROZEN_ENABLED 0)
 
 if(LIEF_ELF)
@@ -89,9 +94,9 @@ endif()
 if(LIEF_LOGGING)
   set(LIEF_LOGGING_SUPPORT 1)
   if(LIEF_LOGGING_DEBUG)
-    set(LIEF_LOGGING_DEBUG 1)
+    set(LIEF_LOGGING_DEBUG_SUPPORT 1)
   else()
-    set(LIEF_LOGGING_DEBUG 0)
+    set(LIEF_LOGGING_DEBUG_SUPPORT 0)
   endif()
 endif()
 

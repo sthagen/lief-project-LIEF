@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <algorithm>
+#include <sstream>
 
 #include "pyAbstract.hpp"
 #include "LIEF/Abstract/Binary.hpp"
@@ -181,8 +182,8 @@ void create<Binary>(py::module& m) {
 
     .def("xref",
         &Binary::xref,
-        "Return all **virtual address** that *use* the ``address`` given in parameter"
-       "virtual_address"_a)
+        "Return all **virtual addresses** that *use* the ``address`` given in parameter",
+        "virtual_address"_a)
 
     .def("__str__",
         [] (const Binary& binary)

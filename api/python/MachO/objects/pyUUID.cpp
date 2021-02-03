@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,11 @@
 #include "LIEF/MachO/UUIDCommand.hpp"
 
 #include "pyMachO.hpp"
+
+#ifdef uuid_t
+#pragma message("Windows #define uuid_t, undefine it for this file.")
+#undef uuid_t
+#endif
 
 namespace LIEF {
 namespace MachO {

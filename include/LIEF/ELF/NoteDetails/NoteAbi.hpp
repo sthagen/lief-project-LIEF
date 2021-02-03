@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ class Parser;
 class Builder;
 class Binary;
 
-//! Class representing the ".note.android.ident" section
+//! Class representing the ``.note.android.ident`` section
 //!
 //! @see: https://android.googlesource.com/platform/ndk/+/ndk-release-r16/sources/crt/crtbrand.S#39
 class LIEF_API NoteAbi : public NoteDetails {

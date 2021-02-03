@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,6 +66,9 @@ LIEF_API const char* to_string(GUARD_CF_FLAGS e);
 
 LIEF_API const char* to_string(ACCELERATOR_FLAGS e);
 LIEF_API const char* to_string(ACCELERATOR_VK_CODES e);
+
+LIEF_API const char* to_string(ALGORITHMS e);
+LIEF_API const char* to_string(SIG_ATTRIBUTE_TYPES e);
 
 } // namespace PE
 } // namespace LIEF

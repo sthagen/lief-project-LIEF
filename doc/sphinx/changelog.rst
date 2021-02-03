@@ -1,12 +1,11 @@
 Changelog
 =========
 
-0.11.0 - Not Released
----------------------
+0.12.0 - Not Released Yet
+-------------------------
 
 :ELF:
-  * :github_user:`mkomet` updated enums related to Android (see: :commit:`9dd641d380a5defd0a71a9f42dde2fe9c9cb1dbd`)
-  * :github_user:`Clcanny` improved (see :pr:`507`) the reconstruction of the dynamic symbol table
+  * :github_user:`Clcanny` improved (see :pr:`507` and :pr:`509`) the reconstruction of the dynamic symbol table
     by sorting local symbols and non-exported symbols. It fixes the following warning when parsing
     a modified binary with ``readelf``
 
@@ -14,6 +13,21 @@ Changelog
 
       Warning: local symbol 29 found at index >= .dynsym's sh_info value of 1
 
+:PE:
+  * :meth:`lief.PE.x509.is_trusted_by` and :meth:`lief.PE.x509.verify` now return
+    a better :attr:`lief.PE.x509.VERIFICATION_FLAGS` instead of just :attr:`lief.PE.x509.VERIFICATION_FLAGS.BADCERT_NOT_TRUSTED`
+    (see: :issue:`532`)
+
+:MachO:
+  * Fix error on property :attr:`lief.MachO.BuildVersion.sdk` (see :issue:`533`)
+
+.. _release-0110:
+
+0.11.0 - January 19, 2021
+-------------------------
+
+:ELF:
+  * :github_user:`mkomet` updated enums related to Android (see: :commit:`9dd641d380a5defd0a71a9f42dde2fe9c9cb1dbd`)
   * :github_user:`aeflores` added MIPS relocations support in the ELF parser
   * Fix :meth:`~lief.ELF.Binary.extend` on a ELF section (cf. issue :issue:`477`)
   * Fix issue when exporting symbols on empty-gnu-hash ELF binary (:commit:`1381f9a115e6e312ac0ab3deb46a78e481b81796`)
@@ -28,6 +42,19 @@ Changelog
   * Bug fix in the symbols table reconstruction (ELF)
 
 :PE:
+  * Enhance PE Authenticode. See `PE Authenticode <tutorials/13_pe_authenticode.html>`_
+  * :func:`~lief.PE.get_imphash` can now generate the same value as pefile and Virus Total (:issue:`299`)
+
+    .. code-block:: python
+
+      pe = lief.parse("example.exe")
+      vt_imphash = lief.PE.get_imphash(pe, lief.PE.IMPHASH_MODE.PEFILE)
+      lief_imphash = lief.PE.get_imphash(pe, lief.PE.IMPHASH_MODE.DEFAULT)
+
+    .. seealso::
+
+      :class:`lief.PE.IMPHASH_MODE` and :func:`lief.PE.get_imphash`
+  * Remove the padding entry (0) from the rich header
   * :attr:`~lief.PE.LangCodeItem.items` now returns a dictionary whose values are **bytes** (instead of
     ``str`` object). This change is related to ``utf-16`` support.
   * :github_user:`kohnakagawa` fixed wrong enums values: :commit:`c03125045e32a9cd65c613585eb4d0385350c6d2`, :commit:`6ee808a1e4611d09c6cf0aea82a612be69584db9`, :commit:`cd05f34bae681fc8af4b5e7cc28eaef816802b6f`
@@ -46,13 +73,14 @@ Changelog
   * Upgrade ``mbedtls`` to 2.16.6
 
 :Documentation:
-  * :github_user:`aguinet` updated the `bin2lib tutorial <https://lief.quarkslab.com/doc/latest/tutorials/08_elf_bin2lib.html>`_ with the support
+  * :github_user:`aguinet` updated the `bin2lib tutorial <tutorials/08_elf_bin2lib.html>`_ with the support
     of the new glibc versions (:commit:`7884e57aa1d103f3bd37682e47f412bfe7a3aa34`)
   * Global update and enable to build the documentation out-of-tree
   * Changing the theme
 
 :Misc:
   * Add Python 3.9 support
+  * ``FindLIEF.cmake`` deprecates ``LIEF_ROOT``. You should use ``LIEF_DIR`` instead.
 
 
 :Logging:

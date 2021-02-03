@@ -1,6 +1,6 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
- * Copyright 2020 K. Nakagawa
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
+ * Copyright 2017 - 2021 K. Nakagawa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,13 +81,24 @@ SPECIALIZE_CREATE(ResourceStringTable);
 SPECIALIZE_CREATE(ResourceDialog);
 SPECIALIZE_CREATE(ResourceDialogItem);
 SPECIALIZE_CREATE(ResourceAccelerator);
+
 SPECIALIZE_CREATE(Signature);
+SPECIALIZE_CREATE(RsaInfo);
 SPECIALIZE_CREATE(x509);
 SPECIALIZE_CREATE(SignerInfo);
+SPECIALIZE_CREATE(Attribute);
 SPECIALIZE_CREATE(ContentInfo);
-SPECIALIZE_CREATE(AuthenticatedAttributes);
-SPECIALIZE_CREATE(CodeIntegrity);
+SPECIALIZE_CREATE(ContentType);
+SPECIALIZE_CREATE(GenericType);
+SPECIALIZE_CREATE(MsSpcNestedSignature);
+SPECIALIZE_CREATE(MsSpcStatementType);
+SPECIALIZE_CREATE(PKCS9AtSequenceNumber);
+SPECIALIZE_CREATE(PKCS9CounterSignature);
+SPECIALIZE_CREATE(PKCS9MessageDigest);
+SPECIALIZE_CREATE(PKCS9SigningTime);
+SPECIALIZE_CREATE(SpcSpOpusInfo);
 
+SPECIALIZE_CREATE(CodeIntegrity);
 SPECIALIZE_CREATE(LoadConfiguration);
 SPECIALIZE_CREATE(LoadConfigurationV0);
 SPECIALIZE_CREATE(LoadConfigurationV1);

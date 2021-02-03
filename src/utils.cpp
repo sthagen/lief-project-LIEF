@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,10 @@
 #include <string>
 #include <numeric>
 
+#include <spdlog/fmt/fmt.h>
+
 #include "LIEF/utils.hpp"
-#include "utf8.h"
+#include "LIEF/third-party/utfcpp/utf8.h"
 
 namespace LIEF {
 uint64_t align(uint64_t value, uint64_t align_on) {
@@ -83,6 +85,16 @@ std::string hex_str(uint8_t c) {
   std::stringstream ss;
   ss << std::setw(2) << std::setfill('0') << std::hex << static_cast<uint32_t>(c);
   return ss.str();
+}
+
+std::string hex_dump(const std::vector<uint8_t>& data, std::string sep) {
+
+  std::string hexstring = std::accumulate(std::begin(data), std::end(data), std::string{},
+     [sep] (const std::string& a, uint8_t b) {
+         return a.empty() ? fmt::format("{:02x}", b) : a + sep + fmt::format("{:02x}", b);
+     });
+
+  return hexstring;
 }
 
 

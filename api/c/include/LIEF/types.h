@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 #define LIEF_C_TYPES_H_
 #include <stdint.h>
 #ifndef __cplusplus
+#ifndef bool
 typedef int bool;
+#endif
 #endif
 #endif

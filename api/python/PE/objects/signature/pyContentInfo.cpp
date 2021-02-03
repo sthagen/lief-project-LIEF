@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,27 +34,72 @@ using setter_t = void (ContentInfo::*)(T);
 template<>
 void create<ContentInfo>(py::module& m) {
 
-  py::class_<ContentInfo, LIEF::Object>(m, "ContentInfo")
+  py::class_<ContentInfo, LIEF::Object>(m, "ContentInfo",
+      R"delim(
+      ContentInfo as described in the `RFC 2315 <https://tools.ietf.org/html/rfc2315#section-7>`_
+
+      .. code-block:: text
+
+        ContentInfo ::= SEQUENCE {
+          contentType ContentType,
+          content     [0] EXPLICIT ANY DEFINED BY contentType OPTIONAL
+        }
+
+        ContentType ::= OBJECT IDENTIFIER
+
+      In the case of PE signature, ContentType **must** be set to SPC_INDIRECT_DATA_OBJID
+      OID: ``1.3.6.1.4.1.311.2.1.4`` and content is defined by the structure: ``SpcIndirectDataContent``
+
+      .. code-block:: text
+
+        SpcIndirectDataContent ::= SEQUENCE {
+         data          SpcAttributeTypeAndOptionalValue,
+         messageDigest DigestInfo
+        }
+
+        SpcAttributeTypeAndOptionalValue ::= SEQUENCE {
+         type  ObjectID,
+         value [0] EXPLICIT ANY OPTIONAL
+        }
+
+      For PE signature, ``SpcAttributeTypeAndOptionalValue.type``
+      is set to ``SPC_PE_IMAGE_DATAOBJ`` (OID: ``1.3.6.1.4.1.311.2.1.15``) and the value is defined by
+      ``SpcPeImageData``
+
+      .. code-block:: text
+
+        DigestInfo ::= SEQUENCE {
+         digestAlgorithm  AlgorithmIdentifier,
+         digest           OCTETSTRING
+        }
+
+        AlgorithmIdentifier ::= SEQUENCE {
+         algorithm  ObjectID,
+         parameters [0] EXPLICIT ANY OPTIONAL
+        }
+      )delim")
 
     .def_property_readonly("content_type",
         &ContentInfo::content_type,
         "OID of the content type. This value should match ``SPC_INDIRECT_DATA_OBJID``")
 
-    .def_property_readonly("type",
-        &ContentInfo::type)
-
-    .def_property_readonly("digest_algorithm",
+     .def_property_readonly("digest_algorithm",
         &ContentInfo::digest_algorithm,
-        "Algorithm (OID) used to hash the file. This value should match SignerInfo.digest_algorithm and Signature.digest_algorithm")
-
+        "Algorithm (" RST_CLASS_REF(lief.PE.ALGORITHMS) ") used to hash the file. "
+        "This value should match " RST_ATTR_REF_FULL(SignerInfo.digest_algorithm) " and "
+        "" RST_ATTR_REF_FULL(Signature.digest_algorithm) "")
 
     .def_property_readonly("digest",
-        &ContentInfo::digest,
-        "The digest")
+        [] (const ContentInfo& info) -> py::bytes {
+          const std::vector<uint8_t>& dg = info.digest();
+          return py::bytes(reinterpret_cast<const char*>(dg.data()), dg.size());
+        },
+        "The digest as ``bytes``. It should match the binary :meth:`~lief.PE.Binary.authentihash`")
 
-    .def_property_readonly("raw",
-        &ContentInfo::raw,
-        "Return the raw bytes associated with the ContentInfo")
+    .def("__hash__",
+        [] (const ContentInfo& info) {
+          return Hash::hash(info);
+        })
 
     .def("__str__",
         [] (const ContentInfo& content_info)

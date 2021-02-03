@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,8 +91,8 @@ void create<BuildVersion>(py::module& m) {
         "Minimal OS version on which this binary was built to run")
 
     .def_property("sdk",
-        static_cast<getter_t<BuildVersion::version_t>>(&BuildVersion::minos),
-        static_cast<setter_t<BuildVersion::version_t>>(&BuildVersion::minos),
+        static_cast<getter_t<BuildVersion::version_t>>(&BuildVersion::sdk),
+        static_cast<setter_t<BuildVersion::version_t>>(&BuildVersion::sdk),
         "SDK Version")
 
     .def_property_readonly("tools",

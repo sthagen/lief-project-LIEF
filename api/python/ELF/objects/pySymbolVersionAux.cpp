@@ -1,5 +1,5 @@
-/* Copyright 2017 R. Thomas
- * Copyright 2017 Quarkslab
+/* Copyright 2017 - 2021 R. Thomas
+ * Copyright 2017 - 2021 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ void create<SymbolVersionAux>(py::module& m) {
         [] (const SymbolVersionAux& obj) {
           return safe_string_converter(obj.name());
         },
-        static_cast<getter_t<const std::string&>>(&SymbolVersionAux::name),
+        static_cast<setter_t<const std::string&>>(&SymbolVersionAux::name),
         "Symbol's name")
 
     .def("__eq__", &SymbolVersionAux::operator==)
