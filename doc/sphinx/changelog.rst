@@ -19,7 +19,24 @@ Changelog
     (see: :issue:`532`)
 
 :MachO:
+  * Add API to select a :class:`~lief.MachO.Binary` from a :class:`~lief.MachO.FatBinary` by its achitecture. See:
+    :meth:`lief.MachO.FatBinary.take`.
+
+    .. code-block:: python
+
+      fat = lief.MachO.parse("/bin/ls")
+      fit = fat.take(lief.MachO.CPU_TYPES.x86_64)
+
   * Fix error on property :attr:`lief.MachO.BuildVersion.sdk` (see :issue:`533`)
+  * Handle the `0x0D` binding opcode (see: :issue:`524`)
+
+:DEX:
+  * :github_user:`DanielFi` added support for DEX's fields (see: :pr:`547`)
+
+:Abstraction:
+  * Abtract binary imagebase for PE, ELF and Mach-O (:attr:`lief.Binary.imagebase`)
+  * Add :meth:`lief.Binary.offset_to_virtual_addres`
+
 
 .. _release-0110:
 
