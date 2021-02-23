@@ -83,9 +83,10 @@ class LIEF_API Binary : public LIEF::Binary  {
   //! If a symbol with the given name exists
   bool has_symbol(const std::string& name) const;
 
-  //! Return Symbol from the given name
-  const Symbol& get_symbol(const std::string& name) const;
-  Symbol& get_symbol(const std::string& name);
+  //! Return Symbol from the given name. If the symbol does not
+  //! exists, it returns a null pointer
+  const Symbol* get_symbol(const std::string& name) const;
+  Symbol* get_symbol(const std::string& name);
 
   //! Check if the given symbol is an exported one
   static bool is_exported(const Symbol& symbol);
@@ -495,14 +496,18 @@ class LIEF_API Binary : public LIEF::Binary  {
     return this->is64_ ? sizeof(uint64_t) : sizeof(uint32_t);
   }
 
-  bool       is64_;
-  Header     header_;
-  commands_t commands_;
-  symbols_t  symbols_;
+  bool        is64_;
+  Header      header_;
+  commands_t  commands_;
+  symbols_t   symbols_;
+  libraries_t libraries_;
+  sections_t  sections_;
+  segments_t  segments_;
 
   // Cached relocations from segment / sections
   mutable relocations_t relocations_;
   int32_t available_command_space_ = 0;
+
 
   protected:
   uint64_t fat_offset_ = 0;

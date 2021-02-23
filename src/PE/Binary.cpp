@@ -1137,11 +1137,6 @@ std::vector<uint8_t> Binary::authentihash(ALGORITHMS algo) const {
       .write(dir->size());
   }
 
-  // Empty data directory
-  ios
-    .write<uint32_t>(0)
-    .write<uint32_t>(0);
-
   for (const Section* sec : this->sections_) {
     std::array<char, 8> name = {0};
     const std::string& sec_name = sec->name();
@@ -1166,14 +1161,16 @@ std::vector<uint8_t> Binary::authentihash(ALGORITHMS algo) const {
 
   // Sort by file offset
   std::sort(
-      std::begin(sections),
-      std::end(sections),
+      std::begin(sections), std::end(sections),
       [] (const Section* lhs, const Section* rhs) {
         return  lhs->pointerto_raw_data() < rhs->pointerto_raw_data();
     });
 
   uint64_t position = 0;
   for (const Section* sec : sections) {
+    if (sec->sizeof_raw_data() == 0) {
+      continue;
+    }
     const std::vector<uint8_t>& pad     = sec->padding();
     const std::vector<uint8_t>& content = sec->content();
     LIEF_DEBUG("Authentihash:  Append section {:<8}: [0x{:04x}, 0x{:04x}] + [0x{:04x}] = [0x{:04x}, 0x{:04x}]",
@@ -1201,18 +1198,20 @@ std::vector<uint8_t> Binary::authentihash(ALGORITHMS algo) const {
   if (this->overlay_.size() > 0) {
     const DataDirectory& cert_dir = this->data_directory(DATA_DIRECTORY::CERTIFICATE_TABLE);
     LIEF_DEBUG("Add overlay and omit 0x{:08x} - 0x{:08x}", cert_dir.RVA(), cert_dir.RVA() + cert_dir.size());
-    if (cert_dir.RVA() > 0 and cert_dir.size() > 0) {
+    if (cert_dir.RVA() > 0 and cert_dir.size() > 0 and cert_dir.RVA() >= this->overlay_offset_) {
       const uint64_t start_cert_offset = cert_dir.RVA() - this->overlay_offset_;
       const uint64_t end_cert_offset   = start_cert_offset + cert_dir.size();
       LIEF_DEBUG("Add [0x{:x}, 0x{:x}]", this->overlay_offset_, this->overlay_offset_ + start_cert_offset);
       LIEF_DEBUG("Add [0x{:x}, 0x{:x}]",
-          this->overlay_offset_ + end_cert_offset, this->overlay_offset_ + this->overlay_.size() - end_cert_offset);
+          this->overlay_offset_ + end_cert_offset,
+          this->overlay_offset_ + this->overlay_.size() - end_cert_offset);
       ios
         .write(this->overlay_.data(), start_cert_offset)
         .write(this->overlay_.data() + end_cert_offset, this->overlay_.size() - end_cert_offset);
+    } else {
+      ios.write(this->overlay());
     }
   }
-  //ios.write(this->overlay_);
   // When something gets wrong with the hash:
   // std::vector<uint8_t> out = ios.raw();
   // std::ofstream output_file{"/tmp/hash.blob", std::ios::out | std::ios::binary | std::ios::trunc};
