@@ -13,26 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <iomanip>
-#include "LIEF/Object.hpp"
+#include "pyPlatform.hpp"
+#include "enums_wrapper.hpp"
 
 namespace LIEF {
 
-template<class T>
-bool Object::is(void) const {
-  return typeid(*this) == typeid(T);
+void init_python_platforms(py::module& m) {
+  LIEF::enum_<PLATFORMS>(m, "PLATFORMS")
+    .value("UNKNOWN", PLATFORMS::UNKNOWN)
+    .value("LINUX",   PLATFORMS::LINUX)
+    .value("ANDROID", PLATFORMS::ANDROID)
+    .value("WINDOWS", PLATFORMS::WINDOWS)
+    .value("IOS",     PLATFORMS::IOS)
+    .value("OSX",     PLATFORMS::OSX);
+
+  m.def("current_platform", &current_platform,
+      "Return the current plaform (Linux, Windows, ...) as a :attr:`lief.PLATFORMS` enum");
+
 }
 
-template<class T>
-Object::output_t<T> Object::as(void) {
-  return reinterpret_cast<Object::output_t<T>>(this);
 }
-
-template<class T>
-Object::output_const_t<T> Object::as(void) const {
-  return reinterpret_cast<Object::output_const_t<T>>(this);
-}
-
-
-} // namespace LIEF
-

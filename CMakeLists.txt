@@ -117,6 +117,7 @@ set(LIBLIEF_SOURCE_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Visitor.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/BinaryStream/BinaryStream.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/BinaryStream/VectorStream.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/BinaryStream/MemoryStream.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/BinaryStream/Convert.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/visitors/hash.cpp")
 
@@ -141,6 +142,7 @@ set(LIEF_INC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/visitor_macros.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/BinaryStream/BinaryStream.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/BinaryStream/VectorStream.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/BinaryStream/MemoryStream.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/BinaryStream/Convert.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/hash_stream.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/frozen.hpp")
@@ -228,6 +230,10 @@ endif()
 
 target_compile_definitions(LIB_LIEF PRIVATE SPDLOG_DISABLE_DEFAULT_LOGGER
                                             SPDLOG_FUNCTION=)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+  target_compile_definitions(LIB_LIEF PRIVATE SPDLOG_NO_EXCEPTIONS SPDLOG_NO_THREAD_ID)
+endif()
 
 # Frozen Configuration
 # ====================

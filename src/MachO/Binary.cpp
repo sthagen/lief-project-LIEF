@@ -455,19 +455,22 @@ SegmentCommand* Binary::segment_from_virtual_address(uint64_t virtual_address) {
 }
 
 const SegmentCommand* Binary::segment_from_offset(uint64_t offset) const {
-  it_const_segments segments = this->segments();
-  const auto it_segment = std::find_if(
-      std::begin(segments), std::end(segments),
-      [offset] (const SegmentCommand& segment) {
-        return ((segment.file_offset() <= offset) and
-            offset < (segment.file_offset() + segment.file_size()));
-      });
-
-  if (it_segment == std::end(segments)) {
+  const auto it_begin = std::begin(this->offset_seg_);
+  if (offset < it_begin->first) {
     return nullptr;
   }
 
-  return &(*it_segment);
+  auto it = this->offset_seg_.lower_bound(offset);
+  if (it->first == offset or it == it_begin) {
+    return it->second;
+  }
+
+  const auto it_end = this->offset_seg_.crbegin();
+  if (it == std::end(this->offset_seg_) and offset >= it_end->first) {
+    return it_end->second;
+  }
+  --it;
+  return it->second;
 }
 
 SegmentCommand* Binary::segment_from_offset(uint64_t offset) {
@@ -686,6 +689,7 @@ void Binary::shift(size_t value) {
 
   // Shift Segment and sections
   // ==========================
+  this->offset_seg_.clear();
   for (SegmentCommand& segment : this->segments()) {
     // Extend the virtual size of the segment containing our shift
     if (segment.file_offset() <= loadcommands_end and loadcommands_end < (segment.file_offset() + segment.file_size())) {
@@ -699,7 +703,6 @@ void Binary::shift(size_t value) {
         }
       }
     } else {
-
       if (segment.file_offset() >= loadcommands_end) {
         segment.file_offset(segment.file_offset() + value);
         segment.virtual_address(segment.virtual_address() + value);
@@ -716,6 +719,8 @@ void Binary::shift(size_t value) {
         }
       }
     }
+
+    this->offset_seg_[segment.file_offset()] = &segment;
   }
 
 }
@@ -858,8 +863,8 @@ bool Binary::remove(const LoadCommand& command) {
 
   if (typeid(*cmd_rm) == typeid(SegmentCommand)) {
     auto it_cache = std::find(std::begin(this->segments_), std::end(this->segments_), cmd_rm);
+    const auto* seg = reinterpret_cast<const SegmentCommand*>(cmd_rm);
     if (it_cache == std::end(this->segments_)) {
-      const auto* seg = reinterpret_cast<const SegmentCommand*>(cmd_rm);
       LIEF_WARN("Segment {} not found in cache. The binary object is likely in an inconsistent state", seg->name());
     } else {
       // Update the indexes to keep a consistent state
@@ -867,6 +872,10 @@ bool Binary::remove(const LoadCommand& command) {
         (*it)->index_--;
       }
       this->segments_.erase(it_cache);
+    }
+    auto it_offset = this->offset_seg_.find(seg->file_offset());
+    if (it_offset != std::end(this->offset_seg_)) {
+      this->offset_seg_.erase(it_offset);
     }
   }
 
@@ -1249,6 +1258,7 @@ size_t Binary::add_cached_segment(SegmentCommand& segment) {
     (*it)->index_++;
   }
   this->segments_.insert(it_linkedit, &segment);
+  this->offset_seg_[segment.file_offset()] = &segment;
   return segment.index();
 }
 
