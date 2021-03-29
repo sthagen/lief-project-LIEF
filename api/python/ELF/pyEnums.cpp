@@ -203,8 +203,8 @@ void init_enums(py::module& m) {
     .value(PY_ENUM(ARCH::EM_8051))
     .value(PY_ENUM(ARCH::EM_STXP7X))
     .value(PY_ENUM(ARCH::EM_NDS32))
-    .value("ECOG1", ARCH::EM_ECOG1)
-    .value(PY_ENUM(ARCH::EM_ECOG1X))
+    .value("ECOG1",  ARCH::EM_ECOG1)
+    .value("ECOG1X", ARCH::EM_ECOG1X)
     .value(PY_ENUM(ARCH::EM_MAXQ30))
     .value(PY_ENUM(ARCH::EM_XIMO16))
     .value(PY_ENUM(ARCH::EM_MANIK))
@@ -254,6 +254,7 @@ void init_enums(py::module& m) {
     .value(PY_ENUM(ARCH::EM_NORC))
     .value(PY_ENUM(ARCH::EM_CSR_KALIMBA))
     .value(PY_ENUM(ARCH::EM_AMDGPU))
+    .value(PY_ENUM(ARCH::EM_RISCV))
     .value(PY_ENUM(ARCH::EM_BPF));
 
 

@@ -23,9 +23,10 @@
 
 #include "LIEF/ELF/enums.hpp"
 
+struct Profiler;
 
 namespace LIEF {
-class VectorStream;
+class BinaryStream;
 
 namespace OAT {
 class Parser;
@@ -40,6 +41,7 @@ class Binary;
 class LIEF_API Parser : public LIEF::Parser {
   friend class OAT::Parser;
   public:
+  friend struct ::Profiler;
 
   static constexpr uint32_t NB_MAX_SYMBOLS         = 1000000;
   static constexpr uint32_t DELTA_NB_SYMBOLS       = 3000;
@@ -225,7 +227,7 @@ class LIEF_API Parser : public LIEF::Parser {
   template<typename ELF_T, typename REL_T>
   uint32_t max_relocation_index(uint64_t relocations_offset, uint64_t size) const;
 
-  std::unique_ptr<VectorStream> stream_;
+  std::unique_ptr<BinaryStream> stream_;
   Binary*                       binary_{nullptr};
   ELF_CLASS                     type_;
   DYNSYM_COUNT_METHODS          count_mtd_;

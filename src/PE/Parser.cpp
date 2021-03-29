@@ -93,8 +93,13 @@ Parser::Parser(const std::vector<uint8_t>& data, const std::string& name) :
 
 
 void Parser::init(const std::string& name) {
-
-  this->type_   = get_type(this->stream_->content());
+  stream_->setpos(0);
+  auto type = get_type_from_stream(*stream_);
+  if (not type) {
+    LIEF_ERR("Can't determine PE type.");
+    return;
+  }
+  this->type_   = type.value();
   this->binary_ = new Binary{};
   this->binary_->name(name);
   this->binary_->type_ = this->type_;
@@ -904,6 +909,10 @@ void Parser::parse_signature(void) {
   while (this->stream_->pos() < end_p) {
     const uint64_t current_p = this->stream_->pos();
     auto length = this->stream_->read<uint32_t>();
+    if (length <= SIZEOF_HEADER) {
+      LIEF_WARN("The signature seems corrupted!");
+      break;
+    }
     auto revision = this->stream_->read<uint16_t>();
     auto certificate_type = this->stream_->read<uint16_t>();
     LIEF_DEBUG("Signature {}r0x{:x} (0x{:x} bytes)", certificate_type, revision, length);

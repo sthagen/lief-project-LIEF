@@ -26,8 +26,10 @@
 #include "LIEF/Abstract/Parser.hpp"
 #include "LIEF/PE/enums.hpp"
 
+struct Profiler;
+
 namespace LIEF {
-class VectorStream;
+class BinaryStream;
 
 namespace PE {
 class Debug;
@@ -36,8 +38,9 @@ class Binary;
 struct pe_resource_directory_table;
 
 class LIEF_API Parser : public LIEF::Parser {
-
   public:
+  friend struct ::Profiler;
+
   //! @brief Maximum size of the data read
   static constexpr size_t MAX_DATA_SIZE = 3_GB;
 
@@ -108,7 +111,7 @@ class LIEF_API Parser : public LIEF::Parser {
       uint32_t base_offset, uint32_t current_offset, uint32_t depth = 0);
 
 
-  std::unique_ptr<VectorStream> stream_;
+  std::unique_ptr<BinaryStream> stream_;
   Binary*                       binary_{nullptr};
   PE_TYPE                       type_;
   std::set<uint32_t>            resource_visited_;

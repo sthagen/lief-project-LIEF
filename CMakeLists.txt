@@ -101,7 +101,6 @@ set(LIEF_PUBLIC_INCLUDE_FILES)
 set(LIEF_PRIVATE_INCLUDE_FILES)
 
 set(LIBLIEF_SOURCE_FILES
-    "${ELG_CC_PATH}"
     "${mbedtls_src_crypto}"
     "${mbedtls_src_x509}"
     "${mbedtls_src_tls}"
@@ -294,7 +293,7 @@ list(APPEND LIEF_PUBLIC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/"
      "${CMAKE_CURRENT_BINARY_DIR}/include/")
 
 list(APPEND LIEF_PRIVATE_INCLUDE_DIR "${LIEF_PUBLIC_INCLUDE_DIR}"
-     "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}")
+     "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LIEF.pc.in ${CMAKE_CURRENT_BINARY_DIR}/LIEF.pc
                @ONLY)
@@ -623,7 +622,7 @@ install(
   COMPONENT config)
 
 install(
-  FILES ${CMAKE_BINARY_DIR}/LIEF.pc
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/LIEF.pc
   DESTINATION lib/pkgconfig
   COMPONENT libraries)
 
