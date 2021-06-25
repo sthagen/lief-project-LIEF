@@ -381,7 +381,10 @@ void BinaryParser::parse_load_commands(void) {
               symbol->name(
                   this->stream_->peek_string_at(cmd->stroff + idx));
             }
-            this->binary_->symbols_.push_back(symbol.release());
+            Symbol* symbol_ptr = symbol.release();
+            this->binary_->symbols_.push_back(symbol_ptr);
+            this->memoized_symbols_[symbol_ptr->name()] = symbol_ptr;
+            this->memoized_symbols_by_address_[symbol_ptr->value()] = symbol_ptr;
           }
 
           break;
@@ -943,6 +946,7 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
   size_t ordinal_table_size     = 0;
   bool use_threaded_rebase_bind = false;
   uint8_t symbol_flags          = 0;
+  uint64_t    start_offset      = 0;
   std::vector<ThreadedBindData> ordinal_table;
 
   it_segments segments = this->binary_->segments();
@@ -1035,7 +1039,8 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
                 addend,
                 is_weak_import,
                 false,
-                segments);
+                segments, start_offset);
+            start_offset = this->stream_->pos() - offset + 1;
             segment_offset += sizeof(pint_t);
           } else {
             ordinal_table.push_back(ThreadedBindData{symbol_name, addend, library_ordinal, symbol_flags, type});
@@ -1055,7 +1060,8 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
               addend,
               is_weak_import,
               false,
-              segments);
+              segments, start_offset);
+          start_offset = this->stream_->pos() - offset + 1;
           segment_offset += this->stream_->read_uleb128() + sizeof(pint_t);
           break;
         }
@@ -1072,7 +1078,8 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
               addend,
               is_weak_import,
               false,
-              segments);
+              segments, start_offset);
+          start_offset = this->stream_->pos() - offset + 1;
           segment_offset += imm * sizeof(pint_t) + sizeof(pint_t);
           break;
         }
@@ -1093,7 +1100,8 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
                 addend,
                 is_weak_import,
                 false,
-                segments);
+                segments, start_offset);
+            start_offset = this->stream_->pos() - offset + 1;
             segment_offset += skip + sizeof(pint_t);
           }
           break;
@@ -1145,7 +1153,8 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
                         th_bind_data.addend,
                         th_bind_data.symbol_flags & BIND_SYMBOL_FLAGS_WEAK_IMPORT,
                         false,
-                        segments);
+                        segments, start_offset);
+                        start_offset = this->stream_->pos() - offset + 1;
                   }
                   // The delta is bits [51..61]
                   // And bit 62 is to tell us if we are a rebase (0) or bind (1)
@@ -1220,6 +1229,7 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
   bool        is_weak_import = true;
   bool        is_non_weak_definition = false;
   bool        done = false;
+  uint64_t    start_offset    = 0;
 
   it_segments segments = this->binary_->segments();
 
@@ -1291,7 +1301,8 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
               addend,
               is_weak_import,
               is_non_weak_definition,
-              segments);
+              segments, start_offset);
+          start_offset = this->stream_->pos() - offset + 1;
           segment_offset += sizeof(pint_t);
           break;
         }
@@ -1309,7 +1320,8 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
               addend,
               is_weak_import,
               is_non_weak_definition,
-              segments);
+              segments, start_offset);
+          start_offset = this->stream_->pos() - offset + 1;
           segment_offset += this->stream_->read_uleb128() + sizeof(pint_t);
           break;
         }
@@ -1327,7 +1339,8 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
               addend,
               is_weak_import,
               is_non_weak_definition,
-              segments);
+              segments, start_offset);
+          start_offset = this->stream_->pos() - offset + 1;
           segment_offset += imm * sizeof(pint_t) + sizeof(pint_t);
           break;
         }
@@ -1353,7 +1366,8 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
                 addend,
                 is_weak_import,
                 is_non_weak_definition,
-                segments);
+              segments, start_offset);
+            start_offset = this->stream_->pos() - offset + 1;
             segment_offset += skip + sizeof(pint_t);
           }
           break;
@@ -1540,7 +1554,13 @@ void BinaryParser::do_bind(BINDING_CLASS cls,
     binding_info->library_ = &libraries[ord - 1];
   }
 
-  Symbol* symbol = this->binary_->get_symbol(symbol_name);
+  Symbol* symbol = nullptr;
+  auto search = this->memoized_symbols_.find(symbol_name);
+  if (search != this->memoized_symbols_.end()) {
+    symbol = search->second;
+  } else {
+    symbol = this->binary_->get_symbol(symbol_name);
+  }
   if (symbol != nullptr) {
     binding_info->symbol_ = symbol;
     symbol->binding_info_ = binding_info.get();
@@ -1593,14 +1613,9 @@ void BinaryParser::do_rebase(uint8_t type, uint8_t segment_idx, uint64_t segment
   reloc->section_ = section;
 
   // Tie symbol
-  const auto it_symbol = std::find_if(
-      std::begin(this->binary_->symbols_), std::end(this->binary_->symbols_),
-      [address] (const Symbol* sym) {
-        return sym->value() == address;
-      });
-
-  if (it_symbol != std::end(this->binary_->symbols_)) {
-    reloc->symbol_ = *it_symbol;
+  const auto it_symbol = this->memoized_symbols_by_address_.find(address);
+  if (it_symbol != this->memoized_symbols_by_address_.end()) {
+    reloc->symbol_ = it_symbol->second;
   }
 
   switch (static_cast<REBASE_TYPES>(type)) {

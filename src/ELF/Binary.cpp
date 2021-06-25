@@ -931,6 +931,24 @@ Relocation& Binary::add_pltgot_relocation(const Relocation& relocation) {
   return *relocation_ptr;
 }
 
+Relocation* Binary::add_object_relocation(const Relocation& relocation, const Section& section) {
+  const auto it_section = std::find_if(std::begin(sections_), std::end(sections_),
+      [&section] (const Section* sec) { return &section == sec; });
+
+  if (it_section == std::end(sections_)) {
+    LIEF_ERR("Can't find section '{}'", section.name());
+    return nullptr;
+  }
+
+
+  Relocation* relocation_ptr = new Relocation{relocation};
+  relocation_ptr->purpose(RELOCATION_PURPOSES::RELOC_PURPOSE_OBJECT);
+  relocation_ptr->architecture_ = this->header().machine_type();
+  relocation_ptr->section_ = *it_section;
+  this->relocations_.push_back(relocation_ptr);
+  return relocation_ptr;
+}
+
 // plt/got
 // -------
 it_pltgot_relocations Binary::pltgot_relocations(void) {
@@ -1722,12 +1740,11 @@ uint64_t Binary::entrypoint() const {
 }
 
 
-const Section& Binary::section_from_offset(uint64_t offset) const {
+const Section& Binary::section_from_offset(uint64_t offset, bool skip_nobits) const {
   auto&& it_section = std::find_if(
-      this->sections_.cbegin(),
-      this->sections_.cend(),
-      [&offset] (const Section* section) {
-        if (section == nullptr) {
+      this->sections_.cbegin(), this->sections_.cend(),
+      [offset, skip_nobits] (const Section* section) {
+        if (skip_nobits and section->type() == ELF_SECTION_TYPES::SHT_NOBITS) {
           return false;
         }
         return ((section->offset() <= offset) and
@@ -1741,17 +1758,16 @@ const Section& Binary::section_from_offset(uint64_t offset) const {
   return **it_section;
 }
 
-Section& Binary::section_from_offset(uint64_t offset) {
-  return const_cast<Section&>(static_cast<const Binary*>(this)->section_from_offset(offset));
+Section& Binary::section_from_offset(uint64_t offset, bool skip_nobits) {
+  return const_cast<Section&>(static_cast<const Binary*>(this)->section_from_offset(offset, skip_nobits));
 }
 
 
-const Section& Binary::section_from_virtual_address(uint64_t address) const {
+const Section& Binary::section_from_virtual_address(uint64_t address, bool skip_nobits) const {
   auto&& it_section = std::find_if(
-      this->sections_.cbegin(),
-      this->sections_.cend(),
-      [&address] (const Section* section) {
-        if (section == nullptr) {
+      this->sections_.cbegin(), this->sections_.cend(),
+      [address, skip_nobits] (const Section* section) {
+        if (skip_nobits and section->type() == ELF_SECTION_TYPES::SHT_NOBITS) {
           return false;
         }
         return ((section->virtual_address() != 0) and
@@ -1766,8 +1782,8 @@ const Section& Binary::section_from_virtual_address(uint64_t address) const {
   return **it_section;
 }
 
-Section& Binary::section_from_virtual_address(uint64_t address) {
-  return const_cast<Section&>(static_cast<const Binary*>(this)->section_from_virtual_address(address));
+Section& Binary::section_from_virtual_address(uint64_t address, bool enforce_nobits) {
+  return const_cast<Section&>(static_cast<const Binary*>(this)->section_from_virtual_address(address, enforce_nobits));
 }
 
 std::vector<uint8_t> Binary::get_content_from_virtual_address(uint64_t virtual_address, uint64_t size, LIEF::Binary::VA_TYPES) const {

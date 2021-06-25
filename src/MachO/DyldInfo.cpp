@@ -1615,6 +1615,7 @@ DyldInfo& DyldInfo::update_lazy_bindings(const DyldInfo::bind_container_t& bindi
 
   raw_output.align(this->binary_->pointer_size());
 
+  LIEF_ERR("size: 0x{:x} vs 0x{:x}", raw_output.size(), lazy_bind_opcodes_.size());
   this->lazy_bind_opcodes_ = std::move(raw_output.raw());
   this->set_lazy_bind_size(this->lazy_bind_opcodes_.size());
   return *this;
@@ -1655,7 +1656,7 @@ DyldInfo& DyldInfo::update_standard_bindings(const DyldInfo::bind_container_t& b
 
 
 DyldInfo& DyldInfo::update_standard_bindings_v1(const DyldInfo::bind_container_t& bindings) {
-  // This function upadate the standard bindings opcodes (i.e. not lazy and not weak)
+  // This function updates the standard bindings opcodes (i.e. not lazy and not weak)
   // The following code is mainly inspired from LinkEdit.hpp: BindingInfoAtom<A>::encodeV1()
 
   std::vector<binding_instruction> instructions;
