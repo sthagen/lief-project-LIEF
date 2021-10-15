@@ -68,6 +68,7 @@ class LIEF_API Binary : public LIEF::Binary  {
 
   public:
   Binary(const Binary&) = delete;
+  Binary& operator=(const Binary&) = delete;
 
   //! Return a reference to MachO::Header
   Header&       header(void);
@@ -515,6 +516,7 @@ class LIEF_API Binary : public LIEF::Binary  {
   libraries_t libraries_;
   sections_t  sections_;
   segments_t  segments_;
+
   std::vector<std::unique_ptr<Binary>> filesets_;
 
   // Cached relocations from segment / sections

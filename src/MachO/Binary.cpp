@@ -240,11 +240,13 @@ it_const_commands Binary::commands(void) const {
 // ========
 
 it_fileset_binaries Binary::filesets(void) {
+  // MSVC fixed
   std::vector<Binary*> binaries;
   for (std::unique_ptr<Binary>& bin : this->filesets_) {
     binaries.push_back(bin.get());
   }
   return binaries;
+
 }
 
 it_const_fileset_binaries Binary::filesets(void) const {
@@ -2149,7 +2151,6 @@ Binary::~Binary(void) {
   for (Symbol *symbol : this->symbols_) {
     delete symbol;
   }
-
 }
 
 
