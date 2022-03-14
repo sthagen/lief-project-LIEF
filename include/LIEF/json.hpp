@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIEF_JSON_H_
-#define LIEF_JSON_H_
+#ifndef LIEF_JSON_MAIN_H_
+#define LIEF_JSON_MAIN_H_
+#include <string>
+#include <LIEF/visibility.h>
+namespace LIEF {
+class Object;
 
-#include <LIEF/config.h>
+LIEF_API std::string to_json(const Object& v);
 
-#ifdef LIEF_JSON_SUPPORT
-#include <LIEF/third-party/json.hpp>
-
-using json = nlohmann::json;
-#endif
-
+}
 #endif

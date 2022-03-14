@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,35 +26,37 @@
 namespace LIEF {
 namespace PE {
 
+namespace details {
 template<class T>
 struct load_configuration_v2;
+}
 
 //! @brief LoadConfiguration enhanced with code integrity
 class LIEF_API LoadConfigurationV2 : public LoadConfigurationV1 {
   public:
   static constexpr WIN_VERSION VERSION = WIN_VERSION::WIN10_0_9879;
-  LoadConfigurationV2(void);
+  LoadConfigurationV2();
 
   LoadConfigurationV2& operator=(const LoadConfigurationV2&);
   LoadConfigurationV2(const LoadConfigurationV2&);
 
   template<class T>
-  LIEF_LOCAL LoadConfigurationV2(const load_configuration_v2<T>* header);
+  LIEF_LOCAL LoadConfigurationV2(const details::load_configuration_v2<T>& header);
 
-  virtual WIN_VERSION version(void) const override;
+  WIN_VERSION version() const override;
 
   //! @brief CodeIntegrity associated with
-  const CodeIntegrity& code_integrity(void) const;
-  CodeIntegrity& code_integrity(void);
+  const CodeIntegrity& code_integrity() const;
+  CodeIntegrity& code_integrity();
 
-  virtual ~LoadConfigurationV2(void);
+  virtual ~LoadConfigurationV2();
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const LoadConfigurationV2& rhs) const;
   bool operator!=(const LoadConfigurationV2& rhs) const;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
 
   protected:
   CodeIntegrity code_integrity_;

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,54 @@ using no_const_getter = T (Header::*)(void);
 template<>
 void create<Header>(py::module& m) {
 
-  py::class_<Header, LIEF::Object>(m, "Header", "OAT Header representation")
+  py::class_<Header, LIEF::Object> hdr(m, "Header", "OAT Header representation");
+  py::class_<Header::it_key_values_t> it_key_values_t(hdr, "it_key_values_t");
+
+  py::class_<Header::it_key_values_t::value_type>(it_key_values_t, "value_type")
+    .def_property_readonly("key",
+        [] (Header::it_key_values_t::reference p) {
+          return p.first;
+        }, py::return_value_policy::reference_internal)
+
+    .def_property("value",
+        [] (Header::it_key_values_t::reference p) {
+         return p.second;
+        },
+        [] (Header::it_key_values_t::reference p, const std::string& value) {
+          std::string& ref_value = p.second;
+          ref_value = value;
+        },
+        py::return_value_policy::reference_internal);
+
+  it_key_values_t
+    .def("__getitem__",
+        [] (Header::it_key_values_t& v, size_t i) -> Header::it_key_values_t::value_type {
+            if (i >= v.size())
+                throw py::index_error();
+            return v[i];
+        },
+        py::return_value_policy::reference_internal)
+
+    .def("__len__",
+        [](Header::it_key_values_t& v) {
+          return  v.size();
+        })
+
+    .def("__iter__",
+        [](Header::it_key_values_t& v) -> Header::it_key_values_t {
+          return std::begin(v);
+        }, py::return_value_policy::reference_internal)
+
+    .def("__next__",
+        [] (Header::it_key_values_t& v) -> Header::it_key_values_t::value_type {
+          if (v == std::end(v)) {
+            throw py::stop_iteration();
+          }
+          return *(v++);
+
+    }, py::return_value_policy::reference_internal);
+
+  hdr
     .def(py::init<>())
 
     .def_property_readonly("key_values",
@@ -75,7 +122,7 @@ void create<Header>(py::module& m) {
         static_cast<getter_t<uint32_t>>(&Header::oat_dex_files_offset),
         "Offset to the raw " RST_CLASS_REF_FULL(lief.OAT.DexFile) "\n\n"
         ".. warning::\n\n"
-        "\tThis attribute is only relevant for OAT whose version is above 131")
+        "\tThis attribute is only relevant for OAT for which the version is above 131")
 
     .def_property_readonly("executable_offset",
         static_cast<getter_t<uint32_t>>(&Header::executable_offset))
@@ -114,9 +161,9 @@ void create<Header>(py::module& m) {
         static_cast<getter_t<uint32_t>>(&Header::key_value_size))
 
     .def("get",
-        static_cast<const std::string& (Header::*)(HEADER_KEYS) const>(&Header::get),
+        static_cast<const std::string* (Header::*)(HEADER_KEYS) const>(&Header::get),
         "key"_a,
-        py::return_value_policy::move)
+        py::return_value_policy::reference)
 
 
     .def("set",
@@ -125,9 +172,9 @@ void create<Header>(py::module& m) {
         py::return_value_policy::reference)
 
     .def("__getitem__",
-        static_cast<const std::string& (Header::*)(HEADER_KEYS) const>(&Header::operator[]),
+        static_cast<const std::string* (Header::*)(HEADER_KEYS) const>(&Header::operator[]),
         "",
-        py::return_value_policy::move)
+        py::return_value_policy::reference)
 
     .def("__setitem__",
         static_cast<Header& (Header::*)(HEADER_KEYS, const std::string&)>(&Header::set),

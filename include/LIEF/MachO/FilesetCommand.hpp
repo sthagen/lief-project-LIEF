@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,9 @@ namespace MachO {
 class Binary;
 class BinaryParser;
 
+namespace details {
 struct fileset_entry_command;
+}
 
 //! Class associated with the LC_FILESET_ENTRY commands
 class LIEF_API FilesetCommand : public LoadCommand {
@@ -36,8 +38,8 @@ class LIEF_API FilesetCommand : public LoadCommand {
   friend class BinaryParser;
   using content_t = std::vector<uint8_t>;
 
-  FilesetCommand(void);
-  FilesetCommand(const fileset_entry_command *command);
+  FilesetCommand();
+  FilesetCommand(const details::fileset_entry_command& command);
   FilesetCommand(const std::string& name);
 
   FilesetCommand& operator=(FilesetCommand copy);
@@ -45,18 +47,18 @@ class LIEF_API FilesetCommand : public LoadCommand {
 
   void swap(FilesetCommand& other);
 
-  virtual FilesetCommand* clone(void) const override;
+  FilesetCommand* clone() const override;
 
-  virtual ~FilesetCommand(void);
+  virtual ~FilesetCommand();
 
   //! Name of the underlying MachO binary (e.g. ``com.apple.security.quarantine``)
-  const std::string& name(void) const;
+  const std::string& name() const;
 
   //! Memory address where the MachO file should be mapped
-  uint64_t virtual_address(void) const;
+  uint64_t virtual_address() const;
 
   //! Original offset in the kernel cache
-  uint64_t file_offset(void) const;
+  uint64_t file_offset() const;
 
   //! Return a pointer on the LIEF::MachO::Binary associated
   //! with this entry
@@ -68,15 +70,16 @@ class LIEF_API FilesetCommand : public LoadCommand {
     return binary_;
   }
 
-
   void name(const std::string& name);
   void virtual_address(uint64_t virtual_address);
   void file_offset(uint64_t file_offset);
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
 
   bool operator==(const FilesetCommand& rhs) const;
   bool operator!=(const FilesetCommand& rhs) const;
+
+  static bool classof(const LoadCommand* cmd);
 
   private:
   std::string name_;

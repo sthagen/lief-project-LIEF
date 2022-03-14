@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,27 +28,27 @@
 namespace LIEF {
 class LIEF_API Header : public Object {
   public:
-  Header(void);
+  Header();
   Header(const Header&);
   Header& operator=(const Header&);
-  virtual ~Header(void);
+  virtual ~Header();
 
 
-  ARCHITECTURES          architecture(void) const;
-  const std::set<MODES>& modes(void)        const;
-  OBJECT_TYPES           object_type(void)  const;
-  uint64_t               entrypoint(void)   const;
-  ENDIANNESS             endianness(void)   const;
+  ARCHITECTURES          architecture() const;
+  const std::set<MODES>& modes()        const;
+  OBJECT_TYPES           object_type()  const;
+  uint64_t               entrypoint()   const;
+  ENDIANNESS             endianness()   const;
 
 
   //! @brief ``true`` if the binary target a ``32-bits`` architecture
-  bool is_32(void) const;
+  bool is_32() const;
 
   //! @brief ``true`` if the binary target a ``64-bits`` architecture
-  bool is_64(void) const;
+  bool is_64() const;
 
   //! @brief Method so that the ``visitor`` can visit us
-  virtual void           accept(Visitor& visitor) const override;
+  void           accept(Visitor& visitor) const override;
 
   void architecture(ARCHITECTURES arch);
   void modes(const std::set<MODES>& m);

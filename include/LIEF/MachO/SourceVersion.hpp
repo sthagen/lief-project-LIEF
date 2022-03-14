@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,33 +25,41 @@
 
 namespace LIEF {
 namespace MachO {
+
+namespace details {
 struct source_version_command;
+}
+
+//! Class that represents the MachO LOAD_COMMAND_TYPES::LC_SOURCE_VERSION
+//! This command is used to provide the *version* of the sources used to build the binary
 class LIEF_API SourceVersion : public LoadCommand {
 
   public:
-  //! @brief Version is an array of **5** integers
+  //! Version is an array of **5** integers
   using version_t = std::array<uint32_t, 5>;
 
-  SourceVersion(void);
-  SourceVersion(const source_version_command *version_cmd);
+  SourceVersion();
+  SourceVersion(const details::source_version_command& version_cmd);
 
   SourceVersion& operator=(const SourceVersion& copy);
   SourceVersion(const SourceVersion& copy);
 
-  virtual SourceVersion* clone(void) const override;
+  SourceVersion* clone() const override;
 
-  virtual ~SourceVersion(void);
+  virtual ~SourceVersion();
 
-  //! @brief Return the version as an array
-  const SourceVersion::version_t& version(void) const;
+  //! Return the version as an array
+  const SourceVersion::version_t& version() const;
   void version(const SourceVersion::version_t& version);
 
   bool operator==(const SourceVersion& rhs) const;
   bool operator!=(const SourceVersion& rhs) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
+
+  static bool classof(const LoadCommand* cmd);
 
   private:
   SourceVersion::version_t version_;

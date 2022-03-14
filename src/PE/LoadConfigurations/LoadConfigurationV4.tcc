@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "LIEF/PE/LoadConfigurations/LoadConfigurationV4.hpp"
+#include "PE/Structures.hpp"
 namespace LIEF {
 namespace PE {
 
-
 template<class T>
-LoadConfigurationV4::LoadConfigurationV4(const load_configuration_v4<T>* header) :
-  LoadConfigurationV3{reinterpret_cast<const load_configuration_v3<T>*>(header)},
-  dynamic_value_reloc_table_{header->DynamicValueRelocTable},
-  hybrid_metadata_pointer_{header->HybridMetadataPointer}
+LoadConfigurationV4::LoadConfigurationV4(const details::load_configuration_v4<T>& header) :
+  LoadConfigurationV3{reinterpret_cast<const details::load_configuration_v3<T>&>(header)},
+  dynamic_value_reloc_table_{header.DynamicValueRelocTable},
+  hybrid_metadata_pointer_{header.HybridMetadataPointer}
 {
 }
 

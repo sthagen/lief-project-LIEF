@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,48 +16,47 @@
 
 #include "LIEF/VDEX/File.hpp"
 #include "LIEF/VDEX/hash.hpp"
-#include "LIEF/json.hpp"
+#include "LIEF/DEX/File.hpp"
+#include "visitors/json.hpp"
 
 namespace LIEF {
 namespace VDEX {
 
-File::File(void) :
-  header_{},
-  dex_files_{}
-{}
+File::~File() = default;
+File::File() = default;
 
 
-const Header& File::header(void) const {
-  return this->header_;
+const Header& File::header() const {
+  return header_;
 }
 
-Header& File::header(void) {
+Header& File::header() {
   return const_cast<Header&>(static_cast<const File*>(this)->header());
 }
 
 
-DEX::it_dex_files File::dex_files(void) {
-  return this->dex_files_;
+File::it_dex_files File::dex_files() {
+  return dex_files_;
 }
 
-DEX::it_const_dex_files File::dex_files(void) const {
-  return this->dex_files_;
+File::it_const_dex_files File::dex_files() const {
+  return dex_files_;
 }
 
-dex2dex_info_t File::dex2dex_info(void) const {
+dex2dex_info_t File::dex2dex_info() const {
   dex2dex_info_t info;
-  for (DEX::File* dex_file : this->dex_files_) {
-    info.emplace(dex_file, dex_file->dex2dex_info());
+  for (const std::unique_ptr<DEX::File>& dex_file : dex_files_) {
+    info.emplace(dex_file.get(), dex_file->dex2dex_info());
   }
   return info;
 }
 
-std::string File::dex2dex_json_info(void) {
+std::string File::dex2dex_json_info() {
 
 #if defined(LIEF_JSON_SUPPORT)
   json mapping = json::object();
 
-  for (DEX::File* dex_file : this->dex_files_) {
+  for (const std::unique_ptr<DEX::File>& dex_file : dex_files_) {
     json dex2dex = json::parse(dex_file->dex2dex_json_info());
     mapping[dex_file->name()] = dex2dex;
   }
@@ -73,21 +72,19 @@ void File::accept(Visitor& visitor) const {
 }
 
 bool File::operator==(const File& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool File::operator!=(const File& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 
-File::~File(void) {
-  for (DEX::File* file : this->dex_files_) {
-    delete file;
-  }
-}
 
 std::ostream& operator<<(std::ostream& os, const File& vdex_file) {
   os << "Header" << std::endl;

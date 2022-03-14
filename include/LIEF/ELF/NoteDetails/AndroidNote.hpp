@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,16 +58,16 @@ class LIEF_API AndroidNote : public NoteDetails {
   using NoteDetails::NoteDetails;
   using description_t = std::vector<uint8_t>;
 
-  virtual AndroidNote* clone(void) const override;
+  AndroidNote* clone() const override;
 
   //! Target SDK version
-  uint32_t sdk_version(void) const;
+  uint32_t sdk_version() const;
 
   //! NDK version used
-  std::string ndk_version(void) const;
+  std::string ndk_version() const;
 
   //! NDK build number
-  std::string ndk_build_number(void) const;
+  std::string ndk_build_number() const;
 
   void sdk_version(uint32_t version);
   void ndk_version(const std::string& ndk_version);
@@ -76,22 +76,22 @@ class LIEF_API AndroidNote : public NoteDetails {
   bool operator==(const AndroidNote& rhs) const;
   bool operator!=(const AndroidNote& rhs) const;
 
-  virtual void dump(std::ostream& os) const override;
+  void dump(std::ostream& os) const override;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual ~AndroidNote(void);
+  virtual ~AndroidNote();
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const AndroidNote& note);
 
   protected:
-  virtual void parse(void) override;
-  virtual void build(void) override;
+  void parse() override;
+  void build() override;
 
   private:
   AndroidNote(Note& note);
 
-  uint32_t sdk_version_;
+  uint32_t sdk_version_ = 0;
   std::string ndk_version_;
   std::string ndk_build_number_;
 };

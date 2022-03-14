@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  * Copyright 2017 - 2021 K. Nakagawa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -67,6 +67,8 @@ SPECIALIZE_CREATE(Pogo);
 SPECIALIZE_CREATE(PogoEntry);
 SPECIALIZE_CREATE(Import);
 SPECIALIZE_CREATE(ImportEntry);
+SPECIALIZE_CREATE(DelayImport);
+SPECIALIZE_CREATE(DelayImportEntry);
 SPECIALIZE_CREATE(ResourceNode);
 SPECIALIZE_CREATE(ResourceData);
 SPECIALIZE_CREATE(ResourceDirectory);

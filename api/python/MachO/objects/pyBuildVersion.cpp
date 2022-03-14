@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,10 @@ template<>
 void create<BuildVersion>(py::module& m) {
 
   py::class_<BuildVersion, LoadCommand> cls(m, "BuildVersion");
-  py::class_<BuildToolVersion, LIEF::Object> tool_version_cls(m, "BuildToolVersion");
+  py::class_<BuildToolVersion, LIEF::Object> tool_version_cls(m, "BuildToolVersion",
+      R"delim(
+      Class that represents a tool's version that was involved in the build of the binary
+      )delim");
 
 
   // Build Tool Version

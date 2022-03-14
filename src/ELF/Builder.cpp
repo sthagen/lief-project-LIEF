@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,23 +46,48 @@
 
 #include "Builder.tcc"
 
+#include "ExeLayout.hpp"
+#include "ObjectFileLayout.hpp"
+
 namespace LIEF {
 namespace ELF {
 
 
-Builder::~Builder(void) = default;
+Builder::~Builder() = default;
 
-Builder::Builder(Binary *binary) :
-  empties_gnuhash_{false},
-  binary_{binary}
+Builder::Builder(Binary& binary) :
+  binary_{&binary},
+  layout_{nullptr}
 {
-  this->ios_.reserve(binary->original_size());
-  this->ios_.set_endian_swap(this->should_swap());
+  const E_TYPE type = binary.header().file_type();
+  switch (type) {
+    case E_TYPE::ET_CORE:
+    case E_TYPE::ET_DYN:
+    case E_TYPE::ET_EXEC:
+      {
+        layout_ = std::make_unique<ExeLayout>(binary);
+        break;
+      }
+
+    case E_TYPE::ET_REL:
+      {
+        layout_ = std::make_unique<ObjectFileLayout>(binary);
+        break;
+      }
+
+    default:
+      {
+        LIEF_ERR("ELF {} are not supported", to_string(type));
+        std::abort();
+      }
+  }
+  ios_.reserve(binary.original_size());
+  ios_.set_endian_swap(should_swap());
 }
 
 
-bool Builder::should_swap(void) const {
-  switch (this->binary_->header().abstract_endianness()) {
+bool Builder::should_swap() const {
+  switch (binary_->header().abstract_endianness()) {
 #ifdef __BYTE_ORDER__
 #if  defined(__ORDER_LITTLE_ENDIAN__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
     case ENDIANNESS::ENDIAN_BIG:
@@ -78,95 +103,88 @@ bool Builder::should_swap(void) const {
 }
 
 
-void Builder::build(void) {
-  if(this->binary_->type() == ELF_CLASS::ELFCLASS32) {
-    this->build<ELF32>();
+void Builder::build() {
+  if (binary_->type() == ELF_CLASS::ELFCLASS32) {
+    auto res = build<details::ELF32>();
+    if (!res) {
+      LIEF_ERR("Builder failed");
+    }
   } else {
-    this->build<ELF64>();
+    auto res = build<details::ELF64>();
+    if (!res) {
+      LIEF_ERR("Builder failed");
+    }
   }
 }
 
-const std::vector<uint8_t>& Builder::get_build(void) {
-  return this->ios_.raw();
+const std::vector<uint8_t>& Builder::get_build() {
+  return ios_.raw();
 }
 
 
-Builder& Builder::empties_gnuhash(bool flag) {
-  this->empties_gnuhash_ = flag;
+Builder& Builder::force_relocations(bool flag) {
+  config_.force_relocations = flag;
   return *this;
 }
 
 
 void Builder::write(const std::string& filename) const {
   std::ofstream output_file{filename, std::ios::out | std::ios::binary | std::ios::trunc};
-  if (output_file) {
-    std::vector<uint8_t> content;
-    this->ios_.get(content);
-
-    std::copy(
-        std::begin(content),
-        std::end(content),
-        std::ostreambuf_iterator<char>(output_file));
+  if (!output_file) {
+    LIEF_ERR("Can't open {}!", filename);
+    return;
   }
+  std::vector<uint8_t> content;
+  ios_.move(content);
+  output_file.write(reinterpret_cast<const char*>(content.data()), content.size());
 }
 
 
-uint32_t Builder::sort_dynamic_symbols(void) {
+uint32_t Builder::sort_dynamic_symbols() {
   static const std::string dynsym_section_name = ".dynsym";
-  const auto it_begin = std::begin(this->binary_->dynamic_symbols_);
-  const auto it_end = std::end(this->binary_->dynamic_symbols_);
+  const auto it_begin = std::begin(binary_->dynamic_symbols_);
+  const auto it_end = std::end(binary_->dynamic_symbols_);
 
   const auto it_first_non_local_symbol =
-      std::stable_partition(it_begin, it_end, [] (const Symbol* sym) {
+      std::stable_partition(it_begin, it_end, [] (const std::unique_ptr<Symbol>& sym) {
         return sym->binding() == SYMBOL_BINDINGS::STB_LOCAL;
       });
 
-  const uint32_t first_non_local_symbol_index =
-      std::distance(it_begin, it_first_non_local_symbol);
+  const uint32_t first_non_local_symbol_index = std::distance(it_begin, it_first_non_local_symbol);
 
-  if (this->binary_->has_section(dynsym_section_name)) {
-    Section& section = this->binary_->get_section(dynsym_section_name);
-    if (section.information() != first_non_local_symbol_index) {
+  Section* section = binary_->get_section(dynsym_section_name);
+  if (section != nullptr) {
+    if (section->information() != first_non_local_symbol_index) {
       // TODO: Erase null entries of dynamic symbol table and symbol version
       // table if information of .dynsym section is smaller than null entries
       // num.
-      LIEF_WARN("information of {} section changes from {:d} to {:d}",
-                dynsym_section_name,
-                section.information(),
-                first_non_local_symbol_index);
-      section.information(first_non_local_symbol_index);
+      LIEF_DEBUG("information of {} section changes from {:d} to {:d}",
+                 dynsym_section_name, section->information(), first_non_local_symbol_index);
+
+      section->information(first_non_local_symbol_index);
     }
   }
 
   const auto it_first_exported_symbol = std::stable_partition(
-      it_first_non_local_symbol, it_end, [] (const Symbol* sym) {
-        return sym->shndx() ==
-               static_cast<uint16_t>(SYMBOL_SECTION_INDEX::SHN_UNDEF);
+      it_first_non_local_symbol, it_end, [] (const std::unique_ptr<Symbol>& sym) {
+        return sym->shndx() == static_cast<uint16_t>(SYMBOL_SECTION_INDEX::SHN_UNDEF);
       });
 
-  const uint32_t first_exported_symbol_index =
-      std::distance(it_begin, it_first_exported_symbol);
+  const uint32_t first_exported_symbol_index = std::distance(it_begin, it_first_exported_symbol);
   return first_exported_symbol_index;
 }
 
 
-void Builder::build_empty_symbol_gnuhash(void) {
+ok_error_t Builder::build_empty_symbol_gnuhash() {
   LIEF_DEBUG("Build empty GNU Hash");
-  auto&& it_gnuhash = std::find_if(
-      std::begin(this->binary_->sections_),
-      std::end(this->binary_->sections_),
-      [] (const Section* section)
-      {
-        return section != nullptr and section->type() == ELF_SECTION_TYPES::SHT_GNU_HASH;
-      });
+  Section* gnu_hash_section = binary_->get(ELF_SECTION_TYPES::SHT_GNU_HASH);
 
-  if (it_gnuhash == std::end(this->binary_->sections_)) {
-    throw corrupted("Unable to find the .gnu.hash section");
+  if (gnu_hash_section == nullptr) {
+    LIEF_ERR("Can't find section with type SHT_GNU_HASH");
+    return make_error_code(lief_errors::not_found);
   }
 
-  Section* gnu_hash_section = *it_gnuhash;
-
-  vector_iostream content(this->should_swap());
+  vector_iostream content(should_swap());
   const uint32_t nb_buckets = 1;
   const uint32_t shift2     = 0;
   const uint32_t maskwords  = 1;
@@ -187,57 +205,28 @@ void Builder::build_empty_symbol_gnuhash(void) {
   // fill with 0
   content.align(gnu_hash_section->size(), 0);
   gnu_hash_section->content(content.raw());
-
+  return ok();
 }
 
 
 
-
-
-size_t Builder::note_offset(const Note& note) {
-  auto&& it_note = std::find_if(
-      std::begin(this->binary_->notes_),
-      std::end(this->binary_->notes_),
-      [&note] (const Note* n) {
-        return *n == note;
-      });
-  if (it_note == std::end(this->binary_->notes_)) {
-    // TODO
-  }
-
-  size_t offset = std::accumulate(
-      std::begin(this->binary_->notes_),
-      it_note, 0,
-      [] (size_t offset, const Note* n) {
-        return offset + n->size();
-      });
-  return offset;
-}
-
-
-void Builder::build(NOTE_TYPES type) {
-  using note_to_section_map_t = std::multimap<NOTE_TYPES, const char*>;
+ok_error_t Builder::build(const Note& note, std::set<Section*>& sections) {
   using value_t = typename note_to_section_map_t::value_type;
 
-  static const note_to_section_map_t note_to_section_map = {
-    { NOTE_TYPES::NT_GNU_ABI_TAG,      ".note.ABI-tag"          },
-    { NOTE_TYPES::NT_GNU_ABI_TAG,      ".note.android.ident"    },
+  Segment* segment_note = binary_->get(SEGMENT_TYPES::PT_NOTE);
+  if (segment_note == nullptr) {
+    LIEF_ERR("Can't find the PT_NOTE segment");
+    return make_error_code(lief_errors::not_found);
+  }
 
-    { NOTE_TYPES::NT_GNU_HWCAP,        ".note.gnu.hwcap"        },
-    { NOTE_TYPES::NT_GNU_BUILD_ID,     ".note.gnu.build-id"     },
-    { NOTE_TYPES::NT_GNU_GOLD_VERSION, ".note.gnu.gold-version" },
+  auto range_secname = note_to_section_map.equal_range(note.type());
 
-    { NOTE_TYPES::NT_UNKNOWN,          ".note"                  },
-  };
+  const bool known_section = (range_secname.first != range_secname.second);
 
-  Segment& segment_note = this->binary_->get(SEGMENT_TYPES::PT_NOTE);
-
-  auto&& range_secname = note_to_section_map.equal_range(type);
-
-  auto&& it_section_name = std::find_if(
+  const auto it_section_name = std::find_if(
       range_secname.first, range_secname.second,
       [this] (value_t p) {
-        return this->binary_->has_section(p.second);
+        return binary_->has_section(p.second);
       });
 
   bool has_section = (it_section_name != range_secname.second);
@@ -245,60 +234,72 @@ void Builder::build(NOTE_TYPES type) {
   std::string section_name;
   if (has_section) {
     section_name = it_section_name->second;
-  } else {
+  } else if (known_section) {
     section_name = range_secname.first->second;
+  } else {
+    section_name = fmt::format(".note.{:x}", static_cast<uint32_t>(note.type()));
   }
+
+  const std::unordered_map<const Note*, size_t>& offset_map = reinterpret_cast<ExeLayout*>(layout_.get())->note_off_map();
+  const auto& it_offset = offset_map.find(&note);
 
   // Link section and notes
-  if (this->binary_->has(type) and
-      has_section)
-  {
-    Section& section = this->binary_->get_section(section_name);
-    const Note& note = this->binary_->get(type);
-    section.offset(segment_note.file_offset() + this->note_offset(note));
-    section.size(note.size());
+  if (binary_->has(note.type()) && has_section) {
+    if (it_offset == std::end(offset_map)) {
+      LIEF_ERR("Can't find {}", to_string(note.type()));
+      return make_error_code(lief_errors::not_found);
+    }
+    const size_t note_offset = it_offset->second;
+    Section* section = binary_->get_section(section_name);
+    if (section == nullptr) {
+      LIEF_ERR("Can't find section {}", section_name);
+      return make_error_code(lief_errors::not_found);
+    }
+    if (sections.insert(section).second) {
+      section->offset(segment_note->file_offset() + note_offset);
+      section->size(note.size());
+      section->virtual_address(segment_note->virtual_address() + note_offset);
+      // Special process for GNU_PROPERTY:
+      // This kind of note has a dedicated segment while others don't
+      // Therefore, when relocating this note, we need
+      // to update the segment as well.
+      if (note.type() == NOTE_TYPES::NT_GNU_PROPERTY_TYPE_0 &&
+          binary_->has(SEGMENT_TYPES::PT_GNU_PROPERTY))
+      {
+        Segment* seg = binary_->get(SEGMENT_TYPES::PT_GNU_PROPERTY);
+        if (seg == nullptr) return ok(); // Should not append as it is checked by has(...)
+
+        seg->file_offset(section->offset());
+        seg->physical_size(section->size());
+        seg->virtual_address(section->virtual_address());
+        seg->physical_address(section->virtual_address());
+        seg->virtual_size(section->size());
+      }
+    } else /* We already handled this kind of note */ {
+      section->virtual_address(0);
+      section-> size(section->size() + note.size());
+    }
   }
-
-  // Remove the section
-  if (not this->binary_->has(type) and
-      has_section)
-  {
-    this->binary_->remove_section(section_name, true);
-  }
-
-  // Add a new section
-  if (this->binary_->has(type) and
-      not has_section)
-  {
-
-    const Note& note = this->binary_->get(type);
-
-    Section section{section_name, ELF_SECTION_TYPES::SHT_NOTE};
-    section += ELF_SECTION_FLAGS::SHF_ALLOC;
-
-    Section& section_added = this->binary_->add(section, false);
-    section_added.offset(segment_note.file_offset() + this->note_offset(note));
-    section_added.size(note.size());
-    section_added.alignment(4);
-  }
+  return ok();
 }
 
 
-Section& Builder::array_section(uint64_t addr) {
+Section* Builder::array_section(Binary& bin, uint64_t addr) {
   static const std::set<ELF_SECTION_TYPES> ARRAY_TYPES = {
     ELF_SECTION_TYPES::SHT_INIT_ARRAY,
     ELF_SECTION_TYPES::SHT_FINI_ARRAY,
     ELF_SECTION_TYPES::SHT_PREINIT_ARRAY,
   };
 
-  for (Section* section : this->binary_->sections_) {
-    if (section->virtual_address() >= addr and
-        addr < (section->virtual_address() + section->size())
-        and ARRAY_TYPES.count(section->type()) > 0) {
-      return *section;
+  for (std::unique_ptr<Section>& section : bin.sections_) {
+    if (section->virtual_address() <= addr &&
+        addr < (section->virtual_address() + section->size()) &&
+        ARRAY_TYPES.count(section->type()) > 0)
+    {
+      return section.get();
     }
   }
-  throw not_found("Can find the section associated with DT_ARRAY");
+  return nullptr;
 }
 
 }

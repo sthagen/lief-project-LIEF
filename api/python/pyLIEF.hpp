@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 
 #include "encoding.hpp"
 
-#include "pyIterators.hpp"
+#include "pyErr.hpp"
 
 #define RST_CLASS_REF(X) ":class:`~"#X"`"
 #define RST_CLASS_REF_FULL(X) ":class:`"#X"`"
@@ -49,9 +49,6 @@ void init_hash_functions(py::module&);
 
 void init_utils_functions(py::module&);
 
-#if defined(LIEF_JSON_SUPPORT)
 void init_json_functions(py::module&);
-#endif
-
 
 #endif

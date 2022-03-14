@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ const char* to_string(EXE_FORMATS e) {
     { EXE_FORMATS::FORMAT_PE,      "PE"      },
     { EXE_FORMATS::FORMAT_MACHO,   "MACHO"   },
   };
-  auto   it  = enumStrings.find(e);
+  const auto it = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
 }
 
@@ -36,12 +36,12 @@ const char* to_string(OBJECT_TYPES e) {
     { OBJECT_TYPES::TYPE_LIBRARY,    "LIBRARY"    },
     { OBJECT_TYPES::TYPE_OBJECT,     "OBJECT"     },
   };
-  auto   it  = enumStrings.find(e);
+  const auto it = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
 }
 
 const char* to_string(ARCHITECTURES e) {
-  CONST_MAP(ARCHITECTURES, const char*, 10) enumStrings {
+  CONST_MAP(ARCHITECTURES, const char*, 11) enumStrings {
     { ARCHITECTURES::ARCH_NONE,  "NONE"  },
     { ARCHITECTURES::ARCH_ARM,   "ARM"   },
     { ARCHITECTURES::ARCH_ARM64, "ARM64" },
@@ -50,10 +50,11 @@ const char* to_string(ARCHITECTURES e) {
     { ARCHITECTURES::ARCH_PPC,   "PPC"   },
     { ARCHITECTURES::ARCH_SPARC, "SPARC" },
     { ARCHITECTURES::ARCH_SYSZ,  "SYSZ"  },
-    { ARCHITECTURES::ARCH_XCORE, "XCODE" },
+    { ARCHITECTURES::ARCH_XCORE, "XCORE" },
     { ARCHITECTURES::ARCH_INTEL, "INTEL" },
+    { ARCHITECTURES::ARCH_RISCV, "RISCV" },
   };
-  auto   it  = enumStrings.find(e);
+  const auto it = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
 }
 
@@ -76,7 +77,7 @@ const char* to_string(MODES e) {
     { MODES::MODE_MIPS32,        "MIPS32" },
     { MODES::MODE_MIPS64,        "MIPS64" },
   };
-  auto   it  = enumStrings.find(e);
+  const auto it = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
 }
 
@@ -86,7 +87,7 @@ const char* to_string(ENDIANNESS e) {
     { ENDIANNESS::ENDIAN_BIG,    "BIG"    },
     { ENDIANNESS::ENDIAN_LITTLE, "LITTLE" },
   };
-  auto   it  = enumStrings.find(e);
+  const auto it = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
 }
 
@@ -96,7 +97,7 @@ const char* to_string(Binary::VA_TYPES e) {
     { LIEF::Binary::VA_TYPES::RVA,  "RVA"  },
     { LIEF::Binary::VA_TYPES::VA,   "VA"   },
   };
-  auto   it  = enumStrings.find(e);
+  const auto it = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
 }
 
@@ -109,7 +110,7 @@ const char* to_string(Function::FLAGS e) {
     { LIEF::Function::FLAGS::IMPORTED,     "IMPORTED"     },
     { LIEF::Function::FLAGS::EXPORTED,     "EXPORTED"     },
   };
-  auto   it  = enumStrings.find(e);
+  const auto it = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
 }
 

@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,24 +16,25 @@
 #include "LIEF/BinaryStream/Convert.hpp"
 #include "LIEF/BinaryStream/BinaryStream.hpp"
 
-/* In place conversions for BinaryStream/VectorStream data */
+#define TMPL_DECL(T) template<> void swap_endian<T>(T* u) { *u = BinaryStream::swap_endian(*u); }
 
+/* In place conversions for BinaryStream/VectorStream data */
 namespace LIEF {
 namespace Convert {
 
-template<typename T>
-void swap_endian(T *v) {
-  static_assert(std::is_integral<T>::value, "Only integer types can use generic endian swap");
-  *v = BinaryStream::swap_endian(*v);
-}
+TMPL_DECL(char)
+TMPL_DECL(char16_t)
 
-/*
- * Force instantiation of template for types used
- */
-template void swap_endian<uint16_t>(uint16_t *v);
-template void swap_endian<uint32_t>(uint32_t *v);
-template void swap_endian<uint64_t>(uint64_t *v);
-template void swap_endian<char16_t>(char16_t *v);
+TMPL_DECL(uint8_t)
+TMPL_DECL(uint16_t)
+TMPL_DECL(uint32_t)
+TMPL_DECL(uint64_t)
+
+TMPL_DECL(int8_t)
+TMPL_DECL(int16_t)
+TMPL_DECL(int32_t)
+TMPL_DECL(int64_t)
+
 
 }
 }

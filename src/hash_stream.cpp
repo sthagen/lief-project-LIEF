@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ hashstream::hashstream(HASH type) :
       }
   }
   mbedtls_md_starts(cast(this->ctx_));
-  if (ret) {
+  if (ret != 0) {
     LIEF_WARN("Error while setting up hash function");
   }
 }
@@ -126,7 +126,7 @@ hashstream& hashstream::flush() {
   return *this;
 }
 
-std::vector<uint8_t>& hashstream::raw(void) {
+std::vector<uint8_t>& hashstream::raw() {
   this->flush();
   return this->output_;
 }

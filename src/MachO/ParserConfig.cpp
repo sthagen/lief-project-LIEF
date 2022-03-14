@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,38 +22,36 @@
 
 namespace LIEF {
 namespace MachO {
-ParserConfig::~ParserConfig(void) = default;
 
-ParserConfig& ParserConfig::operator=(const ParserConfig&) = default;
-ParserConfig::ParserConfig(const ParserConfig&) = default;
-
-
-ParserConfig::ParserConfig(void) :
-  dyldinfo_deeply_{false}
-{}
-
-
-ParserConfig ParserConfig::deep(void) {
+ParserConfig ParserConfig::deep() {
   ParserConfig conf;
-  conf.parse_dyldinfo_deeply(true);
+  conf.parse_dyld_exports  = true;
+  conf.parse_dyld_bindings = true;
+  conf.parse_dyld_rebases  = true;
   return conf;
 }
 
-ParserConfig ParserConfig::quick(void) {
+ParserConfig ParserConfig::quick() {
   ParserConfig conf;
-  conf.parse_dyldinfo_deeply(false);
+  conf.parse_dyld_exports  = false;
+  conf.parse_dyld_bindings = false;
+  conf.parse_dyld_rebases  = false;
   return conf;
 }
 
-ParserConfig& ParserConfig::parse_dyldinfo_deeply(bool flag) {
-  this->dyldinfo_deeply_ = flag;
+
+ParserConfig& ParserConfig::full_dyldinfo(bool flag) {
+  if (flag) {
+    parse_dyld_exports  = true;
+    parse_dyld_bindings = true;
+    parse_dyld_rebases  = true;
+  } else {
+    parse_dyld_exports  = false;
+    parse_dyld_bindings = false;
+    parse_dyld_rebases  = false;
+  }
   return *this;
 }
-
-bool ParserConfig::parse_dyldinfo_deeply(void) const {
-  return this->dyldinfo_deeply_;
-}
-
 
 
 } //namespace MachO

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,38 +26,49 @@ namespace LIEF {
 namespace MachO {
 
 class BinaryParser;
+
+namespace details {
 struct relocation_info;
 struct scattered_relocation_info;
+}
 
+//! Class that represents a relocation presents in the MachO object
+//! file (``.o``). Usually, this kind of relocation is found in the MachO::Section
+//!
+//! @see RelocationDyld
 class LIEF_API RelocationObject : public Relocation {
 
   friend class BinaryParser;
 
   public:
   using Relocation::Relocation;
-  RelocationObject(void);
-  RelocationObject(const relocation_info *relocinfo);
-  RelocationObject(const scattered_relocation_info *scattered_relocinfo);
+  RelocationObject();
+  RelocationObject(const details::relocation_info& relocinfo);
+  RelocationObject(const details::scattered_relocation_info& scattered_relocinfo);
 
   RelocationObject& operator=(RelocationObject other);
   RelocationObject(const RelocationObject& other);
 
   void swap(RelocationObject& other);
 
-  virtual ~RelocationObject(void);
+  virtual ~RelocationObject();
 
-  virtual RelocationObject* clone(void) const override;
+  RelocationObject* clone() const override;
 
-  virtual bool is_pc_relative(void) const override;
+  //! Whether the relocation is PC relative
+  bool is_pc_relative() const override;
 
-  virtual size_t size(void) const override;
+  //! Size of the relocation
+  size_t size() const override;
 
-  virtual uint64_t address(void) const override;
+  //! Address where the relocation is applied
+  //! This address is relative to the start of the section where the relocation takes place
+  uint64_t address() const override;
 
-  //! @brief ``true`` if the relocation is a scattered one
-  bool is_scattered(void) const;
+  //! ``true`` if the relocation is a scattered one
+  bool is_scattered() const;
 
-  //! @brief For **scattered** relocations,
+  //! For **scattered** relocations:
   //! The address of the relocatable expression for the item in the file that needs
   //! to be updated if the address is changed.
   //!
@@ -65,27 +76,29 @@ class LIEF_API RelocationObject : public Relocation {
   //! the address from which to subtract (in mathematical terms, the minuend)
   //! is contained in the first relocation entry and the address to subtract (the subtrahend)
   //! is contained in the second relocation entry.
-  int32_t value(void) const;
+  int32_t value() const;
 
-  //! @brief Origin of the relocation
-  virtual RELOCATION_ORIGINS origin(void) const override;
+  //! Origin of the relocation. For this object it should be RELOCATION_ORIGINS::ORIGIN_RELOC_TABLE)
+  RELOCATION_ORIGINS origin() const override;
 
-  virtual void pc_relative(bool val) override;
-  virtual void size(size_t size) override;
+  void pc_relative(bool val) override;
+  void size(size_t size) override;
 
   void value(int32_t value);
 
   bool operator==(const RelocationObject& rhs) const;
   bool operator!=(const RelocationObject& rhs) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
+
+  static bool classof(const Relocation& r);
 
   private:
-  bool    is_pcrel_;
-  bool    is_scattered_;
-  int32_t value_;
+  bool is_pcrel_ = false;
+  bool is_scattered_ = false;
+  int32_t value_ = 0;
 };
 
 }

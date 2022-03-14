@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,26 +34,26 @@ Logger::Logger(Logger&&) = default;
 Logger& Logger::operator=(Logger&&) = default;
 Logger::~Logger() = default;
 
-Logger::Logger(void) {
+Logger::Logger() {
   if /* constexpr */ (lief_logging_support) {
     if /* constexpr */ (current_platform() == PLATFORMS::ANDROID_PLAT) {
       #if defined(__ANDROID__)
-      this->sink_ = spdlog::android_logger_mt("LIEF", "lief");
+      sink_ = spdlog::android_logger_mt("LIEF", "lief");
       #else
       // Should not append ...
       #endif
     }
     else if (current_platform() == PLATFORMS::IOS) {
-      this->sink_ = spdlog::basic_logger_mt("LIEF", "/tmp/lief.log", /* truncate */ true);
+      sink_ = spdlog::basic_logger_mt("LIEF", "/tmp/lief.log", /* truncate */ true);
     }
     else {
-      this->sink_ = spdlog::stderr_color_mt("LIEF");
+      sink_ = spdlog::stderr_color_mt("LIEF");
     }
 
 
-    this->sink_->set_level(spdlog::level::warn);
-    this->sink_->set_pattern("%v");
-    this->sink_->flush_on(spdlog::level::warn);
+    sink_->set_level(spdlog::level::warn);
+    sink_->set_pattern("%v");
+    sink_->flush_on(spdlog::level::warn);
   }
 }
 
@@ -66,7 +66,7 @@ Logger& Logger::instance() {
 }
 
 
-void Logger::destroy(void) {
+void Logger::destroy() {
   delete instance_;
 }
 
@@ -84,20 +84,20 @@ const char* to_string(LOGGING_LEVEL e) {
 }
 
 
-void Logger::disable(void) {
+void Logger::disable() {
   if /* constexpr */ (lief_logging_support) {
     Logger::instance().sink_->set_level(spdlog::level::off);
   }
 }
 
-void Logger::enable(void) {
+void Logger::enable() {
   if /* constexpr */ (lief_logging_support) {
     Logger::instance().sink_->set_level(spdlog::level::warn);
   }
 }
 
 void Logger::set_level(LOGGING_LEVEL level) {
-  if /* constexpr */ (not lief_logging_support) {
+  if /* constexpr */ (!lief_logging_support) {
     return;
   }
   switch (level) {
@@ -148,11 +148,11 @@ void Logger::set_level(LOGGING_LEVEL level) {
 
 // Public interface
 
-void disable(void) {
+void disable() {
   Logger::disable();
 }
 
-void enable(void) {
+void enable() {
   Logger::enable();
 }
 

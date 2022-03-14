@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,21 +24,31 @@
 
 namespace LIEF {
 namespace MachO {
+
+namespace details {
 struct entry_point_command;
+}
+
+//! Class that represent the LC_MAIN command. This kind
+//! of command can be used to determine the entrypoint of an executable
 class LIEF_API MainCommand : public LoadCommand {
   public:
-  MainCommand(void);
-  MainCommand(const entry_point_command *cmd);
+  MainCommand();
+  MainCommand(const details::entry_point_command& cmd);
 
   MainCommand& operator=(const MainCommand& copy);
   MainCommand(const MainCommand& copy);
 
-  virtual MainCommand* clone(void) const override;
+  MainCommand* clone() const override;
 
-  virtual ~MainCommand(void);
+  virtual ~MainCommand();
 
-  uint64_t entrypoint(void) const;
-  uint64_t stack_size(void) const;
+  //! Offset of the *main* function relative to the ``__TEXT``
+  //! segment
+  uint64_t entrypoint() const;
+
+  //! The initial stack size (if not 0)
+  uint64_t stack_size() const;
 
   void entrypoint(uint64_t entrypoint);
   void stack_size(uint64_t stacksize);
@@ -46,13 +56,15 @@ class LIEF_API MainCommand : public LoadCommand {
   bool operator==(const MainCommand& rhs) const;
   bool operator!=(const MainCommand& rhs) const;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
+
+  static bool classof(const LoadCommand* cmd);
 
   private:
-  uint64_t entrypoint_;
-  uint64_t stackSize_;
+  uint64_t entrypoint_ = 0;
+  uint64_t stack_size_ = 0;
 };
 
 }

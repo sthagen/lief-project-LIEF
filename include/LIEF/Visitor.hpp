@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
-* Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+* Copyright 2017 - 2022 Quarkslab
 * Copyright 2017 - 2021 K. Nakagawa
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,6 +47,8 @@ LIEF_ABSTRACT_FORWARD(Function)
 // PE
 // ===============================
 LIEF_PE_FORWARD(Binary)
+LIEF_PE_FORWARD(DelayImport)
+LIEF_PE_FORWARD(DelayImportEntry)
 LIEF_PE_FORWARD(DosHeader)
 LIEF_PE_FORWARD(Header)
 LIEF_PE_FORWARD(OptionalHeader)
@@ -211,10 +213,10 @@ LIEF_ART_FORWARD(Header)
 
 class LIEF_API Visitor {
   public:
-  Visitor(void);
-  virtual ~Visitor(void);
+  Visitor();
+  virtual ~Visitor();
 
-  virtual void operator()(void);
+  virtual void operator()();
 
   template<typename Arg1, typename... Args>
   void operator()(Arg1&& arg1, Args&&... args);
@@ -330,6 +332,12 @@ class LIEF_API Visitor {
 
   //! Method to visit a LIEF::PE::ImportEntry
   LIEF_PE_VISITABLE(ImportEntry)
+
+  //! Method to visit a LIEF::PE::DelayImport
+  LIEF_PE_VISITABLE(DelayImport)
+
+  //! Method to visit a LIEF::PE::DelayImportEntry
+  LIEF_PE_VISITABLE(DelayImportEntry)
 
   //! Method to visit a LIEF::PE::ResourceNode
   LIEF_PE_VISITABLE(ResourceNode)
@@ -634,20 +642,20 @@ class LIEF_API Visitor {
 
 template<typename Arg1, typename... Args>
 void Visitor::operator()(Arg1&& arg1, Args&&... args) {
-  this->dispatch(std::forward<Arg1>(arg1));
-  this->operator()(std::forward<Args>(args)... );
+  dispatch(std::forward<Arg1>(arg1));
+  operator()(std::forward<Args>(args)... );
 }
 
 template<class T>
 void Visitor::dispatch(const T& obj) {
   size_t hash = reinterpret_cast<size_t>(&obj);
-  if (this->visited_.find(hash) != std::end(this->visited_)) {
+  if (visited_.find(hash) != std::end(visited_)) {
     // Already visited
     return;
   }
 
-  this->visited_.insert(hash);
-  this->visit(obj);
+  visited_.insert(hash);
+  visit(obj);
 }
 
 }

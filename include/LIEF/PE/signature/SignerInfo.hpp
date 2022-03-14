@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 
 
 #include "LIEF/PE/signature/types.hpp"
+#include "LIEF/iterators.hpp"
 #include "LIEF/PE/enums.hpp"
 
 namespace LIEF {
@@ -50,17 +51,24 @@ class x509;
  * ```
  */
 class LIEF_API SignerInfo : public Object {
-
   friend class Parser;
   friend class SignatureParser;
   friend class Signature;
 
   public:
   using encrypted_digest_t = std::vector<uint8_t>;
-  SignerInfo(void);
 
-  SignerInfo(const SignerInfo& signinfo);
-  SignerInfo& operator=(SignerInfo signinfo);
+  //! Internal container used to store both
+  //! authenticated and unauthenticated attributes
+  using attributes_t = std::vector<std::unique_ptr<Attribute>>;
+
+  //! Iterator which outputs const Attribute&
+  using it_const_attributes_t = const_ref_iterator<const attributes_t&, const Attribute*>;
+
+  SignerInfo();
+
+  SignerInfo(const SignerInfo& other);
+  SignerInfo& operator=(SignerInfo other);
 
   SignerInfo(SignerInfo&&);
   SignerInfo& operator=(SignerInfo&&);
@@ -68,7 +76,7 @@ class LIEF_API SignerInfo : public Object {
   void swap(SignerInfo& other);
 
   //! Should be 1
-  uint32_t version(void) const;
+  uint32_t version() const;
 
   //! Return the serial number associated with the x509 certificate
   //! used by this signer.
@@ -77,27 +85,27 @@ class LIEF_API SignerInfo : public Object {
   //! LIEF::PE::x509::serial_number
   //! SignerInfo::issuer
   inline const std::vector<uint8_t>& serial_number() const {
-    return this->serialno_;
+    return serialno_;
   }
 
   //! Return the x509::issuer used by this signer
   inline const std::string& issuer() const {
-    return this->issuer_;
+    return issuer_;
   };
 
   //! Algorithm (OID) used to hash the file.
   //!
   //! This value should match LIEF::PE::ContentInfo::digest_algorithm and
   //! LIEF::PE::Signature::digest_algorithm
-  ALGORITHMS digest_algorithm(void) const;
+  ALGORITHMS digest_algorithm() const;
 
   //! Return the (public-key) algorithm used to encrypt
   //! the signature
-  ALGORITHMS encryption_algorithm(void) const;
+  ALGORITHMS encryption_algorithm() const;
 
   //! Return the signature created by the signing
   //! certificate's private key
-  const encrypted_digest_t& encrypted_digest(void) const;
+  const encrypted_digest_t& encrypted_digest() const;
 
   //! Iterator over LIEF::PE::Attribute for **authenticated** attributes
   it_const_attributes_t authenticated_attributes() const;
@@ -126,22 +134,22 @@ class LIEF_API SignerInfo : public Object {
 
   //! x509 certificate used by this signer. If it can't be found, it returns a nullptr
   inline const x509* cert() const {
-    return this->cert_.get();
+    return cert_.get();
   }
 
   //! x509 certificate used by this signer. If it can't be found, it returns a nullptr
   inline x509* cert() {
-    return this->cert_.get();
+    return cert_.get();
   }
 
   //! Raw blob that is signed by the signer certificate
   const std::vector<uint8_t> raw_auth_data() const {
-    return this->raw_auth_data_;
+    return raw_auth_data_;
   }
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual ~SignerInfo(void);
+  virtual ~SignerInfo();
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const SignerInfo& signer_info);
 
@@ -157,8 +165,8 @@ class LIEF_API SignerInfo : public Object {
 
   std::vector<uint8_t> raw_auth_data_;
 
-  std::vector<std::unique_ptr<Attribute>> authenticated_attributes_;
-  std::vector<std::unique_ptr<Attribute>> unauthenticated_attributes_;
+  attributes_t authenticated_attributes_;
+  attributes_t unauthenticated_attributes_;
 
   std::unique_ptr<x509> cert_;
 };

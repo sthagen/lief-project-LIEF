@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,16 @@
 
 
 namespace LIEF {
-uint64_t align(uint64_t value, uint64_t align_on);
+inline uint64_t align(uint64_t value, uint64_t align_on) {
+  if (align_on == 0) {
+    return value;
+  }
+  const auto r = value % align_on;
+  if (r > 0) {
+    return value + (align_on - r);
+  }
+  return value;
+}
 
 
 template<typename T>
@@ -71,7 +80,7 @@ LIEF_API std::u16string u8tou16(const std::string& string);
 
 LIEF_API std::string hex_str(uint8_t c);
 
-LIEF_API std::string hex_dump(const std::vector<uint8_t>& data, std::string sep = ":");
+LIEF_API std::string hex_dump(const std::vector<uint8_t>& data, const std::string& sep = ":");
 
 //! Check if the given string in printable
 LIEF_API bool is_printable(const std::string& str);

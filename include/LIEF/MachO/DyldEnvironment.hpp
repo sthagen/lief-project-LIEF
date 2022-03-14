@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,31 +25,38 @@
 
 namespace LIEF {
 namespace MachO {
-struct dylinker_command;
 
+namespace details {
+struct dylinker_command;
+}
+
+//! Class that represents a LC_DYLD_ENVIRONMENT which is
+//! used by the Mach-O linker/loader to initialize an environment variable
 class LIEF_API DyldEnvironment : public LoadCommand {
   public:
-  DyldEnvironment(void);
-  DyldEnvironment(const dylinker_command *cmd);
+  DyldEnvironment();
+  DyldEnvironment(const details::dylinker_command& cmd);
 
   DyldEnvironment& operator=(const DyldEnvironment& copy);
   DyldEnvironment(const DyldEnvironment& copy);
 
-  virtual DyldEnvironment* clone(void) const override;
+  DyldEnvironment* clone() const override;
 
-  virtual ~DyldEnvironment(void);
+  virtual ~DyldEnvironment();
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
 
-  const std::string& value(void) const;
+  //! The actual environment variable
+  const std::string& value() const;
 
   void value(const std::string& values);
 
   bool operator==(const DyldEnvironment& rhs) const;
   bool operator!=(const DyldEnvironment& rhs) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
+  static bool classof(const LoadCommand* cmd);
 
   private:
   std::string value_;

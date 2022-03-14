@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 
 namespace LIEF {
 namespace ELF {
+
 class LIEF_API DynamicEntryFlags : public DynamicEntry {
 
   public:
@@ -31,30 +32,30 @@ class LIEF_API DynamicEntryFlags : public DynamicEntry {
 
   public:
   using DynamicEntry::DynamicEntry;
-  DynamicEntryFlags(void);
+  DynamicEntryFlags();
 
   DynamicEntryFlags& operator=(const DynamicEntryFlags&);
   DynamicEntryFlags(const DynamicEntryFlags&);
 
-  //! @brief If the current entry has the given DYNAMIC_FLAGS
+  //! If the current entry has the given DYNAMIC_FLAGS
   bool has(DYNAMIC_FLAGS f) const;
 
-  //! @brief If the current entry has the given DYNAMIC_FLAGS_1
+  //! If the current entry has the given DYNAMIC_FLAGS_1
   bool has(DYNAMIC_FLAGS_1 f) const;
 
-  //! @brief Return flags as a list of integers
-  flags_list_t flags(void) const;
+  //! Return flags as a list of integers
+  flags_list_t flags() const;
 
-  //! @brief Add the given DYNAMIC_FLAGS
+  //! Add the given DYNAMIC_FLAGS
   void add(DYNAMIC_FLAGS f);
 
-  //! @brief Add the given DYNAMIC_FLAGS_1
+  //! Add the given DYNAMIC_FLAGS_1
   void add(DYNAMIC_FLAGS_1 f);
 
-  //! @brief Remove the given DYNAMIC_FLAGS
+  //! Remove the given DYNAMIC_FLAGS
   void remove(DYNAMIC_FLAGS f);
 
-  //! @brief Remove the given DYNAMIC_FLAGS_1
+  //! Remove the given DYNAMIC_FLAGS_1
   void remove(DYNAMIC_FLAGS_1 f);
 
   DynamicEntryFlags& operator+=(DYNAMIC_FLAGS f);
@@ -63,10 +64,12 @@ class LIEF_API DynamicEntryFlags : public DynamicEntry {
   DynamicEntryFlags& operator-=(DYNAMIC_FLAGS f);
   DynamicEntryFlags& operator-=(DYNAMIC_FLAGS_1 f);
 
-  //! @brief Method so that the ``visitor`` can visit us
-  virtual void accept(Visitor& visitor) const override;
+  //! Method so that the ``visitor`` can visit us
+  void accept(Visitor& visitor) const override;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  static bool classof(const DynamicEntry* entry);
+
+  std::ostream& print(std::ostream& os) const override;
 };
 }
 }

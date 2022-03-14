@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ using namespace LIEF::VDEX;
 int main(int argc, char **argv) {
   LIEF::logging::set_level(LIEF::logging::LOGGING_LEVEL::LOG_DEBUG);
   if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <VDEX file>" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " <VDEX file>" << '\n';
     return EXIT_FAILURE;
   }
 
@@ -33,11 +33,11 @@ int main(int argc, char **argv) {
 
   try {
     file = std::unique_ptr<const File>{LIEF::VDEX::Parser::parse(argv[1])};
-    for (auto&& f : file->dex_files()) {
-      std::cout << f.location() << std::endl;
+    for (auto& f : file->dex_files()) {
+      std::cout << f.location() << '\n';
     }
   } catch (const LIEF::exception& e) {
-    std::cerr << e.what() << std::endl;
+    std::cerr << e.what() << '\n';
     return EXIT_FAILURE;
   }
 

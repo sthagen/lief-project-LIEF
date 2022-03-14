@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 namespace LIEF {
 namespace OAT {
 
-Hash::~Hash(void) = default;
+Hash::~Hash() = default;
 
 size_t Hash::hash(const Object& obj) {
   return LIEF::Hash::hash<LIEF::OAT::Hash>(obj);
@@ -68,7 +68,7 @@ void Hash::visit(const DexFile& dex_file) {
   process(dex_file.checksum());
   process(dex_file.dex_offset());
   if (dex_file.has_dex_file()) {
-    process(DEX::Hash::hash(dex_file.dex_file()));
+    process(DEX::Hash::hash(*dex_file.dex_file()));
   }
   process(dex_file.lookup_table_offset());
   process(dex_file.classes_offsets());
@@ -77,23 +77,24 @@ void Hash::visit(const DexFile& dex_file) {
 
 void Hash::visit(const Class& cls) {
   if (cls.has_dex_class()) {
-    process(DEX::Hash::hash(cls.dex_class()));
+    process(DEX::Hash::hash(*cls.dex_class()));
   }
 
   process(cls.status());
   process(cls.type());
   process(cls.fullname());
   process(cls.bitmap());
-  process(std::begin(cls.methods()), std::end(cls.methods()));
+  Class::it_const_methods it = cls.methods();
+  process(std::begin(it), std::end(it));
 }
 
 
 void Hash::visit(const Method& meth) {
   if (meth.has_dex_method()) {
-    process(DEX::Hash::hash(meth.dex_method()));
+    process(DEX::Hash::hash(*meth.dex_method()));
   }
-  process(meth.is_dex2dex_optimized());
-  process(meth.is_compiled());
+  process(static_cast<size_t>(meth.is_dex2dex_optimized()));
+  process(static_cast<size_t>(meth.is_compiled()));
   process(meth.quick_code());
 }
 

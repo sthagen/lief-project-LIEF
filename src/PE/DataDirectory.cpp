@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,99 +19,78 @@
 #include "LIEF/PE/hash.hpp"
 #include "LIEF/exception.hpp"
 
-#include "LIEF/PE/Structures.hpp"
 #include "LIEF/PE/Section.hpp"
 #include "LIEF/PE/DataDirectory.hpp"
 #include "LIEF/PE/EnumToString.hpp"
+#include "PE/Structures.hpp"
 
 
 namespace LIEF {
 namespace PE {
 
-DataDirectory::~DataDirectory(void) = default;
+DataDirectory::~DataDirectory() = default;
 
-DataDirectory::DataDirectory(void) :
-  rva_{0},
-  size_{0},
-  type_{},
-  section_{nullptr}
-{}
+DataDirectory::DataDirectory() = default;
+
 
 DataDirectory::DataDirectory(DATA_DIRECTORY type) :
-  rva_{0},
-  size_{0},
-  type_{type},
-  section_{nullptr}
+  type_{type}
 {}
 
-DataDirectory::DataDirectory(const pe_data_directory *header, DATA_DIRECTORY type) :
-  rva_{header->RelativeVirtualAddress},
-  size_{header->Size},
-  type_{type},
-  section_{nullptr}
+DataDirectory::DataDirectory(const details::pe_data_directory& header, DATA_DIRECTORY type) :
+  rva_{header.RelativeVirtualAddress},
+  size_{header.Size},
+  type_{type}
 {}
 
-DataDirectory::DataDirectory(const DataDirectory& other) :
-  Object{other},
-  rva_{other.rva_},
-  size_{other.size_},
-  type_{other.type_},
-  section_{nullptr}
-{}
+DataDirectory::DataDirectory(const DataDirectory& other) = default;
 
 DataDirectory& DataDirectory::operator=(DataDirectory other) {
-  this->swap(other);
+  swap(other);
   return *this;
 }
 
 void DataDirectory::swap(DataDirectory& other) {
-  std::swap(this->rva_,     other.rva_);
-  std::swap(this->size_,    other.size_);
-  std::swap(this->type_,    other.type_);
-  std::swap(this->section_, other.section_);
+  std::swap(rva_,     other.rva_);
+  std::swap(size_,    other.size_);
+  std::swap(type_,    other.type_);
+  std::swap(section_, other.section_);
+}
+
+uint32_t DataDirectory::RVA() const {
+  return rva_;
 }
 
 
-
-uint32_t DataDirectory::RVA(void) const {
-  return this->rva_;
+uint32_t DataDirectory::size() const {
+  return size_;
 }
 
 
-uint32_t DataDirectory::size(void) const {
-  return this->size_;
+bool DataDirectory::has_section() const {
+  return section_ != nullptr;
 }
 
 
-bool DataDirectory::has_section(void) const {
-  return this->section_ != nullptr;
+const Section* DataDirectory::section() const {
+  return section_;
 }
 
-
-const Section& DataDirectory::section(void) const {
-  if (this->section_ != nullptr) {
-    return *this->section_;
-  } else {
-    throw not_found("No section associated with the data directory '" +
-        std::string{to_string(this->type())} + "'");
-  }
+Section* DataDirectory::section() {
+  return const_cast<Section*>(static_cast<const DataDirectory*>(this)->section());
 }
 
-Section& DataDirectory::section(void) {
-  return const_cast<Section&>(static_cast<const DataDirectory*>(this)->section());
-}
-
-DATA_DIRECTORY DataDirectory::type(void) const {
-  return this->type_;
+DATA_DIRECTORY DataDirectory::type() const {
+  return type_;
 }
 
 void DataDirectory::RVA(uint32_t rva) {
-  this->rva_ = rva;
+  rva_ = rva;
 }
 
 
 void DataDirectory::size(uint32_t size) {
-  this->size_ = size;
+  size_ = size;
 }
 
 void DataDirectory::accept(LIEF::Visitor& visitor) const {
@@ -121,13 +100,16 @@ void DataDirectory::accept(LIEF::Visitor& visitor) const {
 
 
 bool DataDirectory::operator==(const DataDirectory& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool DataDirectory::operator!=(const DataDirectory& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const DataDirectory& entry) {
@@ -136,7 +118,7 @@ std::ostream& operator<<(std::ostream& os, const DataDirectory& entry) {
   os << std::setw(10) << std::left << std::setfill(' ') << "RVA: 0x"  << entry.RVA()  << std::endl;
   os << std::setw(10) << std::left << std::setfill(' ') << "Size: 0x" << entry.size() << std::endl;
   if (entry.has_section()) {
-    os << std::setw(10) << std::left << std::setfill(' ') << "Section: " << entry.section().name() << std::endl;
+    os << std::setw(10) << std::left << std::setfill(' ') << "Section: " << entry.section()->name() << std::endl;
   }
 
   return os;

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "LIEF/MachO/hash.hpp"
 #include "LIEF/MachO/DyldInfo.hpp"
 
+#include "pyIterators.hpp"
 #include "pyMachO.hpp"
 
 namespace LIEF {
@@ -39,127 +40,147 @@ using no_const_getter = T (DyldInfo::*)(void);
 template<>
 void create<DyldInfo>(py::module& m) {
 
-  py::class_<DyldInfo, LoadCommand>(m, "DyldInfo")
+  py::class_<DyldInfo, LoadCommand> dyld(m, "DyldInfo",
+      R"delim(
+      Class that represents the LC_DYLD_INFO and LC_DYLD_INFO_ONLY commands
+      )delim");
 
+  init_ref_iterator<DyldInfo::it_binding_info>(dyld, "it_binding_info");
+  init_ref_iterator<DyldInfo::it_export_info>(dyld, "it_export_info");
+
+  dyld
     .def_property("rebase",
         static_cast<getter_t<const LIEF::MachO::DyldInfo::info_t&>>(&DyldInfo::rebase),
         static_cast<setter_t<const LIEF::MachO::DyldInfo::info_t&>>(&DyldInfo::rebase),
-        "*Rebase* information as a tuple ``(offset, size)``\n\n"
+        R"delim(
+        *Rebase* information as a tuple ``(offset, size)``
 
-        "Dyld rebases an image whenever dyld loads it at an address different \n"
-        "from its preferred address. The rebase information is a stream \n"
-        "of byte sized opcodes whose symbolic names start with ``REBASE_OPCODE_``. \n"
-        "Conceptually the rebase information is a table of tuples: \n"
-        "``(seg-index, seg-offset, type)``\n"
-        "The opcodes are a compressed way to encode the table by only \n"
-        "encoding when a column changes.  In addition simple patterns \n"
-        "like \"every n'th offset for m times\" can be encoded in a few \n"
-        "bytes.\n\n"
+        Dyld rebases an image whenever dyld loads it at an address different
+        from its preferred address. The rebase information is a stream
+        of byte sized opcodes for which symbolic names start with ``REBASE_OPCODE_``.
 
-        ".. seealso::\n\n"
-        "\t``/usr/include/mach-o/loader.h``\n",
-        py::return_value_policy::reference_internal)
+        Conceptually the rebase information is a table of tuples: ``(seg-index, seg-offset, type)``
+
+        The opcodes are a compressed way to encode the table by only
+        encoding when a column changes.  In addition simple patterns
+        like "every n'th offset for m times" can be encoded in a few bytes
+
+        .. seealso::
+
+            ``/usr/include/mach-o/loader.h``
+        )delim")
 
     .def_property("rebase_opcodes",
-        static_cast<getter_t<const buffer_t&>>(&DyldInfo::rebase_opcodes),
-        static_cast<setter_t<const buffer_t&>>(&DyldInfo::rebase_opcodes),
-        "Return Rebase's opcodes as ``list`` of bytes")
+        [] (const DyldInfo& self) {
+          span<const uint8_t> content = self.rebase_opcodes();
+          return py::memoryview::from_memory(content.data(), content.size());
+        },
+        static_cast<setter_t<buffer_t>>(&DyldInfo::rebase_opcodes),
+        "Return the rebase's opcodes as ``list`` of bytes")
 
     .def_property_readonly("show_rebases_opcodes",
         &DyldInfo::show_rebases_opcodes,
-        "Return the rebase opcodes in a humman-readable way",
-        py::return_value_policy::reference_internal)
+        "Return the rebase opcodes in a humman-readable way")
 
     .def_property("bind",
         static_cast<getter_t<const LIEF::MachO::DyldInfo::info_t&>>(&DyldInfo::bind),
         static_cast<setter_t<const LIEF::MachO::DyldInfo::info_t&>>(&DyldInfo::bind),
-        "*Bind* information as a tuple ``(offset, size)``\n\n"
+        R"delim(
+        *Bind* information as a tuple ``(offset, size)``
 
-        "Dyld binds an image during the loading process, if the image\n"
-        "requires any pointers to be initialized to symbols in other images.\n"
-        "The rebase information is a stream of byte sized\n"
-        "opcodes whose symbolic names start with ``BIND_OPCODE_``.\n"
-        "Conceptually the bind information is a table of tuples:\n"
-        "``(seg-index, seg-offset, type, symbol-library-ordinal, symbol-name, addend)``\n"
-        "The opcodes are a compressed way to encode the table by only\n"
-        "encoding when a column changes. In addition simple patterns\n"
-        "like for runs of pointers initialzed to the same value can be\n"
-        "encoded in a few bytes.\n\n"
+        Dyld binds an image during the loading process, if the image
+        requires any pointers to be initialized to symbols in other images.
+        The rebase information is a stream of byte sized opcodes for which symbolic names start with ``BIND_OPCODE_``.
 
-        ".. seealso::\n\n"
-        "\t``/usr/include/mach-o/loader.h``\n",
-        py::return_value_policy::reference_internal)
+        Conceptually the bind information is a table of tuples:
+        ``(seg-index, seg-offset, type, symbol-library-ordinal, symbol-name, addend)``
+        The opcodes are a compressed way to encode the table by only encoding when a column changes. In addition simple patterns
+        like for runs of pointers initialzed to the same value can be encoded in a few bytes.
+
+        .. seealso::
+
+            ``/usr/include/mach-o/loader.h``
+        )delim")
 
 
     .def_property("bind_opcodes",
-        static_cast<getter_t<const buffer_t&>>(&DyldInfo::bind_opcodes),
-        static_cast<setter_t<const buffer_t&>>(&DyldInfo::bind_opcodes),
-        "Return Binding's opcodes as ``list`` of bytes")
+        [] (const DyldInfo& self) {
+          span<const uint8_t> content = self.bind_opcodes();
+          return py::memoryview::from_memory(content.data(), content.size());
+        },
+        static_cast<setter_t<buffer_t>>(&DyldInfo::bind_opcodes),
+        "Return the binding's opcodes as ``list`` of bytes")
 
     .def_property_readonly("show_bind_opcodes",
         &DyldInfo::show_bind_opcodes,
-        "Return the bind opcodes in a humman-readable way",
-        py::return_value_policy::reference_internal)
+        "Return the bind opcodes in a humman-readable way")
 
 
     .def_property("weak_bind",
         static_cast<getter_t<const LIEF::MachO::DyldInfo::info_t&>>(&DyldInfo::weak_bind),
         static_cast<setter_t<const LIEF::MachO::DyldInfo::info_t&>>(&DyldInfo::weak_bind),
-        "*Weak Bind* information as a tuple ``(offset, size)``\n\n"
+        R"delim(
+        *Weak Bind* information as a tuple ``(offset, size)``
 
-        "Some C++ programs require dyld to unique symbols so that all\n"
-        "images in the process use the same copy of some code/data.\n"
-        "This step is done after binding. The content of the weak_bind\n"
-        "info is an opcode stream like the bind_info.  But it is sorted\n"
-        "alphabetically by symbol name. This enable dyld to walk\n"
-        "all images with weak binding information in order and look\n"
-        "for collisions. If there are no collisions, dyld does\n"
-        "no updating. That means that some fixups are also encoded\n"
-        "in the bind_info. For instance, all calls to ``operator new`` \n"
-        "are first bound to ``libstdc++.dylib`` using the information\n"
-        "in bind_info. Then if some image overrides operator new\n"
-        "that is detected when the weak_bind information is processed\n"
-        "and the call to operator new is then rebound.\n\n"
+        Some C++ programs require dyld to unique symbols so that all
+        images in the process use the same copy of some code/data.
 
-        ".. seealso::\n\n"
-        "\t``/usr/include/mach-o/loader.h``\n",
-        py::return_value_policy::reference_internal)
+        This step is done after binding.
+        The content of the weak_bind info is an opcode stream like the bind_info.
+        But it is sorted alphabetically by symbol name. This enables dyld to walk
+        all images with weak binding information in order and look for collisions.
+        If there are no collisions, dyld does no updating.
+        That means that some fixups are also encoded in the bind_info.
+        For instance, all calls to ``operator new`` are first bound to ``libstdc++.dylib``
+        using the information in bind_info.
+        Then if some image overrides operator new that is detected when
+        the weak_bind information is processed and the call to operator new is then rebound.
+
+        .. seealso::
+
+            ``/usr/include/mach-o/loader.h``
+        )delim")
 
 
     .def_property("weak_bind_opcodes",
-        static_cast<getter_t<const buffer_t&>>(&DyldInfo::weak_bind_opcodes),
-        static_cast<setter_t<const buffer_t&>>(&DyldInfo::weak_bind_opcodes),
+        [] (const DyldInfo& self) {
+          span<const uint8_t> content = self.weak_bind_opcodes();
+          return py::memoryview::from_memory(content.data(), content.size());
+        },
+        static_cast<setter_t<buffer_t>>(&DyldInfo::weak_bind_opcodes),
         "Return **Weak** binding's opcodes as ``list`` of bytes")
 
     .def_property_readonly("show_weak_bind_opcodes",
         &DyldInfo::show_weak_bind_opcodes,
-        "Return the weak bind opcodes in a humman-readable way",
-        py::return_value_policy::reference_internal)
+        "Return the weak bind opcodes in a humman-readable way")
 
     .def_property("lazy_bind",
         static_cast<getter_t<const LIEF::MachO::DyldInfo::info_t&>>(&DyldInfo::lazy_bind),
         static_cast<setter_t<const LIEF::MachO::DyldInfo::info_t&>>(&DyldInfo::lazy_bind),
-        "*Lazy Bind* information as a tuple ``(offset, size)``\n\n"
+        R"delim(
+        *Lazy Bind* information as a tuple ``(offset, size)``
 
-        "Some uses of external symbols do not need to be bound immediately.\n"
-        "Instead they can be lazily bound on first use. The lazy_bind\n"
-        "are contains a stream of BIND opcodes to bind all lazy symbols.\n"
-        "Normal use is that dyld ignores the lazy_bind section when\n"
-        "loading an image. Instead the static linker arranged for the\n"
-        "lazy pointer to initially point to a helper function which\n"
-        "pushes the offset into the lazy_bind area for the symbol\n"
-        "needing to be bound, then jumps to dyld which simply adds\n"
-        "the offset to lazy_bind_off to get the information on what\n"
-        "to bind.\n\n"
+        Some uses of external symbols do not need to be bound immediately.
+        Instead they can be lazily bound on first use.
+        The lazy_bind are contains a stream of BIND opcodes to bind all lazy symbols.
+        Normal use is that dyld ignores the lazy_bind section when loading an image.
+        Instead the static linker arranged for the lazy pointer to initially point
+        to a helper function which pushes the offset into the lazy_bind area for the symbol
+        needing to be bound, then jumps to dyld which simply adds the offset to
+        lazy_bind_off to get the information on what to bind.
 
-        ".. seealso::\n\n"
-        "\t``/usr/include/mach-o/loader.h``\n",
-        py::return_value_policy::reference_internal)
+        .. seealso::
+
+            ``/usr/include/mach-o/loader.h``
+        )delim")
 
 
     .def_property("lazy_bind_opcodes",
-        static_cast<getter_t<const buffer_t&>>(&DyldInfo::lazy_bind_opcodes),
-        static_cast<setter_t<const buffer_t&>>(&DyldInfo::lazy_bind_opcodes),
+        [] (const DyldInfo& self) {
+          span<const uint8_t> content = self.lazy_bind_opcodes();
+          return py::memoryview::from_memory(content.data(), content.size());
+        },
+        static_cast<setter_t<buffer_t>>(&DyldInfo::lazy_bind_opcodes),
         "Return **lazy** binding's opcodes as ``list`` of bytes")
 
     .def_property_readonly("show_lazy_bind_opcodes",
@@ -168,49 +189,56 @@ void create<DyldInfo>(py::module& m) {
         py::return_value_policy::reference_internal)
 
     .def_property_readonly("bindings",
-        static_cast<no_const_getter<it_binding_info>>(&DyldInfo::bindings),
+        static_cast<no_const_getter<DyldInfo::it_binding_info>>(&DyldInfo::bindings),
         "Return an iterator over Dyld's " RST_CLASS_REF(lief.MachO.BindingInfo) "",
         py::return_value_policy::reference_internal)
 
     .def_property("export_info",
         static_cast<getter_t<const LIEF::MachO::DyldInfo::info_t&>>(&DyldInfo::export_info),
         static_cast<setter_t<const LIEF::MachO::DyldInfo::info_t&>>(&DyldInfo::export_info),
-        "*Export* information as a tuple ``(offset, size)``\n\n"
+        R"delim(
+        *Export* information as a tuple ``(offset, size)``
 
-        "The symbols exported by a dylib are encoded in a trie. This\n"
-        "is a compact representation that factors out common prefixes.\n"
-        "It also reduces ``LINKEDIT`` pages in RAM because it encodes all\n"
-        "information (name, address, flags) in one small, contiguous range.\n"
-        "The export area is a stream of nodes. The first node sequentially\n"
-        "is the start node for the trie.\n\n"
+        The symbols exported by a dylib are encoded in a trie.
+        This is a compact representation that factors out common prefixes.
 
-        "Nodes for a symbol start with a byte that is the length of\n"
-        "the exported symbol information for the string so far.\n"
-        "If there is no exported symbol, the byte is zero. If there\n"
-        "is exported info, it follows the length byte. The exported\n"
-        "info normally consists of a flags and offset both encoded\n"
-        "in `uleb128 <https://en.wikipedia.org/wiki/LEB128>`_. The offset is location of the content named\n"
-        "by the symbol. It is the offset from the mach_header for\n"
-        "the image.\n\n"
+        It also reduces ``LINKEDIT`` pages in RAM because it encodes all
+        information (name, address, flags) in one small, contiguous range.
+        The export area is a stream of nodes. The first node sequentially
+        is the start node for the trie.
 
-        "After the initial byte and optional exported symbol information\n"
-        "is a byte of how many edges (0-255) that this node has leaving\n"
-        "it, followed by each edge.\n"
-        "Each edge is a zero terminated cstring of the addition chars\n"
-        "in the symbol, followed by a uleb128 offset for the node that\n"
-        "edge points to.\n\n"
+        Nodes for a symbol start with a byte that is the length of the exported
+        symbol information for the string so far.
+        If there is no exported symbol, the byte is zero.
+        If there is exported info, it follows the length byte.
+        The exported info normally consists of a flags and offset both encoded
+        in `uleb128 <https://en.wikipedia.org/wiki/LEB128>`_.
+        The offset is location of the content named by the symbol.
+        It is the offset from the mach_header for the image.
 
-        ".. seealso::\n\n"
-        "\t``/usr/include/mach-o/loader.h``\n",
-        py::return_value_policy::reference_internal)
+        After the initial byte and optional exported symbol information
+        is a byte of how many edges (0-255) that this node has leaving
+        it, followed by each edge.
+        Each edge is a zero terminated cstring of the addition chars
+        in the symbol, followed by a uleb128 offset for the node that
+        edge points to.
+
+        .. seealso::
+
+            ``/usr/include/mach-o/loader.h``
+        )delim")
+
 
     .def_property("export_trie",
-        static_cast<getter_t<const buffer_t&>>(&DyldInfo::export_trie),
-        static_cast<setter_t<const buffer_t&>>(&DyldInfo::export_trie),
+        [] (const DyldInfo& self) {
+          span<const uint8_t> content = self.export_trie();
+          return py::memoryview::from_memory(content.data(), content.size());
+        },
+        static_cast<setter_t<buffer_t>>(&DyldInfo::export_trie),
         "Return Export's trie as ``list`` of bytes")
 
     .def_property_readonly("exports",
-        static_cast<no_const_getter<it_export_info>>(&DyldInfo::exports),
+        static_cast<no_const_getter<DyldInfo::it_export_info>>(&DyldInfo::exports),
         "Return an iterator over Dyld's " RST_CLASS_REF(lief.MachO.ExportInfo) "",
         py::return_value_policy::reference_internal)
 
@@ -272,8 +300,7 @@ void create<DyldInfo>(py::module& m) {
 
 
     .def("__str__",
-        [] (const DyldInfo& info)
-        {
+        [] (const DyldInfo& info) {
           std::ostringstream stream;
           stream << info;
           std::string str = stream.str();

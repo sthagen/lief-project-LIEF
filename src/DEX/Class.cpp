@@ -1,6 +1,6 @@
 
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,33 +15,21 @@
  * limitations under the License.
  */
 
+#include <utility>
+
 #include "LIEF/DEX/Class.hpp"
 #include "LIEF/DEX/hash.hpp"
 
 namespace LIEF {
 namespace DEX {
+Class::Class() = default;
 
-Class::Class(const Class&) = default;
-Class& Class::operator=(const Class&) = default;
-
-Class::Class(void) :
-  fullname_{},
-  access_flags_{ACCESS_FLAGS::ACC_UNKNOWN},
-  parent_{nullptr},
-  methods_{},
-  source_filename_{},
-  original_index_{-1u}
-{}
-
-Class::Class(const std::string& fullname,
-      uint32_t access_flags,
-      Class* parent,
-      const std::string& source_filename) :
-  fullname_{fullname},
+Class::Class(std::string  fullname, uint32_t access_flags,
+             Class* parent, std::string source_filename) :
+  fullname_{std::move(fullname)},
   access_flags_{access_flags},
   parent_{parent},
-  methods_{},
-  source_filename_{source_filename},
+  source_filename_{std::move(source_filename)},
   original_index_{-1u}
 {}
 
@@ -81,142 +69,120 @@ std::string Class::fullname_normalized(const std::string& pkg_cls) {
   return package_normalized;
 }
 
-const std::string& Class::fullname(void) const {
-  return this->fullname_;
+const std::string& Class::fullname() const {
+  return fullname_;
 }
 
 
-std::string Class::package_name(void) const {
-  size_t pos = this->fullname_.find_last_of('/');
-  if (pos == std::string::npos) {
+std::string Class::package_name() const {
+  size_t pos = fullname_.find_last_of('/');
+  if (pos == std::string::npos || fullname_.size() < 2) {
     return "";
-  } else {
-    return this->fullname_.substr(1, pos - 1);
   }
+  return fullname_.substr(1, pos - 1);
 }
 
-std::string Class::name(void) const {
-  size_t pos = this->fullname_.find_last_of('/');
+std::string Class::name() const {
+  size_t pos = fullname_.find_last_of('/');
   if (pos == std::string::npos) {
-    return this->fullname_.substr(1, this->fullname_.size() - 2);
+    return fullname_.substr(1, fullname_.size() - 2);
   } else {
-    return this->fullname_.substr(pos + 1, this->fullname_.size() - pos - 2);
+    return fullname_.substr(pos + 1, fullname_.size() - pos - 2);
   }
 }
 
-std::string Class::pretty_name(void) const {
-  if (this->fullname_.size() <= 2) {
-    return this->fullname_;
+std::string Class::pretty_name() const {
+  if (fullname_.size() <= 2) {
+    return fullname_;
   }
 
-  std::string pretty_name = this->fullname_.substr(1, this->fullname_.size() - 2);
+  std::string pretty_name = fullname_.substr(1, fullname_.size() - 2);
   std::replace(std::begin(pretty_name), std::end(pretty_name), '/', '.');
   return pretty_name;
-
 }
 
 
 bool Class::has(ACCESS_FLAGS f) const {
-  return (this->access_flags_ & f) > 0;
+  return (access_flags_ & f) > 0;
 }
 
-Class::access_flags_list_t Class::access_flags(void) const {
+Class::access_flags_list_t Class::access_flags() const {
 
   Class::access_flags_list_t flags;
 
-  std::copy_if(
-      std::begin(access_flags_list),
-      std::end(access_flags_list),
-      std::back_inserter(flags),
-      std::bind(static_cast<bool (Class::*)(ACCESS_FLAGS) const>(&Class::has), this, std::placeholders::_1));
+  std::copy_if(std::begin(access_flags_list), std::end(access_flags_list),
+               std::back_inserter(flags),
+               [this] (ACCESS_FLAGS f) { return has(f); });
 
   return flags;
 }
 
 
-bool Class::has_parent(void) const {
-  return this->parent_ != nullptr;
+bool Class::has_parent() const {
+  return parent_ != nullptr;
 }
 
-const Class& Class::parent(void) const {
-  if (not this->has_parent()) {
-    throw not_found("No parent found!");
-  }
-  return *this->parent_;
+const Class* Class::parent() const {
+  return parent_;
 }
 
-Class& Class::parent(void) {
-  return const_cast<Class&>(static_cast<const Class*>(this)->parent());
+Class* Class::parent() {
+  return const_cast<Class*>(static_cast<const Class*>(this)->parent());
 }
 
-it_const_methods Class::methods(void) const {
-  return this->methods_;
+Class::it_const_methods Class::methods() const {
+  return methods_;
 }
 
-it_methods Class::methods(void) {
-  return this->methods_;
+Class::it_methods Class::methods() {
+  return methods_;
 }
 
-it_const_fields Class::fields(void) const {
-  return this->fields_;
+Class::it_const_fields Class::fields() const {
+  return fields_;
 }
 
-it_fields Class::fields(void) {
-  return this->fields_;
+Class::it_fields Class::fields() {
+  return fields_;
+}
+
+Class::it_named_methods Class::methods(const std::string& name) {
+  return {methods_, [name] (const Method* meth) {
+    return meth->name() == name;
+  }};
+}
+
+Class::it_const_named_methods Class::methods(const std::string& name) const {
+  return {methods_, [name] (const Method* meth) {
+    return meth->name() == name;
+  }};
 }
 
 
-it_methods Class::methods(const std::string& name) {
-  return this->method_from_name(name);
+Class::it_named_fields Class::fields(const std::string& name) {
+  return {fields_, [name] (const Field* f) {
+    return f->name() == name;
+  }};
 }
 
-it_const_methods Class::methods(const std::string& name) const {
-  return this->method_from_name(name);
+Class::it_const_named_fields Class::fields(const std::string& name) const {
+  return {fields_, [name] (const Field* f) {
+    return f->name() == name;
+  }};
 }
 
-methods_t Class::method_from_name(const std::string& name) const {
-  methods_t mtd;
-  std::copy_if(
-      std::begin(this->methods_),
-      std::end(this->methods_),
-      std::back_inserter(mtd),
-      [name] (const Method* m) {
-        return m->name() == name;
-      });
-  return mtd;
+size_t Class::index() const {
+  return original_index_;
 }
 
-it_fields Class::fields(const std::string& name) {
-  return this->field_from_name(name);
+const std::string& Class::source_filename() const {
+  return source_filename_;
 }
 
-it_const_fields Class::fields(const std::string& name) const {
-  return this->field_from_name(name);
-}
-
-fields_t Class::field_from_name(const std::string& name) const {
-  fields_t fld;
-  std::copy_if(
-      std::begin(this->fields_), std::end(this->fields_),
-      std::back_inserter(fld),
-      [&name] (const Field* f) {
-        return f->name() == name;
-      });
-  return fld;
-}
-
-size_t Class::index(void) const {
-  return this->original_index_;
-}
-
-const std::string& Class::source_filename(void) const {
-  return this->source_filename_;
-}
-
-dex2dex_class_info_t Class::dex2dex_info(void) const {
+dex2dex_class_info_t Class::dex2dex_info() const {
   dex2dex_class_info_t info;
-  for (Method* method : this->methods_) {
-    if (method->dex2dex_info().size() > 0) {
+  for (Method* method : methods_) {
+    if (!method->dex2dex_info().empty()) {
       info.emplace(method, method->dex2dex_info());
     }
   }
@@ -228,18 +194,21 @@ void Class::accept(Visitor& visitor) const {
 }
 
 bool Class::operator==(const Class& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool Class::operator!=(const Class& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const Class& cls) {
   os << cls.pretty_name();
-  if (not cls.source_filename().empty()) {
+  if (!cls.source_filename().empty()) {
     os << " - " << cls.source_filename();
   }
 
@@ -248,7 +217,7 @@ std::ostream& operator<<(std::ostream& os, const Class& cls) {
   return os;
 }
 
-Class::~Class(void) = default;
+Class::~Class() = default;
 
 }
 }

@@ -48,6 +48,10 @@ if (PYTHON_TESTS_ENABLED)
     ${PYTHON_EXECUTABLE}
     "${CMAKE_CURRENT_SOURCE_DIR}/test_pe.py")
 
+  ADD_PYTHON_TEST(PE_PYTHON_parser
+    ${PYTHON_EXECUTABLE}
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_parser.py")
+
   ADD_PYTHON_TEST(PE_PYTHON_hooking
     ${PYTHON_EXECUTABLE}
     "${CMAKE_CURRENT_SOURCE_DIR}/test_hooking.py")
@@ -75,6 +79,10 @@ if (PYTHON_TESTS_ENABLED)
   ADD_PYTHON_TEST(PE_PYTHON_authenticode
     ${PYTHON_EXECUTABLE}
     "${CMAKE_CURRENT_SOURCE_DIR}/test_authenticode.py")
+
+  ADD_PYTHON_TEST(PE_PYTHON_delay_imports
+    ${PYTHON_EXECUTABLE}
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_delay_imports.py")
 
   ADD_PYTHON_TEST(EXAMPLE_PYTHON_pe_authenticode_reader
     ${PYTHON_EXECUTABLE}

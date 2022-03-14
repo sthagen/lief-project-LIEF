@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#include <memory>
 
 #include "logging.hpp"
 
@@ -47,6 +49,7 @@
 #include "LIEF/MachO/EncryptionInfo.hpp"
 #include "LIEF/MachO/BindingInfo.hpp"
 #include "LIEF/MachO/FilesetCommand.hpp"
+#include "MachO/Structures.hpp"
 
 #include "Object.tcc"
 
@@ -67,63 +70,82 @@ struct ThreadedBindData {
 
 
 template<class MACHO_T>
-void BinaryParser::parse(void) {
-  this->parse_header<MACHO_T>();
-  if (this->binary_->header().nb_cmds() > 0) {
-    this->parse_load_commands<MACHO_T>();
+ok_error_t BinaryParser::parse() {
+  parse_header<MACHO_T>();
+  if (binary_->header().nb_cmds() > 0) {
+    parse_load_commands<MACHO_T>();
   }
 
-  for (Section& section : this->binary_->sections()) {
+  for (Section& section : binary_->sections()) {
     try {
-      this->parse_relocations<MACHO_T>(section);
+      parse_relocations<MACHO_T>(section);
     } catch (const exception& e) {
       LIEF_WARN("{}", e.what());
     }
   }
 
-  if (this->binary_->has_dyld_info() and this->config_.parse_dyldinfo_deeply()) {
+  if (binary_->has_dyld_info()) {
 
-    try {
-      this->parse_dyldinfo_binds<MACHO_T>();
-    } catch (const exception& e) {
-      LIEF_WARN("{}", e.what());
+    if (config_.parse_dyld_exports) {
+      try {
+        parse_dyldinfo_export();
+      } catch (const exception& e) {
+        LIEF_WARN("{}", e.what());
+      }
     }
 
-    try {
-      this->parse_dyldinfo_export();
-    } catch (const exception& e) {
-      LIEF_WARN("{}", e.what());
+    if (config_.parse_dyld_bindings) {
+      try {
+        parse_dyldinfo_binds<MACHO_T>();
+      } catch (const exception& e) {
+        LIEF_WARN("{}", e.what());
+      }
     }
 
-    try {
-      this->parse_dyldinfo_rebases<MACHO_T>();
-    } catch (const exception& e) {
-      LIEF_WARN("{}", e.what());
+    if (config_.parse_dyld_rebases) {
+      try {
+        parse_dyldinfo_rebases<MACHO_T>();
+      } catch (const exception& e) {
+        LIEF_WARN("{}", e.what());
+      }
     }
 
+    if (DyldInfo* dyld = binary_->dyld_info()) {
+      // Backtrack the Dyld info object in the segment to keep span consistent
+      for (SegmentCommand* segment : binary_->segments_) {
+        segment->dyld_ = dyld;
+      }
+    }
   }
+  return ok();
 }
 
 template<class MACHO_T>
-void BinaryParser::parse_header(void) {
+ok_error_t BinaryParser::parse_header() {
   using header_t = typename MACHO_T::header;
-  this->binary_->header_ = &this->stream_->read<header_t>();
+  auto hdr = stream_->read<header_t>();
+  if (!hdr) {
+    LIEF_ERR("Can't read the Mach-O header");
+    return make_error_code(lief_errors::parsing_error);
+  }
+  binary_->header_ = std::move(*hdr);
+  return ok();
 }
 
 
 template<class MACHO_T>
-void BinaryParser::parse_load_commands(void) {
-  using header_t          = typename MACHO_T::header;
+ok_error_t BinaryParser::parse_load_commands() {
   using segment_command_t = typename MACHO_T::segment_command;
   using section_t         = typename MACHO_T::section;
 
   LIEF_DEBUG("[+] Building Load commands");
 
-  const Header& header = this->binary_->header();
-  uint64_t loadcommands_offset = this->stream_->pos();
+  const Header& header = binary_->header();
+  uint64_t loadcommands_offset = stream_->pos();
 
-  if ((loadcommands_offset + header.sizeof_cmds()) > this->stream_->size()) {
-    throw corrupted("Commands are corrupted");
+  if ((loadcommands_offset + header.sizeof_cmds()) > stream_->size()) {
+    LIEF_ERR("Load commands are corrupted");
+    return make_error_code(lief_errors::corrupted);
   }
 
   size_t nbcmds = header.nb_cmds();
@@ -135,13 +157,13 @@ void BinaryParser::parse_load_commands(void) {
 
   uint32_t low_fileoff = -1U;
   for (size_t i = 0; i < nbcmds; ++i) {
-    if (not this->stream_->can_read<load_command>(loadcommands_offset)) {
+    const auto command = stream_->peek<details::load_command>(loadcommands_offset);
+    if (!command) {
       break;
     }
-    const load_command& command = this->stream_->peek<load_command>(loadcommands_offset);
 
-    std::unique_ptr<LoadCommand> load_command{nullptr};
-    switch (static_cast<LOAD_COMMAND_TYPES>(command.cmd)) {
+    std::unique_ptr<LoadCommand> load_command;
+    switch (static_cast<LOAD_COMMAND_TYPES>(command->cmd)) {
 
       // ===============
       // Segment command
@@ -149,47 +171,58 @@ void BinaryParser::parse_load_commands(void) {
       case LOAD_COMMAND_TYPES::LC_SEGMENT_64:
       case LOAD_COMMAND_TYPES::LC_SEGMENT:
         {
+          /*
+           * DO NOT FORGET TO UPDATE SegmentCommand::classof
+           */
           uint64_t local_offset = loadcommands_offset;
-          load_command = std::unique_ptr<SegmentCommand>{new SegmentCommand{&this->stream_->peek<segment_command_t>(loadcommands_offset)}};
+          const auto segment_cmd = stream_->peek<segment_command_t>(loadcommands_offset);
+          if (!segment_cmd) {
+            LIEF_ERR("Can't parse segment command #{}", i);
+            break;
+          }
+          load_command = std::make_unique<SegmentCommand>(*segment_cmd);
 
           local_offset += sizeof(segment_command_t);
 
-          SegmentCommand* segment = reinterpret_cast<SegmentCommand*>(load_command.get());
-          segment->index_ = this->binary_->segments_.size();
-          this->binary_->offset_seg_[segment->file_offset()] = segment;
-          this->binary_->segments_.push_back(segment);
+          auto* segment = load_command->as<SegmentCommand>();
+          segment->index_ = binary_->segments_.size();
+          binary_->offset_seg_[segment->file_offset()] = segment;
+          binary_->segments_.push_back(segment);
 
-          const uint8_t* content = this->stream_->peek_array<uint8_t>(segment->file_offset(), segment->file_size(), /* check */ false);
-          if (content != nullptr) {
-            segment->content({
-                content,
-                content + segment->file_size()
-                });
-          } else {
-            LIEF_ERR("Segment content corrupted!");
+          if (segment->file_size() > 0) {
+            if (!stream_->peek_data(segment->data_, segment->file_offset(), segment->file_size())) {
+              LIEF_ERR("Segment {}: content corrupted!", segment->name());
+            }
           }
 
           // --------
           // Sections
           // --------
           for (size_t j = 0; j < segment->numberof_sections(); ++j) {
-            const section_t* section_header = &this->stream_->peek<section_t>(local_offset);
-            std::unique_ptr<Section> section{new Section{section_header}};
-            this->binary_->sections_.push_back(section.get());
-            if (section->size_ > 0 and
-              section->type() != MACHO_SECTION_TYPES::S_ZEROFILL and
-              section->type() != MACHO_SECTION_TYPES::S_THREAD_LOCAL_ZEROFILL and
-              section->offset_ < low_fileoff) {
+            const auto section_header = stream_->peek<section_t>(local_offset);
+            if (!section_header) {
+              LIEF_ERR("Can't parse section in {}#{}",
+                       load_command->as<SegmentCommand>()->name(), i);
+              break;
+            }
+            auto section = std::make_unique<Section>(*section_header);
+            binary_->sections_.push_back(section.get());
+            if (section->size_ > 0 &&
+                section->type() != MACHO_SECTION_TYPES::S_ZEROFILL &&
+                section->type() != MACHO_SECTION_TYPES::S_THREAD_LOCAL_ZEROFILL &&
+                section->offset_ < low_fileoff)
+            {
               low_fileoff = section->offset_;
             }
             section->segment_ = segment;
-            segment->sections_.push_back(section.release());
+            segment->sections_.push_back(std::move(section));
             local_offset += sizeof(section_t);
           }
-          if (segment->numberof_sections() == 0 and
-              segment->file_offset() != 0 and
-              segment->file_size() != 0 and
-              segment->file_offset() < low_fileoff) {
+          if (segment->numberof_sections() == 0 &&
+              segment->file_offset() != 0 &&
+              segment->file_size() != 0 &&
+              segment->file_offset() < low_fileoff)
+          {
             low_fileoff = segment->file_offset();
           }
           break;
@@ -206,16 +239,27 @@ void BinaryParser::parse_load_commands(void) {
       case LOAD_COMMAND_TYPES::LC_LOAD_UPWARD_DYLIB:
       case LOAD_COMMAND_TYPES::LC_LAZY_LOAD_DYLIB:
         {
-          const dylib_command* cmd = &this->stream_->peek<dylib_command>(loadcommands_offset);
+          /*
+           * DO NOT FORGET TO UPDATE DylibCommand::classof
+           */
+          const auto cmd = stream_->peek<details::dylib_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't read dylib_command");
+            break;
+          }
 
-          load_command = std::unique_ptr<DylibCommand>{new DylibCommand{cmd}};
+          load_command = std::make_unique<DylibCommand>(*cmd);
           const uint32_t str_name_offset = cmd->dylib.name;
-          std::string name = this->stream_->peek_string_at(loadcommands_offset + str_name_offset);
+          auto name = stream_->peek_string_at(loadcommands_offset + str_name_offset);
+          if (!name) {
+            LIEF_ERR("Can't read Dylib string value");
+            break;
+          }
 
-          auto* lib = reinterpret_cast<DylibCommand*>(load_command.get());
-          lib->name(std::move(name));
-          this->binary_->libraries_.push_back(lib);
-          if (static_cast<LOAD_COMMAND_TYPES>(command.cmd) != LOAD_COMMAND_TYPES::LC_ID_DYLIB) {
+          auto* lib = load_command->as<DylibCommand>();
+          lib->name(*name);
+          binary_->libraries_.push_back(lib);
+          if (static_cast<LOAD_COMMAND_TYPES>(command->cmd) != LOAD_COMMAND_TYPES::LC_ID_DYLIB) {
             binding_libs_.push_back(lib);
           }
           break;
@@ -226,13 +270,24 @@ void BinaryParser::parse_load_commands(void) {
       // =============
       case LOAD_COMMAND_TYPES::LC_RPATH:
         {
-          const rpath_command* cmd = &this->stream_->peek<rpath_command>(loadcommands_offset);
+          /*
+           * DO NOT FORGET TO UPDATE RPathCommand::classof
+           */
+          const auto cmd = stream_->peek<details::rpath_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't read rpath_command");
+            break;
+          }
 
-          load_command = std::unique_ptr<RPathCommand>{new RPathCommand{cmd}};
+          load_command = std::make_unique<RPathCommand>(*cmd);
           const uint32_t str_path_offset = cmd->path;
-          std::string path = this->stream_->peek_string_at(loadcommands_offset + str_path_offset);
+          auto path = stream_->peek_string_at(loadcommands_offset + str_path_offset);
+          if (!path) {
+            LIEF_ERR("Can't read rpath_command.path");
+            break;
+          }
 
-          reinterpret_cast<RPathCommand*>(load_command.get())->path(path);
+          load_command->as<RPathCommand>()->path(*path);
           break;
         }
 
@@ -241,9 +296,16 @@ void BinaryParser::parse_load_commands(void) {
       // ====
       case LOAD_COMMAND_TYPES::LC_UUID:
         {
+          /*
+           * DO NOT FORGET TO UPDATE UUIDCommand::classof
+           */
           LIEF_DEBUG("[+] Building UUID");
-          const uuid_command* cmd = &this->stream_->peek<uuid_command>(loadcommands_offset);
-          load_command = std::unique_ptr<UUIDCommand>{new UUIDCommand{cmd}};
+          const auto cmd = stream_->peek<details::uuid_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't read uuid_command");
+            break;
+          }
+          load_command = std::make_unique<UUIDCommand>(*cmd);
           break;
         }
 
@@ -253,37 +315,26 @@ void BinaryParser::parse_load_commands(void) {
       case LOAD_COMMAND_TYPES::LC_LOAD_DYLINKER:
       case LOAD_COMMAND_TYPES::LC_ID_DYLINKER:
         {
-          const dylinker_command* cmd = &this->stream_->peek<dylinker_command>(loadcommands_offset);
+          /*
+           * DO NOT FORGET TO UPDATE DylinkerCommand::classof
+           */
+          const auto cmd = stream_->peek<details::dylinker_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't read dylinker_command");
+            break;
+          }
+
+          load_command = std::make_unique<DylinkerCommand>(*cmd);
 
           const uint32_t linker_name_offset = cmd->name;
-          std::string name = this->stream_->peek_string_at(
-             loadcommands_offset +
-             linker_name_offset);
-
-          load_command = std::unique_ptr<DylinkerCommand>{new DylinkerCommand{cmd}};
-          reinterpret_cast<DylinkerCommand*>(load_command.get())->name(name);
+          auto name = stream_->peek_string_at(loadcommands_offset + linker_name_offset);
+          if (!name) {
+            LIEF_ERR("Can't read dylinker_command.name");
+            break;
+          }
+          load_command->as<DylinkerCommand>()->name(*name);
           break;
         }
-
-      // ==============
-      // Prebound Dylib
-      // ==============
-      //case LOAD_COMMAND_TYPES::LC_PREBOUND_DYLIB:
-      //  {
-      //    LIEF_DEBUG("[+] Parsing LC_PREBOUND_DYLIB");
-
-      //    load_command = std::unique_ptr<LoadCommand>{new LoadCommand{&command}};
-      //    const prebound_dylib_command* cmd = &this->stream_->peek<prebound_dylib_command>(loadcommands_offset);
-
-
-      //    std::string name = this->stream_->peek_string_at(
-      //       loadcommands_offset +
-      //       cmd->name);
-
-      //    //uint32_t sizeof_linked_modules = (cmd->nmodules / 8) + (cmd->nmodules % 8);
-
-      //    break;
-      //  }
 
       // ======
       // Thread
@@ -291,51 +342,51 @@ void BinaryParser::parse_load_commands(void) {
       case LOAD_COMMAND_TYPES::LC_THREAD:
       case LOAD_COMMAND_TYPES::LC_UNIXTHREAD:
         {
+          /*
+           * DO NOT FORGET TO UPDATE ThreadCommand::classof
+           */
           LIEF_DEBUG("[+] Parsing LC_THREAD");
 
-          const thread_command* cmd = &this->stream_->peek<thread_command>(loadcommands_offset);
-          load_command = std::unique_ptr<ThreadCommand>{new ThreadCommand{cmd}};
+          const auto cmd = stream_->peek<details::thread_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't read thread_command");
+            break;
+          }
+          load_command = std::make_unique<ThreadCommand>(*cmd);
 
-          ThreadCommand* thread = reinterpret_cast<ThreadCommand*>(load_command.get());
-          thread->architecture_ = this->binary_->header().cpu_type();
+          auto* thread = load_command->as<ThreadCommand>();
+          thread->architecture_ = binary_->header().cpu_type();
           LIEF_DEBUG("FLAVOR: {} | COUNT: {}", cmd->flavor, cmd->count);
-          switch(this->binary_->header().cpu_type()) {
+          const uint64_t state_offset = loadcommands_offset + sizeof(details::thread_command);
+          switch (binary_->header().cpu_type()) {
             case CPU_TYPES::CPU_TYPE_X86:
               {
-                const uint8_t* pstart = this->stream_->peek_array<uint8_t>(loadcommands_offset + sizeof(thread_command), sizeof(x86_thread_state_t), /* check */ false);
-                if (pstart != nullptr) {
-                  thread->state_ = {pstart, pstart + sizeof(x86_thread_state_t)};
+                if (!stream_->peek_data(thread->state_, state_offset, sizeof(details::x86_thread_state_t))) {
+                  LIEF_ERR("Can't read the state data");
                 }
-
                 break;
               }
 
             case CPU_TYPES::CPU_TYPE_X86_64:
               {
-                const uint8_t* pstart = this->stream_->peek_array<uint8_t>(loadcommands_offset + sizeof(thread_command), sizeof(x86_thread_state64_t), /* check */ false);
-
-                if (pstart != nullptr) {
-                  thread->state_ = {pstart, pstart + sizeof(x86_thread_state64_t)};
+                if (!stream_->peek_data(thread->state_, state_offset, sizeof(details::x86_thread_state64_t))) {
+                  LIEF_ERR("Can't read the state data");
                 }
                 break;
               }
 
             case CPU_TYPES::CPU_TYPE_ARM:
               {
-                const uint8_t* pstart = this->stream_->peek_array<uint8_t>(loadcommands_offset + sizeof(thread_command), sizeof(arm_thread_state_t), /* check */ false);
-
-                if (pstart != nullptr) {
-                  thread->state_ = {pstart, pstart + sizeof(arm_thread_state_t)};
+                if (!stream_->peek_data(thread->state_, state_offset, sizeof(details::arm_thread_state_t))) {
+                  LIEF_ERR("Can't read the state data");
                 }
                 break;
               }
 
             case CPU_TYPES::CPU_TYPE_ARM64:
               {
-                const uint8_t* pstart = this->stream_->peek_array<uint8_t>(loadcommands_offset + sizeof(thread_command), sizeof(arm_thread_state64_t), /* check */ false);
-
-                if (pstart != nullptr) {
-                  thread->state_ = {pstart, pstart + sizeof(arm_thread_state64_t)};
+                if (!stream_->peek_data(thread->state_, state_offset, sizeof(details::arm_thread_state64_t))) {
+                  LIEF_ERR("Can't read the state data");
                 }
                 break;
               }
@@ -363,34 +414,39 @@ void BinaryParser::parse_load_commands(void) {
       // =============
       case LOAD_COMMAND_TYPES::LC_SYMTAB:
         {
+          /*
+           * DO NOT FORGET TO UPDATE SymbolCommand::classof
+           */
           using nlist_t = typename MACHO_T::nlist;
           LIEF_DEBUG("[+] Parsing symbols");
 
-          const symtab_command* cmd = &this->stream_->peek<symtab_command>(loadcommands_offset);
-
-
-          load_command = std::unique_ptr<SymbolCommand>{new SymbolCommand{cmd}};
-
-
-          const nlist_t* nlist = this->stream_->peek_array<nlist_t>(cmd->symoff, cmd->nsyms, /* check */ false);
-          if (nlist == nullptr) {
-            LIEF_ERR("Symbols corrupted!");
+          const auto cmd = stream_->peek<details::symtab_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't read symtab_command");
             break;
           }
 
+          load_command = std::make_unique<SymbolCommand>(*cmd);
+          stream_->setpos(cmd->symoff);
           for (size_t j = 0; j < cmd->nsyms; ++j) {
-            std::unique_ptr<Symbol> symbol{new Symbol{&nlist[j]}};
-            uint32_t idx = nlist[j].n_strx;
-            if (idx > 0) {
-              symbol->name(
-                  this->stream_->peek_string_at(cmd->stroff + idx));
+            auto nlist = stream_->read<nlist_t>();
+            if (!nlist) {
+              LIEF_ERR("Can't read nlist #{}", i);
+              break;
             }
-            Symbol* symbol_ptr = symbol.release();
-            this->binary_->symbols_.push_back(symbol_ptr);
-            this->memoized_symbols_[symbol_ptr->name()] = symbol_ptr;
-            this->memoized_symbols_by_address_[symbol_ptr->value()] = symbol_ptr;
+            auto symbol = std::make_unique<Symbol>(*nlist);
+            const uint32_t str_idx = nlist->n_strx;
+            if (str_idx > 0) {
+              if (auto name = stream_->peek_string_at(cmd->stroff + str_idx)) {
+                symbol->name(*name);
+                memoized_symbols_[*name] = symbol.get();
+              } else {
+                LIEF_WARN("Can't read symbol's name for nlist #{}", i);
+              }
+            }
+            memoized_symbols_by_address_[symbol->value()] = symbol.get();
+            binary_->symbols_.push_back(std::move(symbol));
           }
-
           break;
         }
 
@@ -399,10 +455,16 @@ void BinaryParser::parse_load_commands(void) {
       // ===============
       case LOAD_COMMAND_TYPES::LC_DYSYMTAB:
         {
+          /*
+           * DO NOT FORGET TO UPDATE DynamicSymbolCommand::classof
+           */
           LIEF_DEBUG("[+] Parsing dynamic symbols");
-          const dysymtab_command* cmd = &this->stream_->peek<dysymtab_command>(loadcommands_offset);
-
-          load_command = std::unique_ptr<DynamicSymbolCommand>{new DynamicSymbolCommand{cmd}};
+          const auto cmd = stream_->peek<details::dysymtab_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse dysymtab_command");
+            break;
+          }
+          load_command = std::make_unique<DynamicSymbolCommand>(*cmd);
           break;
         }
 
@@ -412,11 +474,17 @@ void BinaryParser::parse_load_commands(void) {
       case LOAD_COMMAND_TYPES::LC_DYLD_INFO:
       case LOAD_COMMAND_TYPES::LC_DYLD_INFO_ONLY:
         {
+          /*
+           * DO NOT FORGET TO UPDATE DyldInfo::classof
+           */
           LIEF_DEBUG("[+] Parsing dyld information");
-          const dyld_info_command* cmd = &this->stream_->peek<dyld_info_command>(loadcommands_offset);
-
-          load_command = std::unique_ptr<DyldInfo>{new DyldInfo{cmd}};
-          reinterpret_cast<DyldInfo*>(load_command.get())->binary_ = this->binary_;
+          const auto cmd = stream_->peek<details::dyld_info_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse dyld_info_command");
+            break;
+          }
+          load_command = std::make_unique<DyldInfo>(*cmd);
+          load_command->as<DyldInfo>()->binary_ = binary_.get();
           break;
         }
 
@@ -425,11 +493,17 @@ void BinaryParser::parse_load_commands(void) {
       // ===============
       case LOAD_COMMAND_TYPES::LC_SOURCE_VERSION:
         {
+          /*
+           * DO NOT FORGET TO UPDATE SourceVersion::classof
+           */
           LIEF_DEBUG("[+] Parsing LC_SOURCE_VERSION");
 
-          const source_version_command* cmd = &this->stream_->peek<source_version_command>(loadcommands_offset);
-
-          load_command = std::unique_ptr<SourceVersion>{new SourceVersion{cmd}};
+          const auto cmd = stream_->peek<details::source_version_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse source_version_command");
+            break;
+          }
+          load_command = std::make_unique<SourceVersion>(*cmd);
           LIEF_DEBUG("Version: 0x{:x}", cmd->version);
           break;
         }
@@ -437,32 +511,47 @@ void BinaryParser::parse_load_commands(void) {
       case LOAD_COMMAND_TYPES::LC_VERSION_MIN_MACOSX:
       case LOAD_COMMAND_TYPES::LC_VERSION_MIN_IPHONEOS:
         {
-          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command.cmd)));
+          /*
+           * DO NOT FORGET TO UPDATE VersionMin::classof
+           */
+          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command->cmd)));
 
-          const version_min_command* cmd = &this->stream_->peek<version_min_command>(loadcommands_offset);
+          const auto cmd = stream_->peek<details::version_min_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse version_min_command");
+            break;
+          }
           LIEF_DEBUG("Version: 0x{:x} | SDK: 0x{:x}", cmd->version, cmd->sdk);
 
-          load_command = std::unique_ptr<VersionMin>{new VersionMin{cmd}};
+          load_command = std::make_unique<VersionMin>(*cmd);
           break;
         }
 
 
       case LOAD_COMMAND_TYPES::LC_BUILD_VERSION:
         {
-          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command.cmd)));
+          /*
+           * DO NOT FORGET TO UPDATE BuildVersion::classof
+           */
+          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command->cmd)));
 
-          const auto cmd = &this->stream_->peek<build_version_command>(loadcommands_offset);
+          const auto cmd = stream_->peek<details::build_version_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse build_version_command");
+            break;
+          }
 
-          load_command = std::unique_ptr<BuildVersion>{new BuildVersion{cmd}};
-          BuildVersion* build_version = load_command->as<BuildVersion>();
+          load_command = std::make_unique<BuildVersion>(*cmd);
+          auto* build_version = load_command->as<BuildVersion>();
           for (size_t i = 0; i < cmd->ntools; ++i) {
-            const uint64_t cmd_offset = loadcommands_offset + sizeof(build_version_command) + i * sizeof(build_tool_version);
-            if (not this->stream_->can_read<build_tool_version>(cmd_offset)) {
+            const uint64_t cmd_offset = loadcommands_offset + sizeof(details::build_version_command) +
+                                        i * sizeof(details::build_tool_version);
+
+            auto tool_struct = stream_->peek<details::build_tool_version>(cmd_offset);
+            if (!tool_struct) {
               break;
             }
-
-            auto&& tool_struct = this->stream_->peek<build_tool_version>(cmd_offset);
-            build_version->tools_.emplace_back(tool_struct);
+            build_version->tools_.emplace_back(*tool_struct);
           }
           break;
         }
@@ -473,16 +562,19 @@ void BinaryParser::parse_load_commands(void) {
       case LOAD_COMMAND_TYPES::LC_DYLIB_CODE_SIGN_DRS:
       case LOAD_COMMAND_TYPES::LC_CODE_SIGNATURE:
         {
-
-          const linkedit_data_command* cmd = &this->stream_->peek<linkedit_data_command>(loadcommands_offset);
-          load_command = std::unique_ptr<CodeSignature>{new CodeSignature{cmd}};
-          CodeSignature* sig = load_command.get()->as<CodeSignature>();
-
-          const uint8_t* content = this->stream_->peek_array<uint8_t>(sig->data_offset(), sig->data_size(), /* check */ false);
-          if (content != nullptr) {
-            sig->raw_signature_ = {content, content + sig->data_size()};
+          /*
+           * DO NOT FORGET TO UPDATE CodeSignature::classof
+           */
+          const auto cmd = stream_->peek<details::linkedit_data_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse linkedit_data_command for LC_CODE_SIGNATURE/LC_DYLIB_CODE_SIGN_DRS");
+            break;
           }
-
+          load_command = std::make_unique<CodeSignature>(*cmd);
+          auto* sig = load_command->as<CodeSignature>();
+          if (!stream_->peek_data(sig->raw_signature_, sig->data_offset(), sig->data_size())) {
+            LIEF_ERR("Can't read the content of the signature command");
+          }
           break;
         }
 
@@ -491,16 +583,26 @@ void BinaryParser::parse_load_commands(void) {
       // ==============
       case LOAD_COMMAND_TYPES::LC_DATA_IN_CODE:
         {
+          /*
+           * DO NOT FORGET TO UPDATE DataInCode::classof
+           */
+          const auto cmd = stream_->peek<details::linkedit_data_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse linkedit_data_command for LC_DATA_IN_CODE");
+            break;
+          }
+          load_command = std::make_unique<DataInCode>(*cmd);
+          auto* datacode = load_command->as<DataInCode>();
 
-          const linkedit_data_command* cmd = &this->stream_->peek<linkedit_data_command>(loadcommands_offset);
-          load_command = std::unique_ptr<DataInCode>{new DataInCode{cmd}};
-          DataInCode* datacode = load_command.get()->as<DataInCode>();
+          const size_t nb_entries = datacode->data_size() / sizeof(details::data_in_code_entry);
+          stream_->setpos(datacode->data_offset());
 
-          const size_t nb_entries = datacode->data_size() / sizeof(data_in_code_entry);
-          const data_in_code_entry* entries = this->stream_->peek_array<data_in_code_entry>(datacode->data_offset(), nb_entries, /* check */ false);
-          if (entries != nullptr) {
-            for (size_t i = 0; i < nb_entries; ++i) {
-              datacode->add(&entries[i]);
+          for (size_t i = 0; i < nb_entries; ++i) {
+            if (auto entry = stream_->read<details::data_in_code_entry>()) {
+              datacode->add(*entry);
+            } else {
+              LIEF_ERR("Can't read data in code entry #{}", i);
+              break;
             }
           }
           break;
@@ -512,11 +614,16 @@ void BinaryParser::parse_load_commands(void) {
       // =======
       case LOAD_COMMAND_TYPES::LC_MAIN:
         {
+          /*
+           * DO NOT FORGET TO UPDATE MainCommand::classof
+           */
           LIEF_DEBUG("[+] Parsing LC_MAIN");
-
-          const entry_point_command* cmd = &this->stream_->peek<entry_point_command>(loadcommands_offset);
-
-          load_command = std::unique_ptr<MainCommand>{new MainCommand{cmd}};
+          const auto cmd = stream_->peek<details::entry_point_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse entry_point_command");
+            break;
+          }
+          load_command = std::make_unique<MainCommand>(*cmd);
           break;
         }
 
@@ -525,66 +632,92 @@ void BinaryParser::parse_load_commands(void) {
       // ==================
       case LOAD_COMMAND_TYPES::LC_FUNCTION_STARTS:
         {
+          /*
+           * DO NOT FORGET TO UPDATE FunctionStarts::classof
+           */
           LIEF_DEBUG("[+] Parsing LC_FUNCTION_STARTS");
-          const linkedit_data_command* cmd = &this->stream_->peek<linkedit_data_command>(loadcommands_offset);
-          load_command = std::unique_ptr<FunctionStarts>{new FunctionStarts{cmd}};
+          const auto cmd = stream_->peek<details::linkedit_data_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse linkedit_data_command for LC_FUNCTION_STARTS");
+            break;
+          }
+          load_command = std::make_unique<FunctionStarts>(*cmd);
 
           uint64_t value = 0;
-          FunctionStarts* fstart = reinterpret_cast<FunctionStarts*>(load_command.get());
-          this->stream_->setpos(cmd->dataoff);
+          auto* fstart = load_command->as<FunctionStarts>();
+          stream_->setpos(cmd->dataoff);
 
           do {
-            uint64_t val = this->stream_->read_uleb128();
-            if (val == 0) {
+            auto val = stream_->read_uleb128();
+            if (!val || *val == 0) {
               break;
             }
-            value += val;
+            value += *val;
 
             LIEF_DEBUG("Value: 0x{:x}", value);
             fstart->add_function(value);
-          } while(this->stream_->pos() < (cmd->dataoff + cmd->datasize));
+          } while(stream_->pos() < (cmd->dataoff + cmd->datasize));
 
           break;
         }
+
       case LOAD_COMMAND_TYPES::LC_SEGMENT_SPLIT_INFO:
         {
+          /*
+           * DO NOT FORGET TO UPDATE SegmentSplitInfo::classof
+           */
           //static constexpr uint8_t DYLD_CACHE_ADJ_V2_FORMAT = 0x7F;
           LIEF_DEBUG("[+] Parsing LC_SEGMENT_SPLIT_INFO");
-          const linkedit_data_command& cmd = this->stream_->peek<linkedit_data_command>(loadcommands_offset);
-          load_command = std::unique_ptr<SegmentSplitInfo>{new SegmentSplitInfo{&cmd}};
+          const auto cmd = stream_->peek<details::linkedit_data_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse linkedit_data_command for LC_SEGMENT_SPLIT_INFO");
+            break;
+          }
+          load_command = std::make_unique<SegmentSplitInfo>(*cmd);
           //const uint32_t start = cmd->dataoff;
           //const uint32_t size  = cmd->datasize;
 
           //load_command = std::unique_ptr<LoadCommand>{new LoadCommand{&command}};
 
-          //const size_t saved_pos = this->stream_->pos();
-          //this->stream_->setpos(start);
+          //const size_t saved_pos = stream_->pos();
+          //stream_->setpos(start);
 
           //// 1. Type
-          //uint8_t kind = this->stream_->peek<uint8_t>();
+          //uint8_t kind = stream_->peek<uint8_t>();
           //if (kind == DYLD_CACHE_ADJ_V2_FORMAT) {
           //  std::cout  << "V2 Format" << std::endl;
           //} else {
           //  std::cout  << "V1 Format" << std::endl;
-          //  while (this->stream_->pos() < (start + size)) {
-          //    uint8_t kind = this->stream_->read<uint8_t>();
+          //  while (stream_->pos() < (start + size)) {
+          //    uint8_t kind = stream_->read<uint8_t>();
           //    uint64_t cache_offset = 0;
-          //    while (uint64_t delta = this->stream_->read_uleb128()) {
+          //    while (uint64_t delta = stream_->read_uleb128()) {
           //      cache_offset += delta;
           //    }
           //  }
           //}
-          //this->stream_->setpos(saved_pos);
+          //stream_->setpos(saved_pos);
           break;
 
         }
 
       case LOAD_COMMAND_TYPES::LC_SUB_FRAMEWORK:
         {
-          const sub_framework_command& cmd = this->stream_->peek<sub_framework_command>(loadcommands_offset);
-          std::string u = this->stream_->peek_string_at(loadcommands_offset + cmd.umbrella);
-          std::unique_ptr<SubFramework> sf{new SubFramework{&cmd}};
-          sf->umbrella(u);
+          /*
+           * DO NOT FORGET TO UPDATE SubFramework::classof
+           */
+          const auto cmd = stream_->peek<details::sub_framework_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse sub_framework_command");
+            break;
+          }
+          auto u = stream_->peek_string_at(loadcommands_offset + cmd->umbrella);
+          if (!u) {
+            LIEF_ERR("Can't read umbrella string");
+            break;
+          }
+          auto sf = std::make_unique<SubFramework>(*cmd);
+          sf->umbrella(*u);
           load_command = std::move(sf);
           break;
         }
@@ -592,11 +725,22 @@ void BinaryParser::parse_load_commands(void) {
 
       case LOAD_COMMAND_TYPES::LC_DYLD_ENVIRONMENT:
         {
-          const dylinker_command& cmd = this->stream_->peek<dylinker_command>(loadcommands_offset);
+          /*
+           * DO NOT FORGET TO UPDATE DyldEnvironment::classof
+           */
+          const auto cmd = stream_->peek<details::dylinker_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse dylinker_command");
+            break;
+          }
 
-          std::string value = this->stream_->peek_string_at(loadcommands_offset + cmd.name);
-          std::unique_ptr<DyldEnvironment> env{new DyldEnvironment{&cmd}};
-          env->value(value);
+          auto value = stream_->peek_string_at(loadcommands_offset + cmd->name);
+          if (!value) {
+            LIEF_ERR("Can't read dylinker_command.name");
+            break;
+          }
+          auto env = std::make_unique<DyldEnvironment>(*cmd);
+          env->value(*value);
           load_command = std::move(env);
           break;
         }
@@ -608,50 +752,85 @@ void BinaryParser::parse_load_commands(void) {
       case LOAD_COMMAND_TYPES::LC_ENCRYPTION_INFO:
       case LOAD_COMMAND_TYPES::LC_ENCRYPTION_INFO_64:
         {
-          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command.cmd)));
-          const encryption_info_command* cmd = &this->stream_->peek<encryption_info_command>(loadcommands_offset);
-          load_command = std::unique_ptr<EncryptionInfo>{new EncryptionInfo{cmd}};
+          /*
+           * DO NOT FORGET TO UPDATE EncryptionInfo::classof
+           */
+          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command->cmd)));
+          const auto cmd = stream_->peek<details::encryption_info_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse encryption_info_command");
+            break;
+          }
+          load_command = std::make_unique<EncryptionInfo>(*cmd);
           break;
         }
-
 
       // ==============
       // File Set Entry
       // ==============
       case LOAD_COMMAND_TYPES::LC_FILESET_ENTRY:
         {
-          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command.cmd)));
+          /*
+           * DO NOT FORGET TO UPDATE FilesetCommand::classof
+           */
+          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command->cmd)));
 
-          const fileset_entry_command* cmd = &this->stream_->peek<fileset_entry_command>(loadcommands_offset);
-          load_command = std::unique_ptr<FilesetCommand>{new FilesetCommand{cmd}};
+          const auto cmd = stream_->peek<details::fileset_entry_command>(loadcommands_offset);
+          if (!cmd) {
+            LIEF_ERR("Can't parse fileset_entry_command");
+            break;
+          }
+          load_command = std::make_unique<FilesetCommand>(*cmd);
           const uint32_t entry_offset = cmd->entry_id;
-          std::string entry_name = this->stream_->peek_string_at(loadcommands_offset + entry_offset);
+          auto entry_name = stream_->peek_string_at(loadcommands_offset + entry_offset);
 
-          auto* fset = reinterpret_cast<FilesetCommand*>(load_command.get());
-          fset->name(entry_name);
+          if (!entry_name) {
+            LIEF_ERR("Can't read fileset_entry_command.entry_id");
+            break;
+          }
+
+          auto* fset = load_command->as<FilesetCommand>();
+          fset->name(*entry_name);
+
+          LIEF_DEBUG("Parsing fileset '{}' @ {:x} (size: {:x})",
+                     fset->name(), cmd->fileoff, cmd->cmdsize);
+          auto res_type = stream_->peek<uint32_t>(cmd->fileoff);
+          if (!res_type) {
+            LIEF_ERR("Can't access fileset_entry_command.fileoff");
+            break;
+          }
+          auto type = static_cast<MACHO_TYPES>(*res_type);
+
+          // Fat binary
+          if (type == MACHO_TYPES::FAT_MAGIC || type == MACHO_TYPES::FAT_CIGAM) {
+            LIEF_ERR("Mach-O is corrupted with a FAT Mach-O inside a fileset ?");
+            break;
+          }
+
 
           try {
-            LIEF_DEBUG("Parsing fileset '{}' @ {:x} (size: {:x})", entry_name, cmd->fileoff, cmd->cmdsize);
-            MACHO_TYPES type = static_cast<MACHO_TYPES>(this->stream_->peek<uint32_t>(cmd->fileoff));
-
-            // Fat binary
-            if (type == MACHO_TYPES::FAT_MAGIC or
-                type == MACHO_TYPES::FAT_CIGAM) {
-                throw corrupted("Mach-O is corrupted with a FAT Mach-O inside a fileset ?");
-            } else { // fit binary
-
-              // not ideal: we need to move the stream ref for the new BinaryParser then move it back
-              const size_t current_pos = this->stream_->pos();
-              this->stream_->setpos(cmd->fileoff);
-              BinaryParser bp(std::move(this->stream_), 0, this->config_);
-
-              std::unique_ptr<Binary> binary{bp.get_binary()};
-              binary->name_ = entry_name;
-              this->stream_ = std::move(bp.stream_);
-              fset->binary_ = binary.get();
-              this->binary_->filesets_.push_back(std::move(binary));
-              this->stream_->setpos(current_pos);
+            /* TODO(romain): This part needs to be refactored
+             * we should not have to make this kind construction and move
+             * with the BinaryParser constructor
+             */
+            const size_t current_pos = stream_->pos();
+            stream_->setpos(cmd->fileoff);
+            BinaryParser bp;
+            bp.stream_ = std::move(stream_);
+            bp.config_ = config_;
+            if (!bp.init_and_parse()) {
+              LIEF_WARN("Parsing the Binary fileset raised error.");
             }
+
+            stream_ = std::move(bp.stream_);
+            stream_->setpos(current_pos);
+
+            if (bp.binary_ != nullptr) {
+              std::unique_ptr<Binary> filset_bin = std::move(bp.binary_);
+              filset_bin->name_ = *entry_name;
+              binary_->filesets_.push_back(std::move(filset_bin));
+            }
+
           } catch (const std::exception& e) {
             LIEF_DEBUG("{}", e.what());
           }
@@ -662,35 +841,30 @@ void BinaryParser::parse_load_commands(void) {
 
       default:
         {
-          LIEF_WARN("Command '{}' not parsed!", to_string(static_cast<LOAD_COMMAND_TYPES>(command.cmd)));
-
-          load_command = std::unique_ptr<LoadCommand>{new LoadCommand{&command}};
+          LIEF_WARN("Command '{}' not parsed!", to_string(static_cast<LOAD_COMMAND_TYPES>(command->cmd)));
+          load_command = std::make_unique<LoadCommand>(*command);
         }
     }
 
     if (load_command != nullptr) {
-      const uint8_t* content = this->stream_->peek_array<uint8_t>(loadcommands_offset, command.cmdsize, /* check */ false);
-      if (content != nullptr) {
-        load_command->data({
-          content,
-          content + command.cmdsize
-        });
+      if (!stream_->peek_data(load_command->original_data_, loadcommands_offset, command->cmdsize)) {
+        LIEF_ERR("Can't read the raw data of the load command");
       }
-
       load_command->command_offset(loadcommands_offset);
-      this->binary_->commands_.push_back(load_command.release());
+      binary_->commands_.push_back(std::move(load_command));
     }
-    loadcommands_offset += command.cmdsize;
+    loadcommands_offset += command->cmdsize;
   }
-  this->binary_->available_command_space_ = low_fileoff - loadcommands_offset;
+  binary_->available_command_space_ = low_fileoff - loadcommands_offset;
+  return ok();
 }
 
 
 template<class MACHO_T>
-void BinaryParser::parse_relocations(Section& section) {
+ok_error_t BinaryParser::parse_relocations(Section& section) {
   if (section.numberof_relocations() == 0) {
     LIEF_DEBUG("No relocations in {}", section.name());
-    return;
+    return ok();
   }
 
   LIEF_DEBUG("Parse '{}' relocations (#{:d})", section.name(), section.numberof_relocations());
@@ -699,32 +873,49 @@ void BinaryParser::parse_relocations(Section& section) {
   size_t numberof_relocations = section.numberof_relocations();
   if (section.numberof_relocations() > BinaryParser::MAX_RELOCATIONS) {
     numberof_relocations = BinaryParser::MAX_RELOCATIONS;
-    LIEF_WARN("Huge number of relocations (#{:d}). On the first #{:d} will be parsed",
-        section.numberof_relocations(), numberof_relocations);
+    LIEF_WARN("Huge number of relocations (#{:d}). Only the first #{:d} will be parsed",
+              section.numberof_relocations(), numberof_relocations);
 
   }
-  if (current_reloc_offset + numberof_relocations * 2 * sizeof(uint32_t) > this->stream_->size()) {
+  if (current_reloc_offset + numberof_relocations * 2 * sizeof(uint32_t) > stream_->size()) {
     LIEF_WARN("Relocations corrupted");
-    return;
+    return make_error_code(lief_errors::corrupted);
   }
 
-  std::unique_ptr<RelocationObject> reloc{nullptr};
   for (size_t i = 0; i < numberof_relocations; ++i) {
-    int32_t address = this->stream_->peek<int32_t>(current_reloc_offset);
+    std::unique_ptr<RelocationObject> reloc;
+    int32_t address = 0;
+    if (auto res = stream_->peek<int32_t>(current_reloc_offset)) {
+      address = *res;
+    } else {
+      LIEF_INFO("Can't read relocation address for #{}@0x{:x}", i, address);
+      break;
+    }
     bool is_scattered = static_cast<bool>(address & R_SCATTERED);
 
     if (is_scattered) {
-      const scattered_relocation_info* reloc_info = &this->stream_->peek<scattered_relocation_info>(current_reloc_offset);
-      reloc = std::unique_ptr<RelocationObject>{new RelocationObject{reloc_info}};
-      reloc->section_ = &section;
+      if (auto res = stream_->peek<details::scattered_relocation_info>(current_reloc_offset)) {
+        reloc = std::make_unique<RelocationObject>(*res);
+        reloc->section_ = &section;
+      } else {
+        LIEF_INFO("Can't read scattered_relocation_info for #{}@0x{:x}", i, current_reloc_offset);
+        break;
+      }
     } else {
-      const relocation_info* reloc_info = &this->stream_->peek<relocation_info>(current_reloc_offset);
-      reloc = std::unique_ptr<RelocationObject>{new RelocationObject{reloc_info}};
-      reloc->section_ = &section;
+      details::relocation_info reloc_info;
+      if (auto res = stream_->peek<details::relocation_info>(current_reloc_offset)) {
+        reloc_info = *res;
+        reloc = std::make_unique<RelocationObject>(*res);
+        reloc->section_ = &section;
+      } else {
+        LIEF_INFO("Can't read relocation_info for #{}@0x{:x}", i, current_reloc_offset);
+        break;
+      }
 
-      if (reloc_info->r_extern == 1 and reloc_info->r_symbolnum != R_ABS) {
-        if (reloc_info->r_symbolnum < this->binary_->symbols().size()) {
-          Symbol& symbol = this->binary_->symbols()[reloc_info->r_symbolnum];
+      const auto symbols = binary_->symbols();
+      if (reloc_info.r_extern == 1 && reloc_info.r_symbolnum != R_ABS) {
+        if (reloc_info.r_symbolnum < symbols.size()) {
+          Symbol& symbol = symbols[reloc_info.r_symbolnum];
           reloc->symbol_ = &symbol;
 
           LIEF_DEBUG("Symbol: {}", symbol.name());
@@ -732,56 +923,86 @@ void BinaryParser::parse_relocations(Section& section) {
           LIEF_WARN("Relocation #{:d} of {} symbol index is out-of-bound", i, section.name());
         }
       }
-
-      if (reloc_info->r_extern == 0) {
-        if (reloc_info->r_symbolnum < this->binary_->sections().size()) {
-          Section& relsec = this->binary_->sections()[reloc_info->r_symbolnum];
+      const auto sections = binary_->sections();
+      if (reloc_info.r_extern == 0) {
+        const uint32_t sec_num = reloc_info.r_symbolnum;
+        if (sec_num == R_ABS) {
+          // TODO(romain): Find a sample that triggers this branch ..
+          const auto it_sym = memoized_symbols_by_address_.find(reloc_info.r_address);
+          if (it_sym != std::end(memoized_symbols_by_address_)) {
+            reloc->symbol_ = it_sym->second;
+          } else {
+            LIEF_WARN("Can't find memoized symbol for the address: 0x{:x}", reloc_info.r_address);
+          }
+        }
+        else if (sec_num < sections.size()) {
+          Section& relsec = sections[reloc_info.r_symbolnum];
           reloc->section_ = &relsec;
-
           LIEF_DEBUG("Section: {}", relsec.name());
         } else {
-          LIEF_WARN("Relocation #{:d} of {} seems corrupted", i, section.name());
+          /*
+           * According to ld64-609/src/ld/parsers/macho_relocatable_file.cpp,
+           * r_symbolnum can be an index that out-bounds the section tables.
+           *
+           * if ( reloc->r_extern() ) {
+           *   [...]
+           * }
+           * else {
+           *   parser.findTargetFromAddressAndSectionNum(contentValue, reloc->r_symbolnum(), target);
+           * }
+           * findTargetFromAddressAndSectionNum can fail *silently* so no need to warn the user about that
+           */
+          LIEF_INFO("Relocation #{:d} of {} seems corrupted: "
+                    "r_symbolnum is {} sections.size(): {}",
+                    i, section.name(), reloc_info.r_symbolnum, sections.size());
         }
       }
     }
 
     if (reloc) {
-      if (not reloc->has_section()) {
+      if (!reloc->has_section()) {
         reloc->section_ = &section;
       }
-      reloc->architecture_ = this->binary_->header().cpu_type();
-      RelocationObject *r = reloc.release();
-      auto&& result = section.relocations_.emplace(r);
-      if (not result.second) { // Not inserted (Relocation already present)
-        delete r;
-      }
+      reloc->architecture_ = binary_->header().cpu_type();
+      section.relocations_.push_back(std::move(reloc));
     }
 
     current_reloc_offset += 2 * sizeof(uint32_t);
   }
-
+  return ok();
 }
 
 template<class MACHO_T>
-void BinaryParser::parse_dyldinfo_rebases() {
+ok_error_t BinaryParser::parse_dyldinfo_rebases() {
   using pint_t = typename MACHO_T::uint;
 
-  DyldInfo& dyldinfo = this->binary_->dyld_info();
-  uint32_t offset = std::get<0>(dyldinfo.rebase());
-  uint32_t size   = std::get<1>(dyldinfo.rebase());
-
-  if (offset == 0 or size == 0) {
-    return;
+  DyldInfo* dyldinfo = binary_->dyld_info();
+  if (dyldinfo == nullptr) {
+    LIEF_ERR("Missing DyldInfo in the main binary");
+    return make_error_code(lief_errors::not_found);
   }
 
-  try {
-    const uint8_t* raw_rebase = this->stream_->peek_array<uint8_t>(offset, size, /* check */ false);
-    if (raw_rebase != nullptr) {
-      dyldinfo.rebase_opcodes({raw_rebase, raw_rebase + size});
-    }
-  } catch (const exception& e) {
-    LIEF_WARN("{}", e.what());
+  uint32_t offset = std::get<0>(dyldinfo->rebase());
+  uint32_t size   = std::get<1>(dyldinfo->rebase());
+
+  if (offset == 0 || size == 0) {
+    return ok();
   }
+
+  SegmentCommand* linkedit = binary_->segment_from_offset(offset);
+  if (linkedit == nullptr) {
+    LIEF_WARN("Can't find the segment that contains the rebase opcodes");
+    return make_error_code(lief_errors::not_found);
+  }
+
+  span<uint8_t> content = linkedit->writable_content();
+  const uint64_t rel_offset = offset - linkedit->file_offset();
+  if (rel_offset > content.size() || (rel_offset + size) > content.size()) {
+    LIEF_ERR("Rebase opcodes are out of bounds of the segment {}", linkedit->name());
+    return make_error_code(lief_errors::read_out_of_bound);
+  }
+
+  dyldinfo->rebase_opcodes_ = content.subspan(rel_offset, size);
 
   uint64_t end_offset = offset + size;
 
@@ -792,14 +1013,18 @@ void BinaryParser::parse_dyldinfo_rebases() {
   uint32_t count = 0;
   uint32_t skip = 0;
 
-  it_segments segments = this->binary_->segments();
-  const SegmentCommand* current_segmment = nullptr;
+  Binary::it_segments segments = binary_->segments();
+  const SegmentCommand* current_segment = nullptr;
 
-  this->stream_->setpos(offset);
+  stream_->setpos(offset);
 
-  while (not done and this->stream_->pos() < end_offset) {
-    uint8_t imm    = this->stream_->peek<uint8_t>() & REBASE_IMMEDIATE_MASK;
-    uint8_t opcode = this->stream_->read<uint8_t>() & REBASE_OPCODE_MASK;
+  while (!done && stream_->pos() < end_offset) {
+    auto val = stream_->read<uint8_t>();
+    if (!val) {
+      break;
+    }
+    uint8_t imm    = *val & REBASE_IMMEDIATE_MASK;
+    uint8_t opcode = *val & REBASE_OPCODE_MASK;
 
     switch(static_cast<REBASE_OPCODES>(opcode)) {
       case REBASE_OPCODES::REBASE_OPCODE_DONE:
@@ -816,11 +1041,16 @@ void BinaryParser::parse_dyldinfo_rebases() {
 
       case REBASE_OPCODES::REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
         {
+          auto seg_offset = stream_->read_uleb128();
+          if (!seg_offset) {
+            LIEF_ERR("REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB: Can't read uleb128 offset");
+            break;
+          }
           segment_index   = imm;
-          segment_offset  = this->stream_->read_uleb128();
+          segment_offset  = *seg_offset;
 
           if (segment_index < segments.size()) {
-            current_segmment = &segments[segment_index];
+            current_segment = &segments[segment_index];
           } else {
             LIEF_ERR("REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB: Bad index");
             done = true;
@@ -831,23 +1061,31 @@ void BinaryParser::parse_dyldinfo_rebases() {
 
       case REBASE_OPCODES::REBASE_OPCODE_ADD_ADDR_ULEB:
         {
-          segment_offset += this->stream_->read_uleb128();
-
-          if (current_segmment == nullptr or segment_offset > current_segmment->file_size()) {
-            LIEF_WARN("REBASE_OPCODE_ADD_ADDR_ULEB: Bad offset (0x{:x} > 0x{:x})",
-              segment_offset, current_segmment->file_size());
+          auto seg_offset = stream_->read_uleb128();
+          if (!seg_offset) {
+            LIEF_ERR("REBASE_OPCODE_ADD_ADDR_ULEB: Can't read uleb128 offset");
+            break;
           }
-
+          segment_offset += *seg_offset;
+          if (current_segment == nullptr) {
+            LIEF_WARN("REBASE_OPCODE_ADD_ADDR_ULEB: the current segment is null");
+          }
+          else if (segment_offset > current_segment->file_size()) {
+            LIEF_WARN("REBASE_OPCODE_ADD_ADDR_ULEB: Bad offset (0x{:x} > 0x{:x})",
+                      segment_offset, current_segment->file_size());
+          }
           break;
         }
 
       case REBASE_OPCODES::REBASE_OPCODE_ADD_ADDR_IMM_SCALED:
         {
           segment_offset += (imm * sizeof(pint_t));
-
-          if (current_segmment == nullptr or segment_offset > current_segmment->file_size()) {
+          if (current_segment == nullptr) {
+            LIEF_WARN("REBASE_OPCODE_ADD_ADDR_IMM_SCALED: the current segment is null");
+          }
+          else if (segment_offset > current_segment->file_size()) {
             LIEF_WARN("REBASE_OPCODE_ADD_ADDR_IMM_SCALED: Bad offset (0x{:x} > 0x{:x})",
-              segment_offset, current_segmment->file_size());
+                      segment_offset, current_segment->file_size());
           }
           break;
         }
@@ -855,27 +1093,36 @@ void BinaryParser::parse_dyldinfo_rebases() {
       case REBASE_OPCODES::REBASE_OPCODE_DO_REBASE_IMM_TIMES:
         {
           for (size_t i = 0; i < imm; ++i) {
-            this->do_rebase<MACHO_T>(type, segment_index, segment_offset, segments);
+            do_rebase<MACHO_T>(type, segment_index, segment_offset, &segments);
             segment_offset += sizeof(pint_t);
-
-            if (current_segmment == nullptr or segment_offset > current_segmment->file_size()) {
+            if (current_segment == nullptr) {
+              LIEF_WARN("REBASE_OPCODE_DO_REBASE_IMM_TIMES: the current segment is null");
+            }
+            else if (segment_offset > current_segment->file_size()) {
               LIEF_WARN("REBASE_OPCODE_DO_REBASE_IMM_TIMES: Bad offset (0x{:x} > 0x{:x})",
-                segment_offset, current_segmment->file_size());
+                        segment_offset, current_segment->file_size());
             }
           }
           break;
         }
       case REBASE_OPCODES::REBASE_OPCODE_DO_REBASE_ULEB_TIMES:
         {
-
-          count = this->stream_->read_uleb128();
+          auto uleb128_val = stream_->read_uleb128();
+          if (!uleb128_val) {
+            LIEF_ERR("REBASE_OPCODE_DO_REBASE_ULEB_TIMES: Can't read uleb128 count");
+            break;
+          }
+          count = *uleb128_val;
           for (size_t i = 0; i < count; ++i) {
-
-            if (current_segmment == nullptr or segment_offset > current_segmment->file_size()) {
-              LIEF_WARN("REBASE_OPCODE_DO_REBASE_ULEB_TIMES: Bad offset (0x{:x} > 0x{:x})",
-                segment_offset, current_segmment->file_size());
+            if (current_segment == nullptr) {
+              LIEF_WARN("REBASE_OPCODE_DO_REBASE_ULEB_TIMES: the current segment is null");
             }
-            this->do_rebase<MACHO_T>(type, segment_index, segment_offset, segments);
+            else if (segment_offset > current_segment->file_size()) {
+              LIEF_WARN("REBASE_OPCODE_DO_REBASE_ULEB_TIMES: Bad offset (0x{:x} > 0x{:x})",
+                        segment_offset, current_segment->file_size());
+            }
+
+            do_rebase<MACHO_T>(type, segment_index, segment_offset, &segments);
             segment_offset += sizeof(pint_t);
           }
           break;
@@ -883,14 +1130,20 @@ void BinaryParser::parse_dyldinfo_rebases() {
 
       case REBASE_OPCODES::REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB:
         {
-
-          if (current_segmment == nullptr or segment_offset > current_segmment->file_size()) {
-              LIEF_WARN("REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB: Bad offset (0x{:x} > 0x{:x})",
-                segment_offset, current_segmment->file_size());
+          if (current_segment == nullptr) {
+            LIEF_WARN("REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB: the current segment is null");
           }
-          this->do_rebase<MACHO_T>(type, segment_index, segment_offset, segments);
-
-          segment_offset += this->stream_->read_uleb128() + sizeof(pint_t);
+          else if (segment_offset > current_segment->file_size()) {
+            LIEF_WARN("REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB: Bad offset (0x{:x} > 0x{:x})",
+                      segment_offset, current_segment->file_size());
+          }
+          do_rebase<MACHO_T>(type, segment_index, segment_offset, &segments);
+          auto uleb128_val = stream_->read_uleb128();
+          if (!uleb128_val) {
+            LIEF_ERR("REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB: Can't read uleb128 segment_offset");
+            break;
+          }
+          segment_offset += *uleb128_val + sizeof(pint_t);
 
           break;
         }
@@ -898,19 +1151,31 @@ void BinaryParser::parse_dyldinfo_rebases() {
       case REBASE_OPCODES::REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB:
         {
           // Count
-          count = this->stream_->read_uleb128();
+          auto uleb128_val = stream_->read_uleb128();
+          if (!uleb128_val) {
+            LIEF_ERR("Can't read REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB count");
+            break;
+          }
+          count = *uleb128_val;
 
+          uleb128_val = stream_->read_uleb128();
+          if (!uleb128_val) {
+            LIEF_ERR("Can't read REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB skip");
+            break;
+          }
           // Skip
-          skip = this->stream_->read_uleb128();
+          skip = *uleb128_val;
 
 
           for (size_t i = 0; i < count; ++i) {
-
-            if (current_segmment == nullptr or segment_offset > current_segmment->file_size()) {
-              LIEF_WARN("REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB: Bad offset (0x{:x} > 0x{:x})",
-                segment_offset, current_segmment->file_size());
+            if (current_segment == nullptr) {
+              LIEF_WARN("REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB: the current segment is null");
             }
-            this->do_rebase<MACHO_T>(type, segment_index, segment_offset, segments);
+            else if (segment_offset > current_segment->file_size()) {
+              LIEF_WARN("REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB: Bad offset (0x{:x} > 0x{:x})",
+                        segment_offset, current_segment->file_size());
+            }
+            do_rebase<MACHO_T>(type, segment_index, segment_offset, &segments);
             segment_offset += skip + sizeof(pint_t);
           }
 
@@ -924,65 +1189,78 @@ void BinaryParser::parse_dyldinfo_rebases() {
         }
     }
   }
+  return ok();
 }
 
 
 template<class MACHO_T>
-void BinaryParser::parse_dyldinfo_binds() {
+ok_error_t BinaryParser::parse_dyldinfo_binds() {
 
   try {
-    this->parse_dyldinfo_generic_bind<MACHO_T>();
+    parse_dyldinfo_generic_bind<MACHO_T>();
   } catch (const exception& e) {
-    throw corrupted(e.what());
+    LIEF_ERR("Can't correctly parse Dyld binding info");
+    return make_error_code(lief_errors::corrupted);
   }
 
 
   try {
-    this->parse_dyldinfo_weak_bind<MACHO_T>();
+    parse_dyldinfo_weak_bind<MACHO_T>();
   } catch (const exception& e) {
-    throw corrupted(e.what());
+    LIEF_ERR("Can't correctly parse weak Dyld binding info");
+    return make_error_code(lief_errors::corrupted);
   }
 
 
   try {
-    this->parse_dyldinfo_lazy_bind<MACHO_T>();
+    parse_dyldinfo_lazy_bind<MACHO_T>();
   } catch (const exception& e) {
-    throw corrupted(e.what());
+    LIEF_ERR("Can't correctly parse lazy Dyld binding info");
+    return make_error_code(lief_errors::corrupted);
   }
-
+  return ok();
 }
 
 // Generic bindings
 // ================
 template<class MACHO_T>
-void BinaryParser::parse_dyldinfo_generic_bind() {
+ok_error_t BinaryParser::parse_dyldinfo_generic_bind() {
   using pint_t = typename MACHO_T::uint;
 
-  DyldInfo& dyldinfo = this->binary_->dyld_info();
-
-  uint32_t offset = std::get<0>(dyldinfo.bind());
-  uint32_t size   = std::get<1>(dyldinfo.bind());
-
-  if (offset == 0 or size == 0) {
-    return;
+  DyldInfo* dyldinfo = binary_->dyld_info();
+  if (dyldinfo == nullptr) {
+    LIEF_ERR("Missing DyldInfo in the main binary");
+    return make_error_code(lief_errors::not_found);
   }
 
-  try {
-    const uint8_t* raw_binding = this->stream_->peek_array<uint8_t>(offset, size, /* check */ false);
+  uint32_t offset = std::get<0>(dyldinfo->bind());
+  uint32_t size   = std::get<1>(dyldinfo->bind());
 
-    if (raw_binding != nullptr) {
-      dyldinfo.bind_opcodes({raw_binding, raw_binding + size});
-    }
-  } catch (const exception& e) {
-    LIEF_WARN("{}", e.what());
+  if (offset == 0 || size == 0) {
+    return ok();
   }
+
+  SegmentCommand* linkedit = binary_->segment_from_offset(offset);
+  if (linkedit == nullptr) {
+    LIEF_WARN("Can't find the segment that contains the regular bind opcodes");
+    return make_error_code(lief_errors::not_found);
+  }
+
+  span<uint8_t> content = linkedit->writable_content();
+  const uint64_t rel_offset = offset - linkedit->file_offset();
+  if (rel_offset > content.size() || (rel_offset + size) > content.size()) {
+    LIEF_ERR("Regular bind opcodes are out of bounds of the segment {}", linkedit->name());
+    return make_error_code(lief_errors::read_out_of_bound);
+  }
+
+  dyldinfo->bind_opcodes_ = content.subspan(rel_offset, size);
 
   uint64_t end_offset = offset + size;
 
   uint8_t     type = 0;
   uint8_t     segment_idx = 0;
   uint64_t    segment_offset = 0;
-  std::string symbol_name = "";
+  std::string symbol_name;
   int         library_ordinal = 0;
 
   int64_t     addend = 0;
@@ -995,14 +1273,18 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
   size_t ordinal_table_size     = 0;
   bool use_threaded_rebase_bind = false;
   uint8_t symbol_flags          = 0;
-  uint64_t    start_offset      = 0;
+  uint64_t start_offset         = 0;
   std::vector<ThreadedBindData> ordinal_table;
 
-  it_segments segments = this->binary_->segments();
-  this->stream_->setpos(offset);
-  while (not done and this->stream_->pos() < end_offset) {
-    uint8_t imm = this->stream_->peek<uint8_t>() & BIND_IMMEDIATE_MASK;
-    BIND_OPCODES opcode = static_cast<BIND_OPCODES>(this->stream_->read<uint8_t>() & BIND_OPCODE_MASK);
+  Binary::it_segments segments = binary_->segments();
+  stream_->setpos(offset);
+  while (!done && stream_->pos() < end_offset) {
+    auto val = stream_->read<uint8_t>();
+    if (!val) {
+      break;
+    }
+    uint8_t imm = *val & BIND_IMMEDIATE_MASK;
+    auto opcode = static_cast<BIND_OPCODES>(*val & BIND_OPCODE_MASK);
 
     switch (opcode) {
       case BIND_OPCODES::BIND_OPCODE_DONE:
@@ -1019,8 +1301,12 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
         {
-
-          library_ordinal = this->stream_->read_uleb128();
+          auto val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB uleb128 ordinal");
+            break;
+          }
+          library_ordinal = *val;
 
           break;
         }
@@ -1039,7 +1325,12 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
         {
-          symbol_name = this->stream_->read_string();
+          auto str = stream_->read_string();
+          if (!str) {
+            LIEF_ERR("Can't read symbol name");
+            break;
+          }
+          symbol_name = std::move(*str);
           symbol_flags = imm;
 
           if ((imm & BIND_SYMBOL_FLAGS_WEAK_IMPORT) != 0) {
@@ -1058,27 +1349,42 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_SET_ADDEND_SLEB:
         {
-          addend = this->stream_->read_sleb128();
+          auto val = stream_->read_sleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_SET_ADDEND_SLEB uleb128 addend");
+            break;
+          }
+          addend = *val;
           break;
         }
 
       case BIND_OPCODES::BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
         {
+          auto val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB uleb128 segment offset");
+            break;
+          }
           segment_idx    = imm;
-          segment_offset = this->stream_->read_uleb128();
+          segment_offset = *val;
           break;
         }
 
       case BIND_OPCODES::BIND_OPCODE_ADD_ADDR_ULEB:
         {
-          segment_offset += this->stream_->read_uleb128();
+          auto val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_ADD_ADDR_ULEB uleb128 segment offset");
+            break;
+          }
+          segment_offset += *val;
           break;
         }
 
       case BIND_OPCODES::BIND_OPCODE_DO_BIND:
         {
-          if (not use_threaded_rebase_bind) {
-            this->do_bind<MACHO_T>(
+          if (!use_threaded_rebase_bind) {
+            do_bind<MACHO_T>(
                 BINDING_CLASS::BIND_CLASS_STANDARD,
                 type,
                 segment_idx,
@@ -1088,8 +1394,8 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
                 addend,
                 is_weak_import,
                 false,
-                segments, start_offset);
-            start_offset = this->stream_->pos() - offset + 1;
+                &segments, start_offset);
+            start_offset = stream_->pos() - offset + 1;
             segment_offset += sizeof(pint_t);
           } else {
             ordinal_table.push_back(ThreadedBindData{symbol_name, addend, library_ordinal, symbol_flags, type});
@@ -1099,7 +1405,7 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
         {
-          this->do_bind<MACHO_T>(
+          do_bind<MACHO_T>(
               BINDING_CLASS::BIND_CLASS_STANDARD,
               type,
               segment_idx,
@@ -1109,15 +1415,22 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
               addend,
               is_weak_import,
               false,
-              segments, start_offset);
-          start_offset = this->stream_->pos() - offset + 1;
-          segment_offset += this->stream_->read_uleb128() + sizeof(pint_t);
+              &segments, start_offset);
+          start_offset = stream_->pos() - offset + 1;
+
+          auto val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB uleb128 segment offset");
+            break;
+          }
+
+          segment_offset += *val + sizeof(pint_t);
           break;
         }
 
       case BIND_OPCODES::BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
         {
-          this->do_bind<MACHO_T>(
+          do_bind<MACHO_T>(
               BINDING_CLASS::BIND_CLASS_STANDARD,
               type,
               segment_idx,
@@ -1127,19 +1440,30 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
               addend,
               is_weak_import,
               false,
-              segments, start_offset);
-          start_offset = this->stream_->pos() - offset + 1;
+              &segments, start_offset);
+          start_offset = stream_->pos() - offset + 1;
           segment_offset += imm * sizeof(pint_t) + sizeof(pint_t);
           break;
         }
 
       case BIND_OPCODES::BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
         {
-          count = this->stream_->read_uleb128();
-          skip  = this->stream_->read_uleb128();
+          auto val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB uleb128 count");
+            break;
+          }
+          count = *val;
+
+          val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB uleb128 skip");
+            break;
+          }
+          skip = *val;
 
           for (size_t i = 0; i < count; ++i) {
-            this->do_bind<MACHO_T>(
+            do_bind<MACHO_T>(
                 BINDING_CLASS::BIND_CLASS_STANDARD,
                 type,
                 segment_idx,
@@ -1149,8 +1473,8 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
                 addend,
                 is_weak_import,
                 false,
-                segments, start_offset);
-            start_offset = this->stream_->pos() - offset + 1;
+                &segments, start_offset);
+            start_offset = stream_->pos() - offset + 1;
             segment_offset += skip + sizeof(pint_t);
           }
           break;
@@ -1165,8 +1489,8 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
                 const SegmentCommand& current_segment = segments[segment_idx];
                 do {
                   const uint64_t address = current_segment.virtual_address() + segment_offset;
-                  const std::vector<uint8_t>& content = current_segment.content();
-                  if (segment_offset >= content.size() or segment_offset + sizeof(uint64_t) >= content.size()) {
+                  span<const uint8_t> content = current_segment.content();
+                  if (segment_offset >= content.size() || segment_offset + sizeof(uint64_t) >= content.size()) {
                     LIEF_WARN("Bad segment offset (0x{:x})", segment_offset);
                     delta = 0; // exit from de do ... while
                     break;
@@ -1176,23 +1500,23 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
 
                   if (is_rebase) {
                     //LIEF_WARN("do rebase for addr: 0x{:x} vs 0x{:x}", address, current_segment)
-                    this->do_rebase<MACHO_T>(static_cast<uint8_t>(REBASE_TYPES::REBASE_TYPE_POINTER),
-                                             segment_idx, segment_offset, segments);
+                    do_rebase<MACHO_T>(static_cast<uint8_t>(REBASE_TYPES::REBASE_TYPE_POINTER),
+                                       segment_idx, segment_offset, &segments);
                   } else {
                     uint16_t ordinal = value & 0xFFFF;
-                    if (ordinal >= ordinal_table_size or ordinal >= ordinal_table.size()) {
+                    if (ordinal >= ordinal_table_size || ordinal >= ordinal_table.size()) {
                       LIEF_WARN("bind ordinal ({:d}) is out of range (max={:d}) for disk pointer 0x{:04x} in "
                                 "segment '{}' (segment offset: 0x{:04x})", ordinal, ordinal_table_size, value,
                                 current_segment.name(), segment_offset);
                       break;
                     }
-                    if (address < current_segment.virtual_address() or
+                    if (address < current_segment.virtual_address() ||
                         address >= (current_segment.virtual_address() + current_segment.virtual_size())) {
                       LIEF_WARN("Bad binding address");
                       break;
                     }
                     const ThreadedBindData& th_bind_data = ordinal_table[ordinal];
-                    this->do_bind<MACHO_T>(
+                    do_bind<MACHO_T>(
                         BINDING_CLASS::BIND_CLASS_THREADED,
                         th_bind_data.type,
                         segment_idx,
@@ -1202,8 +1526,8 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
                         th_bind_data.addend,
                         th_bind_data.symbol_flags & BIND_SYMBOL_FLAGS_WEAK_IMPORT,
                         false,
-                        segments, start_offset);
-                        start_offset = this->stream_->pos() - offset + 1;
+                        &segments, start_offset);
+                        start_offset = stream_->pos() - offset + 1;
                   }
                   // The delta is bits [51..61]
                   // And bit 62 is to tell us if we are a rebase (0) or bind (1)
@@ -1215,7 +1539,12 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
               }
             case BIND_SUBOPCODE_THREADED::BIND_SUBOPCODE_THREADED_SET_BIND_ORDINAL_TABLE_SIZE_ULEB:
               {
-                count = this->stream_->read_uleb128();
+                auto val = stream_->read_uleb128();
+                if (!val) {
+                  LIEF_ERR("Can't read BIND_SUBOPCODE_THREADED_SET_BIND_ORDINAL_TABLE_SIZE_ULEB count");
+                  break;
+                }
+                count = *val;
                 ordinal_table_size = count + 1; // the +1 comes from: 'ld64 wrote the wrong value here and we need to offset by 1 for now.'
                 use_threaded_rebase_bind = true;
                 ordinal_table.reserve(ordinal_table_size);
@@ -1231,45 +1560,52 @@ void BinaryParser::parse_dyldinfo_generic_bind() {
         }
       }
   }
-  if (use_threaded_rebase_bind) {
-    dyldinfo.binding_encoding_version_ = DyldInfo::BINDING_ENCODING_VERSION::V2;
-  } else {
-    dyldinfo.binding_encoding_version_ = DyldInfo::BINDING_ENCODING_VERSION::V1;
-  }
-
+  dyldinfo->binding_encoding_version_ = use_threaded_rebase_bind ?
+                                        DyldInfo::BINDING_ENCODING_VERSION::V2 :
+                                        DyldInfo::BINDING_ENCODING_VERSION::V1;
+  return ok();
 }
 
 // Weak binding
 // ============
 template<class MACHO_T>
-void BinaryParser::parse_dyldinfo_weak_bind() {
+ok_error_t BinaryParser::parse_dyldinfo_weak_bind() {
   using pint_t = typename MACHO_T::uint;
 
-  DyldInfo& dyldinfo = this->binary_->dyld_info();
-
-  uint32_t offset = std::get<0>(dyldinfo.weak_bind());
-  uint32_t size   = std::get<1>(dyldinfo.weak_bind());
-
-  if (offset == 0 or size == 0) {
-    return;
+  DyldInfo* dyldinfo = binary_->dyld_info();
+  if (dyldinfo == nullptr) {
+    LIEF_ERR("Missing DyldInfo in the main binary");
+    return make_error_code(lief_errors::not_found);
   }
 
-  try {
-    const uint8_t* raw_binding = this->stream_->peek_array<uint8_t>(offset, size, /* check */ false);
+  uint32_t offset = std::get<0>(dyldinfo->weak_bind());
+  uint32_t size   = std::get<1>(dyldinfo->weak_bind());
 
-    if (raw_binding != nullptr) {
-      dyldinfo.weak_bind_opcodes({raw_binding, raw_binding + size});
-    }
-  } catch (const exception& e) {
-    LIEF_WARN("{}", e.what());
+  if (offset == 0 || size == 0) {
+    return ok();
   }
+
+  SegmentCommand* linkedit = binary_->segment_from_offset(offset);
+  if (linkedit == nullptr) {
+    LIEF_WARN("Can't find the segment that contains the weak bind opcodes");
+    return make_error_code(lief_errors::not_found);
+  }
+
+  span<uint8_t> content = linkedit->writable_content();
+  const uint64_t rel_offset = offset - linkedit->file_offset();
+  if (rel_offset > content.size() || (rel_offset + size) > content.size()) {
+    LIEF_ERR("Weak bind opcodes are out of bounds of the segment {}", linkedit->name());
+    return make_error_code(lief_errors::read_out_of_bound);
+  }
+
+  dyldinfo->weak_bind_opcodes_ = content.subspan(rel_offset, size);
 
   uint64_t end_offset = offset + size;
 
   uint8_t     type = 0;
   uint8_t     segment_idx = 0;
   uint64_t    segment_offset = 0;
-  std::string symbol_name = "";
+  std::string symbol_name;
 
   int64_t     addend = 0;
   uint32_t    count = 0;
@@ -1280,13 +1616,17 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
   bool        done = false;
   uint64_t    start_offset    = 0;
 
-  it_segments segments = this->binary_->segments();
+  Binary::it_segments segments = binary_->segments();
 
-  this->stream_->setpos(offset);
+  stream_->setpos(offset);
 
-  while (not done and this->stream_->pos() < end_offset) {
-    uint8_t imm    = this->stream_->peek<uint8_t>() & BIND_IMMEDIATE_MASK;
-    BIND_OPCODES opcode = static_cast<BIND_OPCODES>(this->stream_->read<uint8_t>() & BIND_OPCODE_MASK);
+  while (!done && stream_->pos() < end_offset) {
+    auto val = stream_->read<uint8_t>();
+    if (!val) {
+      break;
+    }
+    uint8_t imm = *val & BIND_IMMEDIATE_MASK;
+    auto opcode = static_cast<BIND_OPCODES>(*val & BIND_OPCODE_MASK);
 
     switch (opcode) {
       case BIND_OPCODES::BIND_OPCODE_DONE:
@@ -1298,7 +1638,12 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
         {
-          symbol_name = this->stream_->read_string();
+          auto str = stream_->read_string();
+          if (!str) {
+            LIEF_ERR("Can't read BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM symbol name");
+            break;
+          }
+          symbol_name = std::move(*str);
 
           if ((imm & BIND_SYMBOL_FLAGS_NON_WEAK_DEFINITION) != 0) {
             is_non_weak_definition = true;
@@ -1317,15 +1662,25 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_SET_ADDEND_SLEB:
         {
-          addend = this->stream_->read_sleb128();
+          auto val = stream_->read_sleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_SET_ADDEND_SLEB sleb128 addend");
+            break;
+          }
+          addend = *val;
           break;
         }
 
 
       case BIND_OPCODES::BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
         {
+          auto val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB uleb128 segment offset");
+            break;
+          }
           segment_idx    = imm;
-          segment_offset = this->stream_->read_uleb128();
+          segment_offset = *val;
 
           break;
         }
@@ -1333,14 +1688,19 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_ADD_ADDR_ULEB:
         {
-          segment_offset += this->stream_->read_uleb128();
+          auto val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_ADD_ADDR_ULEB uleb128 segment offset");
+            break;
+          }
+          segment_offset += *val;
           break;
         }
 
 
       case BIND_OPCODES::BIND_OPCODE_DO_BIND:
         {
-          this->do_bind<MACHO_T>(
+          do_bind<MACHO_T>(
               BINDING_CLASS::BIND_CLASS_WEAK,
               type,
               segment_idx,
@@ -1350,8 +1710,8 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
               addend,
               is_weak_import,
               is_non_weak_definition,
-              segments, start_offset);
-          start_offset = this->stream_->pos() - offset + 1;
+              &segments, start_offset);
+          start_offset = stream_->pos() - offset + 1;
           segment_offset += sizeof(pint_t);
           break;
         }
@@ -1359,7 +1719,7 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
         {
-          this->do_bind<MACHO_T>(
+          do_bind<MACHO_T>(
               BINDING_CLASS::BIND_CLASS_WEAK,
               type,
               segment_idx,
@@ -1369,16 +1729,22 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
               addend,
               is_weak_import,
               is_non_weak_definition,
-              segments, start_offset);
-          start_offset = this->stream_->pos() - offset + 1;
-          segment_offset += this->stream_->read_uleb128() + sizeof(pint_t);
+              &segments, start_offset);
+          start_offset = stream_->pos() - offset + 1;
+
+          auto val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB uleb128 segment offset");
+            break;
+          }
+          segment_offset += *val + sizeof(pint_t);
           break;
         }
 
 
       case BIND_OPCODES::BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
         {
-          this->do_bind<MACHO_T>(
+          do_bind<MACHO_T>(
               BINDING_CLASS::BIND_CLASS_WEAK,
               type,
               segment_idx,
@@ -1388,8 +1754,8 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
               addend,
               is_weak_import,
               is_non_weak_definition,
-              segments, start_offset);
-          start_offset = this->stream_->pos() - offset + 1;
+              &segments, start_offset);
+          start_offset = stream_->pos() - offset + 1;
           segment_offset += imm * sizeof(pint_t) + sizeof(pint_t);
           break;
         }
@@ -1397,15 +1763,24 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
         {
-
+          auto val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB uleb128 count");
+            break;
+          }
           // Count
-          count   = this->stream_->read_uleb128();
+          count = *val;
 
           // Skip
-          skip    = this->stream_->read_uleb128();
+          val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB uleb128 skip");
+            break;
+          }
+          skip = *val;
 
           for (size_t i = 0; i < count; ++i) {
-            this->do_bind<MACHO_T>(
+            do_bind<MACHO_T>(
                 BINDING_CLASS::BIND_CLASS_WEAK,
                 type,
                 segment_idx,
@@ -1415,8 +1790,8 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
                 addend,
                 is_weak_import,
                 is_non_weak_definition,
-              segments, start_offset);
-            start_offset = this->stream_->pos() - offset + 1;
+                &segments, start_offset);
+            start_offset = stream_->pos() - offset + 1;
             segment_offset += skip + sizeof(pint_t);
           }
           break;
@@ -1431,52 +1806,63 @@ void BinaryParser::parse_dyldinfo_weak_bind() {
         }
       }
   }
-
+  return ok();
 }
 
 // Lazy binding
 // ============
 template<class MACHO_T>
-void BinaryParser::parse_dyldinfo_lazy_bind() {
+ok_error_t BinaryParser::parse_dyldinfo_lazy_bind() {
   using pint_t = typename MACHO_T::uint;
 
-  DyldInfo& dyldinfo = this->binary_->dyld_info();
-
-  uint32_t offset = std::get<0>(dyldinfo.lazy_bind());
-  uint32_t size   = std::get<1>(dyldinfo.lazy_bind());
-
-  if (offset == 0 or size == 0) {
-    return;
+  DyldInfo* dyldinfo = binary_->dyld_info();
+  if (dyldinfo == nullptr) {
+    LIEF_ERR("Missing DyldInfo in the main binary");
+    return make_error_code(lief_errors::not_found);
   }
 
-  try {
-    const uint8_t* raw_binding = this->stream_->peek_array<uint8_t>(offset, size, /* check */ false);
+  uint32_t offset = std::get<0>(dyldinfo->lazy_bind());
+  uint32_t size   = std::get<1>(dyldinfo->lazy_bind());
 
-    if (raw_binding != nullptr) {
-      dyldinfo.lazy_bind_opcodes({raw_binding, raw_binding + size});
-    }
-  } catch (const exception& e) {
-    LIEF_WARN("{}", e.what());
+  if (offset == 0 || size == 0) {
+    return ok();
   }
 
-  uint64_t current_offset = offset;
-  uint64_t end_offset     = offset + size;
+  SegmentCommand* linkedit = binary_->segment_from_offset(offset);
+  if (linkedit == nullptr) {
+    LIEF_WARN("Can't find the segment that contains the lazy bind opcodes");
+    return make_error_code(lief_errors::not_found);
+  }
+
+  span<uint8_t> content = linkedit->writable_content();
+  const uint64_t rel_offset = offset - linkedit->file_offset();
+  if (rel_offset > content.size() || (rel_offset + size) > content.size()) {
+    LIEF_ERR("Lazy bind opcodes are out of bounds of the segment {}", linkedit->name());
+    return make_error_code(lief_errors::read_out_of_bound);
+  }
+
+  dyldinfo->lazy_bind_opcodes_ = content.subspan(rel_offset, size);
+
+  uint64_t end_offset = offset + size;
 
   //uint32_t    lazy_offset     = 0;
+  std::string symbol_name;
   uint8_t     segment_idx     = 0;
   uint64_t    segment_offset  = 0;
-  std::string symbol_name     = "";
   int32_t     library_ordinal = 0;
   int64_t     addend          = 0;
   bool        is_weak_import  = false;
   uint64_t    start_offset    = 0;
 
-  it_segments segments = this->binary_->segments();
-  this->stream_->setpos(offset);
-  while (this->stream_->pos() < end_offset) {
-    uint8_t imm    = this->stream_->peek<uint8_t>() & BIND_IMMEDIATE_MASK;
-    BIND_OPCODES opcode = static_cast<BIND_OPCODES>(this->stream_->read<uint8_t>() & BIND_OPCODE_MASK);
-    current_offset += sizeof(uint8_t);
+  Binary::it_segments segments = binary_->segments();
+  stream_->setpos(offset);
+  while (stream_->pos() < end_offset) {
+    auto val = stream_->read<uint8_t>();
+    if (!val) {
+      break;
+    }
+    uint8_t imm = *val & BIND_IMMEDIATE_MASK;
+    auto opcode = static_cast<BIND_OPCODES>(*val & BIND_OPCODE_MASK);
 
     switch (opcode) {
       case BIND_OPCODES::BIND_OPCODE_DONE:
@@ -1493,7 +1879,13 @@ void BinaryParser::parse_dyldinfo_lazy_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
         {
-          library_ordinal = this->stream_->read_uleb128();
+          auto val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB uleb128 library ordinal");
+            break;
+          }
+
+          library_ordinal = *val;
           break;
         }
 
@@ -1511,7 +1903,12 @@ void BinaryParser::parse_dyldinfo_lazy_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
         {
-          symbol_name = this->stream_->read_string();
+          auto str = stream_->read_string();
+          if (!str) {
+            LIEF_ERR("Can't read symbol name");
+            break;
+          }
+          symbol_name = std::move(*str);
 
           if ((imm & BIND_SYMBOL_FLAGS_WEAK_IMPORT) != 0) {
             is_weak_import = true;
@@ -1523,21 +1920,31 @@ void BinaryParser::parse_dyldinfo_lazy_bind() {
 
       case BIND_OPCODES::BIND_OPCODE_SET_ADDEND_SLEB:
         {
-          addend = this->stream_->read_sleb128();;
+          auto val = stream_->read_sleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_SET_ADDEND_SLEB sleb128 addend");
+            break;
+          }
+          addend = *val;
           break;
         }
 
       case BIND_OPCODES::BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
         {
+          auto val = stream_->read_uleb128();
+          if (!val) {
+            LIEF_ERR("Can't read BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB uleb128 segment offset");
+            break;
+          }
           segment_idx    = imm;
-          segment_offset = this->stream_->read_uleb128();
+          segment_offset = *val;
 
           break;
         }
 
       case BIND_OPCODES::BIND_OPCODE_DO_BIND:
         {
-          this->do_bind<MACHO_T>(
+          do_bind<MACHO_T>(
               BINDING_CLASS::BIND_CLASS_LAZY,
               static_cast<uint8_t>(BIND_TYPES::BIND_TYPE_POINTER),
               segment_idx,
@@ -1547,8 +1954,8 @@ void BinaryParser::parse_dyldinfo_lazy_bind() {
               addend,
               is_weak_import,
               false,
-              segments, start_offset);
-          start_offset = this->stream_->pos() - offset + 1;
+              &segments, start_offset);
+          start_offset = stream_->pos() - offset + 1;
           segment_offset += sizeof(pint_t);
           break;
         }
@@ -1560,25 +1967,26 @@ void BinaryParser::parse_dyldinfo_lazy_bind() {
         }
       }
   }
+  return ok();
 }
 
 template<class MACHO_T>
-void BinaryParser::do_bind(BINDING_CLASS cls,
-        uint8_t type,
-        uint8_t segment_idx,
-        uint64_t segment_offset,
-        const std::string& symbol_name,
-        int32_t ord,
-        int64_t addend,
-        bool is_weak,
-        bool is_non_weak_definition,
-        it_segments& segments,
-        uint64_t offset) {
-
-
+ok_error_t BinaryParser::do_bind(BINDING_CLASS cls,
+                                 uint8_t type,
+                                 uint8_t segment_idx,
+                                 uint64_t segment_offset,
+                                 const std::string& symbol_name,
+                                 int32_t ord,
+                                 int64_t addend,
+                                 bool is_weak,
+                                 bool is_non_weak_definition,
+                                 it_opaque_segments segments_ptr,
+                                 uint64_t offset)
+{
+  auto& segments = *static_cast<Binary::it_segments*>(segments_ptr);
   if (segment_idx >= segments.size()) {
-    LIEF_ERR("Wrong index ({:d})", segment_idx);
-    return;
+    LIEF_ERR("Wrong index: {:d}", segment_idx);
+    return make_error_code(lief_errors::corrupted);
   }
   SegmentCommand& segment = segments[segment_idx];
   // Address to bind
@@ -1586,49 +1994,69 @@ void BinaryParser::do_bind(BINDING_CLASS cls,
 
   if (address > (segment.virtual_address() + segment.virtual_size())) {
     LIEF_ERR("Bad address: 0x{:x}", address);
-    return;
+    return make_error_code(lief_errors::corrupted);
   }
 
 
   // Create a BindingInfo object
-  std::unique_ptr<BindingInfo> binding_info{
-    new BindingInfo{cls, static_cast<BIND_TYPES>(type),
-                    address, addend, ord,
-                    is_weak, is_non_weak_definition, offset}};
+  auto binding_info = std::make_unique<BindingInfo>(
+      cls, static_cast<BIND_TYPES>(type), address, addend, ord, is_weak,
+      is_non_weak_definition, offset);
+
   binding_info->segment_ = &segment;
 
 
-  if (0 < ord and static_cast<size_t>(ord) <= binding_libs_.size()) {
+  if (0 < ord && static_cast<size_t>(ord) <= binding_libs_.size()) {
     binding_info->library_ = binding_libs_[ord - 1];
   }
 
   Symbol* symbol = nullptr;
-  auto search = this->memoized_symbols_.find(symbol_name);
-  if (search != this->memoized_symbols_.end()) {
+  auto search = memoized_symbols_.find(symbol_name);
+  if (search != memoized_symbols_.end()) {
     symbol = search->second;
   } else {
-    symbol = this->binary_->get_symbol(symbol_name);
+    symbol = binary_->get_symbol(symbol_name);
   }
   if (symbol != nullptr) {
     binding_info->symbol_ = symbol;
     symbol->binding_info_ = binding_info.get();
   } else {
-    LIEF_ERR("New symbol found: {}", symbol_name);
+    LIEF_INFO("New symbol discovered: {}", symbol_name);
+    auto symbol = std::make_unique<Symbol>();
+    symbol->origin_            = SYMBOL_ORIGINS::SYM_ORIGIN_DYLD_BIND;
+    symbol->type_              = 0;
+    symbol->numberof_sections_ = 0;
+    symbol->description_       = 0;
+    symbol->name(symbol_name);
+
+    binding_info->symbol_ = symbol.get();
+    symbol->binding_info_ = binding_info.get();
+    binary_->symbols_.push_back(std::move(symbol));
   }
 
-
-  this->binary_->dyld_info().binding_info_.push_back(binding_info.release());
+  DyldInfo* dyld_info = binary_->dyld_info();
+  if (dyld_info == nullptr) {
+    LIEF_ERR("Missing DyldInfo in the main binary");
+    return make_error_code(lief_errors::not_found);
+  }
+  dyld_info->binding_info_.push_back(std::move(binding_info));
   LIEF_DEBUG("{} {} - {}", to_string(cls), segment.name(), symbol_name);
+  return ok();
 }
 
 template<class MACHO_T>
-void BinaryParser::do_rebase(uint8_t type, uint8_t segment_idx, uint64_t segment_offset,
-                             const it_segments& segments) {
+ok_error_t BinaryParser::do_rebase(uint8_t type, uint8_t segment_idx, uint64_t segment_offset,
+                                   const it_opaque_segments segments_ptr) {
+  static constexpr uint8_t BYTE_BIT = std::numeric_limits<uint8_t>::digits;
+  static_assert(BYTE_BIT == 8, "The number of bits in a byte is not 8");
+
+  const auto& segments = *static_cast<const Binary::it_segments*>(segments_ptr);
+
   using pint_t = typename MACHO_T::uint;
 
   if (segment_idx >= segments.size()) {
     LIEF_ERR("Wrong index ({:d})", segment_idx);
-    return;
+    return make_error_code(lief_errors::corrupted);
   }
 
   SegmentCommand& segment = segments[segment_idx];
@@ -1636,40 +2064,33 @@ void BinaryParser::do_rebase(uint8_t type, uint8_t segment_idx, uint64_t segment
 
   if (address > (segment.virtual_address() + segment.virtual_size())) {
     LIEF_ERR("Bad rebase address: 0x{:x}", address);
-    return;
+    return make_error_code(lief_errors::corrupted);
   }
 
-  // Check if a relocation already exists:
-  std::unique_ptr<RelocationDyld> new_relocation{new RelocationDyld{address, type}};
-  auto result = segment.relocations_.emplace(new_relocation.get());
-  Relocation* reloc = *result.first;
+  auto reloc = std::make_unique<RelocationDyld>(address, type);
 
   // result.second is true if the insertion succeed
-  if (result.second) {
-    new_relocation.release();
-  } else {
-    delete new_relocation.release();
-  }
-  reloc->architecture_ = this->binary_->header().cpu_type();
+  reloc->architecture_ = binary_->header().cpu_type();
 
   // Tie section and segment
   reloc->segment_ = &segment;
-  Section* section = this->binary_->section_from_virtual_address(address);
+  Section* section = binary_->section_from_virtual_address(address);
   if (section == nullptr) {
-    throw not_found("Unable to find section");
+    LIEF_ERR("Can't find the section associated with the virtual address 0x{:x}");
+    return make_error_code(lief_errors::not_found);
   }
   reloc->section_ = section;
 
   // Tie symbol
-  const auto it_symbol = this->memoized_symbols_by_address_.find(address);
-  if (it_symbol != this->memoized_symbols_by_address_.end()) {
+  const auto it_symbol = memoized_symbols_by_address_.find(address);
+  if (it_symbol != memoized_symbols_by_address_.end()) {
     reloc->symbol_ = it_symbol->second;
   }
 
   switch (static_cast<REBASE_TYPES>(type)) {
     case REBASE_TYPES::REBASE_TYPE_POINTER:
       {
-        reloc->size_ = sizeof(pint_t) * 8;
+        reloc->size_ = sizeof(pint_t) * BYTE_BIT;
         break;
       }
 
@@ -1677,12 +2098,13 @@ void BinaryParser::do_rebase(uint8_t type, uint8_t segment_idx, uint64_t segment
     case REBASE_TYPES::REBASE_TYPE_TEXT_ABSOLUTE32:
     case REBASE_TYPES::REBASE_TYPE_TEXT_PCREL32:
       {
-        reloc->size_ = sizeof(uint32_t) * 8;
+        reloc->size_ = sizeof(uint32_t) * BYTE_BIT;
         break;
       }
+
     case REBASE_TYPES::REBASE_TYPE_THREADED:
       {
-        reloc->size_ = sizeof(pint_t) * 8;
+        reloc->size_ = sizeof(pint_t) * BYTE_BIT;
         break;
       }
 
@@ -1691,6 +2113,13 @@ void BinaryParser::do_rebase(uint8_t type, uint8_t segment_idx, uint64_t segment
         LIEF_ERR("Unsuported relocation type: 0x{:x}", type);
       }
   }
+  // Check if a relocation already exists:
+  if (dyld_reloc_addrs_.insert(address).second) {
+    segment.relocations_.push_back(std::move(reloc));
+  } else {
+    LIEF_DEBUG("[!] Duplicated symbol address in the dyld rebase: 0x{:x}", address);
+  }
+  return ok();
 }
 
 

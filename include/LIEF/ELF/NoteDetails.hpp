@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,28 +44,28 @@ class LIEF_API NoteDetails : public Object {
   NoteDetails(Note& note);
 
   public:
-  virtual ~NoteDetails(void);
+  virtual ~NoteDetails();
 
-  virtual NoteDetails* clone(void) const;
+  virtual NoteDetails* clone() const;
 
-  const description_t& description(void) const;
+  const description_t& description() const;
 
   virtual void dump(std::ostream& os) const;
 
   bool operator==(const NoteDetails& rhs) const;
   bool operator!=(const NoteDetails& rhs) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const NoteDetails& note);
 
   protected:
-  virtual void parse(void);
-  virtual void build(void);
+  virtual void parse();
+  virtual void build();
 
-  description_t& description(void);
-  Binary* binary(void);
-  const Binary* binary(void) const;
+  description_t& description();
+  Binary* binary();
+  const Binary* binary() const;
 
   private:
   Note* note_{nullptr};

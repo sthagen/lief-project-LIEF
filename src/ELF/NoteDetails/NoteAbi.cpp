@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ NoteAbi NoteAbi::make(Note& note) {
   return abi;
 }
 
-NoteAbi* NoteAbi::clone(void) const {
+NoteAbi* NoteAbi::clone() const {
   return new NoteAbi(*this);
 }
 
@@ -46,30 +46,30 @@ NoteAbi::NoteAbi(Note& note) :
   abi_{NOTE_ABIS::ELF_NOTE_UNKNOWN}
 {}
 
-NoteAbi::version_t NoteAbi::version(void) const {
-  return this->version_;
+NoteAbi::version_t NoteAbi::version() const {
+  return version_;
 }
 
-NOTE_ABIS NoteAbi::abi(void) const {
-  return this->abi_;
+NOTE_ABIS NoteAbi::abi() const {
+  return abi_;
 }
 
-void NoteAbi::parse(void) {
-  const description_t& description = this->description();
+void NoteAbi::parse() {
+  const description_t& desc = description();
 
   // Parse ABI
-  if (description.size() < (abi_offset + abi_size)) {
+  if (desc.size() < (abi_offset + abi_size)) {
     return;
   }
-  this->abi_ = static_cast<NOTE_ABIS>(*reinterpret_cast<const uint32_t*>(description.data()));
+  abi_ = static_cast<NOTE_ABIS>(*reinterpret_cast<const uint32_t*>(desc.data()));
 
   // Parse Version
-  if (description.size() < (version_offset + version_size)) {
+  if (desc.size() < (version_offset + version_size)) {
     return;
   }
 
-  const uint32_t* version = reinterpret_cast<const uint32_t*>(description.data() + version_offset);
-  this->version_ = {{version[0], version[1], version[2]}};
+  const auto* version = reinterpret_cast<const uint32_t*>(desc.data() + version_offset);
+  version_ = {{version[0], version[1], version[2]}};
 }
 
 
@@ -79,18 +79,21 @@ void NoteAbi::accept(Visitor& visitor) const {
 
 
 bool NoteAbi::operator==(const NoteAbi& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool NoteAbi::operator!=(const NoteAbi& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 void NoteAbi::dump(std::ostream& os) const {
     version_t version = this->version();
-    std::string version_str = "";
+    std::string version_str;
     // Major
     version_str += std::to_string(std::get<0>(version));
     version_str += ".";
@@ -102,7 +105,7 @@ void NoteAbi::dump(std::ostream& os) const {
     // Patch
     version_str += std::to_string(std::get<2>(version));
 
-    os << std::setw(33) << std::setfill(' ') << "ABI:"     << to_string(this->abi()) << std::endl;
+    os << std::setw(33) << std::setfill(' ') << "ABI:"     << to_string(abi()) << std::endl;
     os << std::setw(33) << std::setfill(' ') << "Version:" << version_str           << std::endl;
 }
 
@@ -111,7 +114,7 @@ std::ostream& operator<<(std::ostream& os, const NoteAbi& note) {
   return os;
 }
 
-NoteAbi::~NoteAbi(void) = default;
+NoteAbi::~NoteAbi() = default;
 
 } // namespace ELF
 } // namespace LIEF

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "PE/Structures.hpp"
+#include "LIEF/PE/LoadConfigurations/LoadConfigurationV2.hpp"
+
 namespace LIEF {
 namespace PE {
 
-
 template<class T>
-LoadConfigurationV2::LoadConfigurationV2(const load_configuration_v2<T>* header) :
-  LoadConfigurationV1{reinterpret_cast<const load_configuration_v1<T>*>(header)},
-  code_integrity_{&header->CodeIntegrity}
+LoadConfigurationV2::LoadConfigurationV2(const details::load_configuration_v2<T>& header) :
+  LoadConfigurationV1{reinterpret_cast<const details::load_configuration_v1<T>&>(header)},
+  code_integrity_{header.CodeIntegrity}
 {}
 
 

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,25 +36,28 @@ using setter_t = void (EncryptionInfo::*)(T);
 template<>
 void create<EncryptionInfo>(py::module& m) {
 
-  py::class_<EncryptionInfo, LoadCommand>(m, "EncryptionInfo")
+  py::class_<EncryptionInfo, LoadCommand>(m, "EncryptionInfo",
+      R"delim(
+      Class that represents the LC_ENCRYPTION_INFO / LC_ENCRYPTION_INFO_64 commands
+
+      The encryption info is usually present in Mach-O executables that
+      target iOS to encrypt some sections of the binary
+      )delim")
 
     .def_property("crypt_offset",
         static_cast<getter_t<uint32_t>>(&EncryptionInfo::crypt_offset),
         static_cast<setter_t<uint32_t>>(&EncryptionInfo::crypt_offset),
-        "File offset of encrypted range",
-        py::return_value_policy::reference_internal)
+        "File offset of encrypted range")
 
     .def_property("crypt_size",
         static_cast<getter_t<uint32_t>>(&EncryptionInfo::crypt_size),
         static_cast<setter_t<uint32_t>>(&EncryptionInfo::crypt_size),
-        "File size of encrypted range",
-        py::return_value_policy::reference_internal)
+        "File size of encrypted range")
 
     .def_property("crypt_id",
         static_cast<getter_t<uint32_t>>(&EncryptionInfo::crypt_id),
         static_cast<setter_t<uint32_t>>(&EncryptionInfo::crypt_id),
-        "Which enryption system, 0 means not-encrypted yet",
-        py::return_value_policy::reference_internal)
+        "The encryption system. 0 means no encrypted")
 
 
 

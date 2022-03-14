@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,21 +19,21 @@
 #include <LIEF/LIEF.hpp>
 
 int main(int argc, char **argv) {
-  std::cout << "Abstract Reader" << std::endl;
+  std::cout << "Abstract Reader" << '\n';
   if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <binary>" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " <binary>" << '\n';
     return -1;
   }
 
-  std::cout << "Parsing with DEBUG level" << std::endl;
-  std::cout << "========================" << std::endl;
+  std::cout << "Parsing with DEBUG level" << '\n';
+  std::cout << "========================" << '\n';
 
   LIEF::logging::set_level(LIEF::logging::LOGGING_LEVEL::LOG_DEBUG);
-  std::unique_ptr<const LIEF::Binary> binary_global{LIEF::Parser::parse(argv[1])};
+  std::unique_ptr<const LIEF::Binary> binary_global = LIEF::Parser::parse(argv[1]);
 
   // Disable logger
   LIEF::logging::disable();
-  std::unique_ptr<const LIEF::Binary> binary_debug{LIEF::Parser::parse(argv[1])};
+  std::unique_ptr<const LIEF::Binary> binary_debug = LIEF::Parser::parse(argv[1]);
 
   return 0;
 }

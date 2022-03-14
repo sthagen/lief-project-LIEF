@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 namespace LIEF {
 namespace MachO {
 void init_c_commands(Macho_Binary_t* c_binary, Binary* binary) {
-  it_commands commands = binary->commands();
+  Binary::it_commands commands = binary->commands();
 
   c_binary->commands = static_cast<Macho_Command_t**>(
       malloc((commands.size() + 1) * sizeof(Macho_Command_t**)));
@@ -28,7 +28,7 @@ void init_c_commands(Macho_Binary_t* c_binary, Binary* binary) {
 
     c_binary->commands[i] = static_cast<Macho_Command_t*>(malloc(sizeof(Macho_Command_t)));
     const std::vector<uint8_t>& cmd_content = cmd.data();
-    uint8_t* content = static_cast<uint8_t*>(malloc(cmd_content.size() * sizeof(uint8_t)));
+    auto* content = static_cast<uint8_t*>(malloc(cmd_content.size() * sizeof(uint8_t)));
     std::copy(
         std::begin(cmd_content),
         std::end(cmd_content),

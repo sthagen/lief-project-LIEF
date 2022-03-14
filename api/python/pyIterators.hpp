@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,22 +17,13 @@
 #define PY_LIEF_ITERATORS_H_
 #include <pybind11/pybind11.h>
 
-
 #include "LIEF/LIEF.hpp"
-#include "LIEF/Abstract/type_traits.hpp"
-#include "LIEF/ELF/type_traits.hpp"
-#include "LIEF/PE/type_traits.hpp"
-#include "LIEF/MachO/type_traits.hpp"
-
 
 namespace py = pybind11;
 
-
-void init_LIEF_iterators(py::module&);
-
 template<class T>
-void init_ref_iterator(py::module& m, const std::string& it_name = typeid(T).name()) {
-  py::class_<T>(m, it_name.c_str())
+void init_ref_iterator(py::handle& m, const char* it_name) {
+  py::class_<T>(m, it_name)
     .def("__getitem__",
         [](T& v, size_t i) -> typename T::reference {
             if (i >= v.size())
@@ -42,14 +33,14 @@ void init_ref_iterator(py::module& m, const std::string& it_name = typeid(T).nam
         py::return_value_policy::reference)
 
     .def("__len__",
-        [](T& v) {
+        [] (T& v) {
           return  v.size();
         })
 
     .def("__iter__",
-        [](T& v) -> T {
-          return std::begin(v);
-        }, py::return_value_policy::reference_internal)
+        [] (const T& v) {
+          return py::make_iterator(std::begin(v), std::end(v));
+        }, py::keep_alive<0, 1>())
 
     .def("__next__",
         [] (T& v) -> typename T::reference {

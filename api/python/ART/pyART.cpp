@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ void init_python_module(py::module& m) {
   py::module LIEF_ART_module = m.def_submodule("ART", "Python API for ART format");
 
   init_enums(LIEF_ART_module);
-  init_iterators(LIEF_ART_module);
   init_objects(LIEF_ART_module);
   init_utils(LIEF_ART_module);
 }

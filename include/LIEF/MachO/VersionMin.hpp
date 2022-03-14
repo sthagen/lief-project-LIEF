@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,42 +25,48 @@
 
 namespace LIEF {
 namespace MachO {
-struct version_min_command;
 
+namespace details {
+struct version_min_command;
+}
+
+//! Class that wraps the LC_VERSION_MIN_MACOSX, LC_VERSION_MIN_IPHONEOS, ... commands.
 class LIEF_API VersionMin : public LoadCommand {
 
   public:
-  //! @brief Version is an array of **3** integers
+  //! Version is an array of **3** integers
   using version_t = std::array<uint32_t, 3>;
 
-  VersionMin(void);
-  VersionMin(const version_min_command *version_cmd);
+  VersionMin();
+  VersionMin(const details::version_min_command& version_cmd);
 
   VersionMin& operator=(const VersionMin& copy);
   VersionMin(const VersionMin& copy);
 
-  virtual VersionMin* clone(void) const override;
+  VersionMin* clone() const override;
 
-  virtual ~VersionMin(void);
+  virtual ~VersionMin();
 
-  //! @brief Return the version as an array
-  const VersionMin::version_t& version(void) const;
-  void version(const VersionMin::version_t& version);
+  //! Return the version as an array
+  const version_t& version() const;
+  void version(const version_t& version);
 
-  //! @brief Return the sdk as an array
-  const VersionMin::version_t& sdk(void) const;
-  void sdk(const VersionMin::version_t& sdk);
+  //! Return the sdk version as an array
+  const version_t& sdk() const;
+  void sdk(const version_t& sdk);
 
   bool operator==(const VersionMin& rhs) const;
   bool operator!=(const VersionMin& rhs) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
+
+  static bool classof(const LoadCommand* cmd);
 
   private:
-  VersionMin::version_t version_;
-  VersionMin::version_t sdk_;
+  version_t version_;
+  version_t sdk_;
 };
 
 }

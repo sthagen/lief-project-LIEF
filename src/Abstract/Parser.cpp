@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,11 +43,8 @@
 #include "LIEF/exception.hpp"
 
 namespace LIEF {
-Parser::~Parser(void) = default;
-Parser::Parser(void) :
-  binary_size_{0},
-  binary_name_{""}
-{}
+Parser::~Parser() = default;
+Parser::Parser() = default;
 
 std::unique_ptr<Binary> Parser::parse(const std::string& filename) {
 
@@ -73,13 +70,11 @@ std::unique_ptr<Binary> Parser::parse(const std::string& filename) {
 #if defined(LIEF_MACHO_SUPPORT)
   if (MachO::is_macho(filename)) {
     // For fat binary we take the last one...
-    MachO::FatBinary* fat = MachO::Parser::parse(filename).release();
-    MachO::Binary* binary_return = nullptr;
-    if (fat) {
-      binary_return = fat->pop_back();
-      delete fat;
+    std::unique_ptr<MachO::FatBinary> fat = MachO::Parser::parse(filename);
+    if (fat != nullptr) {
+      return fat->pop_back();
     }
-    return std::unique_ptr<Binary>{binary_return};
+    return nullptr;
   }
 #endif
 
@@ -112,14 +107,11 @@ std::unique_ptr<Binary> Parser::parse(const std::vector<uint8_t>& raw, const std
 #if defined(LIEF_MACHO_SUPPORT)
   if (MachO::is_macho(raw)) {
     // For fat binary we take the last one...
-    MachO::FatBinary* fat = MachO::Parser::parse(raw, name).release();
-    MachO::Binary* binary_return = nullptr;
-
-    if (fat) {
-      binary_return = fat->pop_back();
-      delete fat;
+    std::unique_ptr<MachO::FatBinary> fat = MachO::Parser::parse(raw, name);
+    if (fat != nullptr) {
+      return fat->pop_back();
     }
-    return std::unique_ptr<Binary>{binary_return};
+    return nullptr;
   }
 #endif
 
@@ -129,19 +121,18 @@ std::unique_ptr<Binary> Parser::parse(const std::vector<uint8_t>& raw, const std
 }
 
 Parser::Parser(const std::string& filename) :
-  binary_size_{0},
   binary_name_{filename}
 {
   std::ifstream file(filename, std::ios::in | std::ios::binary);
 
-  if (file) {
-    file.unsetf(std::ios::skipws);
-    file.seekg(0, std::ios::end);
-    this->binary_size_ = static_cast<uint64_t>(file.tellg());
-    file.seekg(0, std::ios::beg);
-  } else {
-    throw LIEF::bad_file("Unable to open " + filename);
+  if (!file) {
+    LIEF_ERR("Can't open '{}'", filename);
+    return;
   }
+  file.unsetf(std::ios::skipws);
+  file.seekg(0, std::ios::end);
+  binary_size_ = static_cast<uint64_t>(file.tellg());
+  file.seekg(0, std::ios::beg);
 }
 
 }

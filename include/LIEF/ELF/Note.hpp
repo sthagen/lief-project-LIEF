@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ class Builder;
 class Binary;
 class NoteDetails;
 
+//! Class which represents an ELF note
 class LIEF_API Note : public Object {
 
   friend class Parser;
@@ -46,47 +47,48 @@ class LIEF_API Note : public Object {
 
   public:
   Note();
-  Note(const std::string& name, uint32_t type, const description_t& description, Binary* binary=nullptr);
+  Note(std::string  name, uint32_t type, description_t description, Binary* binary=nullptr);
   Note(const std::string& name, NOTE_TYPES type, const description_t& description, Binary* binary=nullptr);
   Note(const std::string& name, NOTE_TYPES_CORE type, const description_t& description, Binary* binary=nullptr);
 
   Note& operator=(Note copy);
   Note(const Note& copy);
 
-  virtual ~Note(void);
+  virtual ~Note();
 
-  //! @brief Return the *name* of the note
-  const std::string& name(void) const;
+  //! Return the *name* of the note
+  const std::string& name() const;
 
-  //! @brief Return the type of the note. It could be one of the NOTE_TYPES values
-  NOTE_TYPES type(void) const;
+  //! Return the type of the note. It could be one of the NOTE_TYPES values
+  NOTE_TYPES type() const;
 
-  //! @brief Return the type of the note for core ELF (ET_CORE). It could be one of the NOTE_TYPES_CORE values
-  NOTE_TYPES_CORE type_core(void) const;
+  //! Return the type of the note for core ELF (ET_CORE).
+  //! It could be one of the NOTE_TYPES_CORE values
+  NOTE_TYPES_CORE type_core() const;
 
-  //! @brief Return the description associated with the note
-  const description_t& description(void) const;
+  //! Return the description associated with the note
+  const description_t& description() const;
 
-  description_t& description(void);
+  description_t& description();
 
   //! True if the current note is associated with a core dump
-  bool is_core(void) const;
+  bool is_core() const;
 
   //! True if the current note is specific to Android.
   //!
-  //! If true, ``details()`` returns a reference the LIEF::ELF::AndroidNote object
-  bool is_android(void) const;
+  //! If true, ``details()`` returns a reference to the LIEF::ELF::AndroidNote object
+  bool is_android() const;
 
-  const NoteDetails& details(void) const;
-  NoteDetails& details(void);
+  const NoteDetails& details() const;
+  NoteDetails& details();
 
   void name(const std::string& name);
   void type(NOTE_TYPES type);
   void type_core(NOTE_TYPES_CORE type);
   void description(const description_t& description);
 
-  //! @brief Sizeof the **raw** note
-  uint64_t size(void) const;
+  //! Size of the **raw** note
+  uint64_t size() const;
 
   virtual void dump(std::ostream& os) const;
 
@@ -95,7 +97,7 @@ class LIEF_API Note : public Object {
 
   void swap(Note& other);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const Note& note);
 

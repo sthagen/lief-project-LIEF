@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +25,13 @@ PKCS9SigningTime::PKCS9SigningTime() :
 PKCS9SigningTime::PKCS9SigningTime(const PKCS9SigningTime&) = default;
 PKCS9SigningTime& PKCS9SigningTime::operator=(const PKCS9SigningTime&) = default;
 
-std::unique_ptr<Attribute> PKCS9SigningTime::clone(void) const {
+std::unique_ptr<Attribute> PKCS9SigningTime::clone() const {
   return std::unique_ptr<Attribute>(new PKCS9SigningTime{*this});
 }
 
 PKCS9SigningTime::PKCS9SigningTime(time_t time) :
   Attribute(SIG_ATTRIBUTE_TYPES::PKCS9_SIGNING_TIME),
-  time_{std::move(time)}
+  time_{time}
 {}
 
 void PKCS9SigningTime::accept(Visitor& visitor) const {

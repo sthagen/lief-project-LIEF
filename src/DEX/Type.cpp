@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@
 namespace LIEF {
 namespace DEX {
 
-Type::Type(void) = default;
+Type::Type() = default;
 
 Type::Type(const std::string& mangled) {
-  this->parse(mangled);
+  parse(mangled);
 }
 
 
@@ -32,26 +32,26 @@ Type::Type(const Type& other) :
   Object{other},
   type_{other.type_}
 {
-  switch (this->type()) {
+  switch (type()) {
     case TYPES::ARRAY:
       {
-        this->array_ = new array_t{};
+        array_ = new array_t{};
         std::copy(
             std::begin(other.array()),
             std::end(other.array()),
-            std::back_inserter(*this->array_));
+            std::back_inserter(*array_));
         break;
       }
 
     case TYPES::CLASS:
       {
-        this->cls_ = other.cls_;
+        cls_ = other.cls_;
         break;
       }
 
     case TYPES::PRIMITIVE:
       {
-        this->basic_ = new PRIMITIVES{other.primitive()};
+        basic_ = new PRIMITIVES{other.primitive()};
         break;
       }
 
@@ -60,36 +60,36 @@ Type::Type(const Type& other) :
   }
 }
 
-Type::TYPES Type::type(void) const {
-  return this->type_;
+Type::TYPES Type::type() const {
+  return type_;
 }
 
-const Class& Type::cls(void) const {
-  return *this->cls_;
+const Class& Type::cls() const {
+  return *cls_;
 }
 
-const Type::array_t& Type::array(void) const {
-  return *this->array_;
+const Type::array_t& Type::array() const {
+  return *array_;
 }
 
-const Type::PRIMITIVES& Type::primitive(void) const {
-  return *this->basic_;
+const Type::PRIMITIVES& Type::primitive() const {
+  return *basic_;
 }
 
 
-Class& Type::cls(void) {
+Class& Type::cls() {
   return const_cast<Class&>(static_cast<const Type*>(this)->cls());
 }
 
-Type::array_t& Type::array(void) {
+Type::array_t& Type::array() {
   return const_cast<Type::array_t&>(static_cast<const Type*>(this)->array());
 }
 
-Type::PRIMITIVES& Type::primitive(void) {
+Type::PRIMITIVES& Type::primitive() {
   return const_cast<Type::PRIMITIVES&>(static_cast<const Type*>(this)->primitive());
 }
 
-const Type& Type::underlying_array_type(void) const {
+const Type& Type::underlying_array_type() const {
   const Type* underlying_type = this;
   while (underlying_type->type() == TYPES::ARRAY) {
     underlying_type = &underlying_type->array().back();
@@ -98,7 +98,7 @@ const Type& Type::underlying_array_type(void) const {
 }
 
 
-Type& Type::underlying_array_type(void) {
+Type& Type::underlying_array_type() {
   return const_cast<Type&>((static_cast<const Type*>(this)->underlying_array_type()));
 }
 
@@ -108,80 +108,80 @@ void Type::parse(const std::string& type) {
   switch(t) {
     case 'V':
       {
-        this->type_ = Type::TYPES::PRIMITIVE;
-        this->basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::VOID_T};
+        type_ = Type::TYPES::PRIMITIVE;
+        basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::VOID_T};
         break;
       }
 
     case 'Z':
       {
-        this->type_ = Type::TYPES::PRIMITIVE;
-        this->basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::BOOLEAN};
+        type_ = Type::TYPES::PRIMITIVE;
+        basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::BOOLEAN};
         break;
       }
 
     case 'B':
       {
-        this->type_ = Type::TYPES::PRIMITIVE;
-        this->basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::BYTE};
+        type_ = Type::TYPES::PRIMITIVE;
+        basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::BYTE};
         break;
       }
 
     case 'S':
       {
-        this->type_ = Type::TYPES::PRIMITIVE;
-        this->basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::SHORT};
+        type_ = Type::TYPES::PRIMITIVE;
+        basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::SHORT};
         break;
       }
 
     case 'C':
       {
-        this->type_ = Type::TYPES::PRIMITIVE;
-        this->basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::CHAR};
+        type_ = Type::TYPES::PRIMITIVE;
+        basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::CHAR};
         break;
       }
 
     case 'I':
       {
-        this->type_ = Type::TYPES::PRIMITIVE;
-        this->basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::INT};
+        type_ = Type::TYPES::PRIMITIVE;
+        basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::INT};
         break;
       }
 
     case 'J':
       {
-        this->type_ = Type::TYPES::PRIMITIVE;
-        this->basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::LONG};
+        type_ = Type::TYPES::PRIMITIVE;
+        basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::LONG};
         break;
       }
 
     case 'F':
       {
-        this->type_ = Type::TYPES::PRIMITIVE;
-        this->basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::FLOAT};
+        type_ = Type::TYPES::PRIMITIVE;
+        basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::FLOAT};
         break;
       }
 
     case 'D':
       {
-        this->type_ = Type::TYPES::PRIMITIVE;
-        this->basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::DOUBLE};
+        type_ = Type::TYPES::PRIMITIVE;
+        basic_ = new Type::PRIMITIVES{Type::PRIMITIVES::DOUBLE};
         break;
       }
 
     case 'L': //CLASS
       {
-        this->type_ = Type::TYPES::CLASS;
+        type_ = Type::TYPES::CLASS;
         break;
       }
 
     case '[': //ARRAY
       {
-        if (this->array_ == nullptr) {
-          this->array_ = new array_t{};
+        if (array_ == nullptr) {
+          array_ = new array_t{};
         }
-        this->type_ = Type::TYPES::ARRAY;
-        this->array_->emplace_back(type.substr(1));
+        type_ = Type::TYPES::ARRAY;
+        array_->emplace_back(type.substr(1));
         break;
       }
 
@@ -192,8 +192,8 @@ void Type::parse(const std::string& type) {
   }
 }
 
-size_t Type::dim(void) const {
-  if (this->type() != TYPES::ARRAY) {
+size_t Type::dim() const {
+  if (type() != TYPES::ARRAY) {
     return 0;
   }
 
@@ -211,13 +211,16 @@ void Type::accept(Visitor& visitor) const {
 }
 
 bool Type::operator==(const Type& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool Type::operator!=(const Type& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const Type& type) {
@@ -306,17 +309,17 @@ std::string Type::pretty_name(PRIMITIVES p) {
   }
 }
 
-Type::~Type(void) {
-  switch (this->type()) {
+Type::~Type() {
+  switch (type()) {
     case Type::TYPES::ARRAY:
       {
-        delete this->array_;
+        delete array_;
         break;
       }
 
     case Type::TYPES::PRIMITIVE:
       {
-        delete this->basic_;
+        delete basic_;
         break;
       }
 

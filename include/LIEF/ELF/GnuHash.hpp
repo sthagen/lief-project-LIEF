@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,9 @@ class Parser;
 class Builder;
 class Binary;
 
+//! Class which provides a view over the GNU Hash implementation.
+//! Most of the fields are read-only since the values
+//! are re-computed by the LIEF::ELF::Builder.
 class LIEF_API GnuHash : public Object {
 
   friend class Parser;
@@ -36,55 +39,57 @@ class LIEF_API GnuHash : public Object {
   friend class Binary;
 
   public:
-  GnuHash(void);
-  GnuHash(uint32_t symbol_idx,
-      uint32_t shift2,
-      const std::vector<uint64_t>& bloom_filters,
-      const std::vector<uint32_t>& buckets,
-      const std::vector<uint32_t>& hash_values = {});
+  GnuHash();
+  GnuHash(uint32_t symbol_idx, uint32_t shift2,
+          std::vector<uint64_t> bloom_filters, std::vector<uint32_t> buckets,
+          std::vector<uint32_t> hash_values = {});
 
 
   GnuHash& operator=(const GnuHash& copy);
   GnuHash(const GnuHash& copy);
-  virtual ~GnuHash(void);
 
-  //! @brief Return the number of buckets
+  GnuHash(GnuHash&&);
+  GnuHash& operator=(GnuHash&&);
+
+  ~GnuHash() override;
+
+  //! Return the number of buckets
   //! @see GnuHash::buckets
-  uint32_t nb_buckets(void) const;
+  uint32_t nb_buckets() const;
 
-  //! @brief Index of the first symbol in the dynamic
+  //! Index of the first symbol in the dynamic
   //! symbols table which accessible with the hash table
-  uint32_t symbol_index(void) const;
+  uint32_t symbol_index() const;
 
-  //! @brief Shift count used in the bloom filter
-  uint32_t shift2(void) const;
+  //! Shift count used in the bloom filter
+  uint32_t shift2() const;
 
-  //! @brief Number of bloom filters used.
+  //! Number of bloom filters used.
   //! It must be a power of 2
-  uint32_t maskwords(void) const;
+  uint32_t maskwords() const;
 
-  //! @brief Bloom filters
-  const std::vector<uint64_t>& bloom_filters(void) const;
+  //! Bloom filters
+  const std::vector<uint64_t>& bloom_filters() const;
 
-  //! @brief Hash buckets
-  const std::vector<uint32_t>& buckets(void) const;
+  //! Hash buckets
+  const std::vector<uint32_t>& buckets() const;
 
-  //! @brief Hash values
-  const std::vector<uint32_t>& hash_values(void) const;
+  //! Hash values
+  const std::vector<uint32_t>& hash_values() const;
 
-  //! @brief Check if the given hash pass the bloom filter
+  //! Check if the given hash passes the bloom filter
   bool check_bloom_filter(uint32_t hash) const;
 
-  //! @brief Check if the given hash pass the bucket filter
+  //! Check if the given hash passes the bucket filter
   bool check_bucket(uint32_t hash) const;
 
-  //! @brief Check if the symbol *probably* exists. If
+  //! Check if the symbol *probably* exists. If
   //! the returned value is ``false`` you can assume at ``100%`` that
-  //! the symbol with the given name doesn't exists. If ``true`` you can't
+  //! the symbol with the given name doesn't exist. If ``true``, you can't
   //! do any assumption
   bool check(const std::string& symbol_name) const;
 
-  //! @brief Check if the symbol associated with the given *probably* exists. If
+  //! Check if the symbol associated with the given hash *probably* exists. If
   //! the returned value is ``false`` you can assume at ``100%`` that
   //! the symbol doesn't exists. If ``true`` you can't
   //! do any assumption
@@ -93,19 +98,19 @@ class LIEF_API GnuHash : public Object {
   bool operator==(const GnuHash& rhs) const;
   bool operator!=(const GnuHash& rhs) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const GnuHash& gnuhash);
 
   private:
-  uint32_t symbol_index_;
-  uint32_t shift2_;
+  uint32_t symbol_index_ = 0;
+  uint32_t shift2_       = 0;
 
   std::vector<uint64_t> bloom_filters_;
   std::vector<uint32_t> buckets_;
   std::vector<uint32_t> hash_values_;
 
-  size_t c_;
+  size_t c_ = 0;
 };
 
 

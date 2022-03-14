@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,39 +18,39 @@
 
 #include "LIEF/MachO/hash.hpp"
 
-#include "LIEF/MachO/Structures.hpp"
 #include "LIEF/MachO/SourceVersion.hpp"
+#include "MachO/Structures.hpp"
 
 namespace LIEF {
 namespace MachO {
 
-SourceVersion::SourceVersion(void) = default;
+SourceVersion::SourceVersion() = default;
 SourceVersion& SourceVersion::operator=(const SourceVersion&) = default;
 SourceVersion::SourceVersion(const SourceVersion&) = default;
-SourceVersion::~SourceVersion(void) = default;
+SourceVersion::~SourceVersion() = default;
 
-SourceVersion::SourceVersion(const source_version_command *version_cmd) :
-  LoadCommand::LoadCommand{static_cast<LOAD_COMMAND_TYPES>(version_cmd->cmd), version_cmd->cmdsize},
+SourceVersion::SourceVersion(const details::source_version_command& ver) :
+  LoadCommand::LoadCommand{static_cast<LOAD_COMMAND_TYPES>(ver.cmd), ver.cmdsize},
   version_{{
-    static_cast<uint32_t>((version_cmd->version >> 40) & 0xffffff),
-    static_cast<uint32_t>((version_cmd->version >> 30) & 0x3ff),
-    static_cast<uint32_t>((version_cmd->version >> 20) & 0x3ff),
-    static_cast<uint32_t>((version_cmd->version >> 10) & 0x3ff),
-    static_cast<uint32_t>((version_cmd->version >>  0) & 0x3ff)
+    static_cast<uint32_t>((ver.version >> 40) & 0xffffff),
+    static_cast<uint32_t>((ver.version >> 30) & 0x3ff),
+    static_cast<uint32_t>((ver.version >> 20) & 0x3ff),
+    static_cast<uint32_t>((ver.version >> 10) & 0x3ff),
+    static_cast<uint32_t>((ver.version >>  0) & 0x3ff)
   }}
 {}
 
-SourceVersion* SourceVersion::clone(void) const {
+SourceVersion* SourceVersion::clone() const {
   return new SourceVersion(*this);
 }
 
 
- const SourceVersion::version_t& SourceVersion::version(void) const {
-   return this->version_;
+ const SourceVersion::version_t& SourceVersion::version() const {
+   return version_;
  }
 
  void SourceVersion::version(const SourceVersion::version_t& version) {
-   this->version_ = version;
+   version_ = version;
  }
 
 void SourceVersion::accept(Visitor& visitor) const {
@@ -59,15 +59,23 @@ void SourceVersion::accept(Visitor& visitor) const {
 
 
 bool SourceVersion::operator==(const SourceVersion& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool SourceVersion::operator!=(const SourceVersion& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
+bool SourceVersion::classof(const LoadCommand* cmd) {
+  // This must be sync with BinaryParser.tcc
+  const LOAD_COMMAND_TYPES type = cmd->command();
+  return type == LOAD_COMMAND_TYPES::LC_SOURCE_VERSION;
+}
 
 std::ostream& SourceVersion::print(std::ostream& os) const {
   LoadCommand::print(os);

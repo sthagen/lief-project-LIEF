@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,12 @@ class Parser;
 class Builder;
 class Binary;
 
+//! Class which represents the SYSV hash for the symbols
+//! resolution.
+//!
+//! References:
+//! - http://www.linker-aliens.org/blogs/ali/entry/gnu_hash_elf_sections/
+//! - https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-48031.html
 class LIEF_API SysvHash : public Object {
 
   friend class Parser;
@@ -36,27 +42,34 @@ class LIEF_API SysvHash : public Object {
   friend class Binary;
 
   public:
-  SysvHash(void);
+  SysvHash();
   SysvHash& operator=(const SysvHash& copy);
   SysvHash(const SysvHash& copy);
-  virtual ~SysvHash(void);
+
+  SysvHash& operator=(SysvHash&&);
+  SysvHash(SysvHash&&);
+  ~SysvHash() override;
 
   //! @brief Return the number of buckets used
-  uint32_t nbucket(void) const;
+  uint32_t nbucket() const;
 
   //! @brief Return the number of chain used
-  uint32_t nchain(void) const;
+  uint32_t nchain() const;
 
   //! @brief Buckets values
-  const std::vector<uint32_t>& buckets(void) const;
+  const std::vector<uint32_t>& buckets() const;
 
   //! @brief Chains values
-  const std::vector<uint32_t>& chains(void) const;
+  const std::vector<uint32_t>& chains() const;
+
+  inline void nchain(uint32_t nb) {
+    chains_.resize(nb);
+  }
 
   bool operator==(const SysvHash& rhs) const;
   bool operator!=(const SysvHash& rhs) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const SysvHash& sysvhash);
 

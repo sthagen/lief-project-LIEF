@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,31 +41,31 @@ class LIEF_API CorePrPsInfo : public NoteDetails {
   public:
   static CorePrPsInfo make(Note& note);
 
-  virtual CorePrPsInfo* clone(void) const override;
+  CorePrPsInfo* clone() const override;
 
   //! Process file name
-  std::string file_name(void) const;
+  std::string file_name() const;
 
   //! Process flag
-  uint64_t flags(void) const;
+  uint64_t flags() const;
 
   //! Process user id
-  uint32_t uid(void) const;
+  uint32_t uid() const;
 
   //! Process group id
-  uint32_t gid(void) const;
+  uint32_t gid() const;
 
   //! Process ID
-  int32_t pid(void) const;
+  int32_t pid() const;
 
   //! Process parent ID
-  int32_t ppid(void) const;
+  int32_t ppid() const;
 
   //! Process session group ID
-  int32_t pgrp(void) const;
+  int32_t pgrp() const;
 
   //! Process session ID
-  int32_t sid(void) const;
+  int32_t sid() const;
 
   void file_name(const std::string& file_name);
   void flags(uint64_t);
@@ -79,23 +79,23 @@ class LIEF_API CorePrPsInfo : public NoteDetails {
   bool operator==(const CorePrPsInfo& rhs) const;
   bool operator!=(const CorePrPsInfo& rhs) const;
 
-  virtual void dump(std::ostream& os) const override;
+  void dump(std::ostream& os) const override;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual ~CorePrPsInfo(void);
+  virtual ~CorePrPsInfo();
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const CorePrPsInfo& note);
 
   protected:
   template <typename ELF_T>
-  LIEF_LOCAL void parse_(void);
+  LIEF_LOCAL void parse_();
 
   template <typename ELF_T>
-  LIEF_LOCAL void build_(void);
+  LIEF_LOCAL void build_();
 
-  virtual void parse(void) override;
-  virtual void build(void) override;
+  void parse() override;
+  void build() override;
 
   private:
   CorePrPsInfo(Note& note);

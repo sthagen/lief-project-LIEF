@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,13 +21,10 @@ namespace OAT {
 void init_python_module(py::module& m) {
   py::module LIEF_OAT_module = m.def_submodule("OAT", "Python API for OAT format");
 
-  init_opaque_types(LIEF_OAT_module);
   init_enums(LIEF_OAT_module);
-  init_iterators(LIEF_OAT_module);
   init_utils(LIEF_OAT_module);
 
   init_objects(LIEF_OAT_module);
-
 }
 
 

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,51 +19,47 @@
 #include <stdexcept>
 #include <vector>
 
-#include "LIEF/exception.hpp"
+#include "LIEF/BinaryStream/FileStream.hpp"
+#include "LIEF/BinaryStream/SpanStream.hpp"
 #include "logging.hpp"
 
 #include "LIEF/ELF/utils.hpp"
-#include "LIEF/ELF/Structures.hpp"
+#include "ELF/Structures.hpp"
 
 namespace LIEF {
 namespace ELF {
 
-bool is_elf(const std::string& file) {
-  std::ifstream binary(file, std::ios::in | std::ios::binary);
-  if (not binary) {
-    LIEF_ERR("Unable to open the file '{}'", file);
-    return false;
+inline bool is_elf(BinaryStream& stream) {
+  using magic_t = std::array<char, sizeof(details::ElfMagic)>;
+  stream.setpos(0);
+  if (auto res = stream.peek<magic_t>()) {
+    const auto magic = *res;
+    return std::equal(std::begin(magic), std::end(magic),
+                      std::begin(details::ElfMagic));
   }
-  char magic[sizeof(ElfMagic)];
+  return false;
+}
 
-  binary.seekg(0, std::ios::beg);
-  binary.read(magic, sizeof(magic));
-  return std::equal(std::begin(magic), std::end(magic), std::begin(ElfMagic));
+bool is_elf(const std::string& file) {
+  if (auto stream = FileStream::from_file(file)) {
+    return is_elf(*stream);
+  }
+  return false;
 }
 
 bool is_elf(const std::vector<uint8_t>& raw) {
-
-  char magic[sizeof(ElfMagic)];
-
-  if (raw.size() < sizeof(ElfMagic)) {
-    return false;
+  if (auto stream = SpanStream::from_vector(raw)) {
+    return is_elf(*stream);
   }
-
-
-  std::copy(
-    reinterpret_cast<const uint8_t*>(raw.data()),
-    reinterpret_cast<const uint8_t*>(raw.data()) + sizeof(ElfMagic),
-    magic);
-
-  return std::equal(std::begin(magic), std::end(magic), std::begin(ElfMagic));
+  return false;
 }
 
 //! SYSV hash function
 unsigned long hash32(const char* name) {
   unsigned long h = 0, g;
-  while (*name) {
+  while (*name != 0) {
     h = (h << 4) + *name++;
-    if ((g = h & 0xf0000000)) {
+    if ((g = h & 0xf0000000) != 0u) {
       h ^= g >> 24;
     }
     h &= ~g;
@@ -75,9 +71,9 @@ unsigned long hash32(const char* name) {
 //! https://blogs.oracle.com/ali/entry/gnu_hash_elf_sections
 unsigned long hash64(const char* name) {
   unsigned long h = 0, g;
-  while (*name) {
+  while (*name != 0) {
     h = (h << 4) + *name++;
-    if ((g = h & 0xf0000000)) {
+    if ((g = h & 0xf0000000) != 0u) {
       h ^= g >> 24;
     }
     h &= 0x0fffffff;

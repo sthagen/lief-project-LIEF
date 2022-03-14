@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,18 +39,18 @@ void create<Parser>(py::module& m) {
     py::return_value_policy::take_ownership);
 
   m.def("parse",
-    static_cast<std::unique_ptr<Binary> (*) (const std::vector<uint8_t>&, const std::string&)>(&Parser::parse),
+    static_cast<std::unique_ptr<Binary> (*) (std::vector<uint8_t>, const std::string&)>(&Parser::parse),
     "Parse the given raw data and return a " RST_CLASS_REF(lief.OAT.Binary) " object",
-    "raw"_a, py::arg("name") = "",
+    "raw"_a, "name"_a = "",
     py::return_value_policy::take_ownership);
 
 
   m.def("parse",
       [] (py::object byteio, const std::string& name) {
-        auto&& io = py::module::import("io");
-        auto&& RawIOBase = io.attr("RawIOBase");
-        auto&& BufferedIOBase = io.attr("BufferedIOBase");
-        auto&& TextIOBase = io.attr("TextIOBase");
+        const auto& io = py::module::import("io");
+        const auto& RawIOBase = io.attr("RawIOBase");
+        const auto& BufferedIOBase = io.attr("BufferedIOBase");
+        const auto& TextIOBase = io.attr("TextIOBase");
 
         py::object rawio;
 
@@ -78,8 +78,7 @@ void create<Parser>(py::module& m) {
 
         return LIEF::OAT::Parser::parse(std::move(raw), name);
       },
-      "io"_a,
-      "name"_a = "",
+      "io"_a, "name"_a = "",
       py::return_value_policy::take_ownership);
 }
 }

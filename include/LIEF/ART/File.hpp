@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,6 @@
 #include "LIEF/visibility.h"
 #include "LIEF/Object.hpp"
 
-#include "LIEF/DEX.hpp"
-
 namespace LIEF {
 namespace ART {
 class Parser;
@@ -35,20 +33,20 @@ class LIEF_API File : public Object {
   File& operator=(const File& copy) = delete;
   File(const File& copy)            = delete;
 
-  const Header& header(void) const;
-  Header& header(void);
+  const Header& header() const;
+  Header& header();
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const File& rhs) const;
   bool operator!=(const File& rhs) const;
 
-  virtual ~File(void);
+  ~File() override;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const File& art_file);
 
   private:
-  File(void);
+  File();
 
   Header header_;
 };

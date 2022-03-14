@@ -135,6 +135,9 @@ if (PYTHON_TESTS_ENABLED)
     ${PYTHON_EXECUTABLE}
     "${CMAKE_CURRENT_SOURCE_DIR}/hash_tests.py")
 
+  ADD_PYTHON_TEST(ELF_PYTHON_large_bss
+    ${PYTHON_EXECUTABLE}
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_bss.py")
 
   ADD_PYTHON_TEST(ELF_PYTHON_change_interpreter
     ${PYTHON_EXECUTABLE}
@@ -174,9 +177,9 @@ if (PYTHON_TESTS_ENABLED)
     ${PYTHON_EXECUTABLE}
     "${CMAKE_CURRENT_SOURCE_DIR}/test_466.py")
 
-  ADD_PYTHON_TEST(ELF_PYTHON_empty_gnu_hash
+   ADD_PYTHON_TEST(ELF_PYTHON_empty_gnu_hash
     ${PYTHON_EXECUTABLE}
-    "${CMAKE_CURRENT_SOURCE_DIR}/test_empty_gnu_hash.py")
+     "${CMAKE_CURRENT_SOURCE_DIR}/test_empty_gnu_hash.py")
 
 
   # Examples

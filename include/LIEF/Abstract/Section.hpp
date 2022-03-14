@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,52 +21,58 @@
 #include <iostream>
 
 #include "LIEF/types.hpp"
+#include "LIEF/span.hpp"
 #include "LIEF/Object.hpp"
 #include "LIEF/visibility.h"
 
 namespace LIEF {
+//! Class which represents an abstracted section
 class LIEF_API Section : public Object {
   public:
   static constexpr size_t npos = -1;
 
-  Section(void);
-  Section(const std::string& name);
+  Section();
+  Section(std::string name);
 
-  virtual ~Section(void);
+  virtual ~Section();
 
   Section& operator=(const Section&);
   Section(const Section&);
 
-  //! @brief section's name
-  virtual std::string name(void) const;
+  //! section's name
+  virtual std::string name() const;
 
-  //! @brief section's content
-  virtual std::vector<uint8_t> content(void) const;
+  //! Return the **complete** section's name which might
+  //! trailing (``0``) bytes
+  virtual const std::string& fullname() const;
 
-  //! @brief section's size (size in the binary)
+  //!  section's content
+  virtual span<const uint8_t> content() const;
+
+  //! Change the section size
   virtual void size(uint64_t size);
 
-  //! @brief section's size (size in the binary)
-  virtual uint64_t size(void) const;
+  //! section's size (size in the binary, not the virtual size)
+  virtual uint64_t size() const;
 
-  //! @brief offset in the binary
-  virtual uint64_t offset(void) const;
+  //! Offset in the binary
+  virtual uint64_t offset() const;
 
-  //! @brief Address where the section should be mapped
-  virtual uint64_t virtual_address(void) const;
+  //! Address where the section should be mapped
+  virtual uint64_t virtual_address() const;
 
   virtual void virtual_address(uint64_t virtual_address);
 
-  //! @brief Set the section's name
+  //! Change the section's name
   virtual void name(const std::string& name);
 
-  //! @brief Set section content
+  //! Change section content
   virtual void content(const std::vector<uint8_t>& data);
 
   virtual void offset(uint64_t offset);
 
-  //! @brief Section's entropy
-  double entropy(void) const;
+  //! Section's entropy
+  double entropy() const;
 
   // Search functions
   // ================
@@ -84,7 +90,7 @@ class LIEF_API Section : public Object {
   std::vector<size_t> search_all(const std::string& v) const;
 
   //! @brief Method so that the ``visitor`` can visit us
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const Section& rhs) const;
   bool operator!=(const Section& rhs) const;

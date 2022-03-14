@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ MsSpcStatementType::MsSpcStatementType() :
 MsSpcStatementType::MsSpcStatementType(const MsSpcStatementType&) = default;
 MsSpcStatementType& MsSpcStatementType::operator=(const MsSpcStatementType&) = default;
 
-std::unique_ptr<Attribute> MsSpcStatementType::clone(void) const {
+std::unique_ptr<Attribute> MsSpcStatementType::clone() const {
   return std::unique_ptr<Attribute>(new MsSpcStatementType{*this});
 }
 
@@ -39,7 +39,7 @@ void MsSpcStatementType::accept(Visitor& visitor) const {
 }
 
 std::string MsSpcStatementType::print() const {
-  return this->oid() + " (" + oid_to_string(this->oid()) + ")";
+  return oid() + " (" + oid_to_string(oid()) + ")";
 }
 
 

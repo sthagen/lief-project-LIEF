@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,35 +21,58 @@
 
 #include "LIEF/Object.hpp"
 #include "LIEF/visibility.h"
-
-#include "LIEF/PE/type_traits.hpp"
+#include "LIEF/iterators.hpp"
 
 namespace LIEF {
 namespace PE {
 
 class Builder;
 class Parser;
-struct pe_export_directory_table;
 
+namespace details {
+struct pe_export_directory_table;
+}
+
+//! Class which represents a PE Export
 class LIEF_API Export : public Object {
   friend class Builder;
   friend class Parser;
 
   public:
-  Export(void);
-  Export(const pe_export_directory_table *header);
+
+  using entries_t        = std::vector<ExportEntry>;
+  using it_entries       = ref_iterator<entries_t&>;
+  using it_const_entries = const_ref_iterator<const entries_t&>;
+
+  Export();
+  Export(const details::pe_export_directory_table& header);
   Export(const Export&);
   Export& operator=(const Export&);
-  virtual ~Export(void);
+  virtual ~Export();
 
-  uint32_t                export_flags(void) const;
-  uint32_t                timestamp(void) const;
-  uint16_t                major_version(void) const;
-  uint16_t                minor_version(void) const;
-  uint32_t                ordinal_base(void) const;
-  const std::string&      name(void) const;
-  it_export_entries       entries(void);
-  it_const_export_entries entries(void) const;
+  //! According to the PE specifications this value is reserved
+  //! and should be set to 0
+  uint32_t export_flags() const;
+
+  //! The time and date that the export data was created
+  uint32_t timestamp() const;
+
+  //! The major version number (can be user-defined)
+  uint16_t major_version() const;
+
+  //! The minor version number (can be user-defined)
+  uint16_t minor_version() const;
+
+  //! The starting number for the exports. Usually this value is set
+  //! to 1
+  uint32_t ordinal_base() const;
+
+  //! The name of the library exported (e.g. ``KERNEL32.dll``)
+  const std::string& name() const;
+
+  //! Iterator over the ExportEntry
+  it_entries entries();
+  it_const_entries entries() const;
 
   void export_flags(uint32_t flags);
   void timestamp(uint32_t timestamp);
@@ -58,7 +81,7 @@ class LIEF_API Export : public Object {
   void ordinal_base(uint32_t ordinal_base);
   void name(const std::string& name);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const Export& rhs) const;
   bool operator!=(const Export& rhs) const;
@@ -66,13 +89,13 @@ class LIEF_API Export : public Object {
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const Export& exp);
 
   private:
-  uint32_t         exportFlags_;
-  uint32_t         timestamp_;
-  uint16_t         majorVersion_;
-  uint16_t         minorVersion_;
-  uint32_t         ordinalBase_;
-  std::string      name_;
-  export_entries_t entries_;
+  uint32_t    exportFlags_;
+  uint32_t    timestamp_;
+  uint16_t    majorVersion_;
+  uint16_t    minorVersion_;
+  uint32_t    ordinalBase_;
+  std::string name_;
+  entries_t   entries_;
 
 };
 

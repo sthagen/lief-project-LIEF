@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,8 +32,8 @@ void init_utils_functions(py::module& m) {
 
   m.def("shell",
     [] (void) {
-      auto&& InteractiveShellEmbed = py::module::import("IPython").attr("terminal").attr("embed").attr("InteractiveShellEmbed");
-      auto&& ipshell = InteractiveShellEmbed("banner1"_a = "Dropping into IPython", "exit_msg"_a = "Leaving Interpreter, back to program.");
+      const auto& InteractiveShellEmbed = py::module::import("IPython").attr("terminal").attr("embed").attr("InteractiveShellEmbed");
+      const auto& ipshell = InteractiveShellEmbed("banner1"_a = "Dropping into IPython", "exit_msg"_a = "Leaving Interpreter, back to program.");
       return ipshell();
     },
     "Drop into an IPython Interpreter");

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,21 +25,42 @@ namespace MachO {
 template<>
 void create<ParserConfig>(py::module& m) {
 
-  py::class_<ParserConfig>(m, "ParserConfig", "Configuration of MachO's parser")
+  py::class_<ParserConfig>(m, "ParserConfig",
+      R"delim(
+      This class is used to tweak the MachO Parser (:class:`~lief.MachO.Parser`)
+      )delim")
+
     .def(py::init<>())
-    .def_property("parse_dyldinfo_deeply",
-        static_cast<bool (ParserConfig::*)(void) const>(&ParserConfig::parse_dyldinfo_deeply),
-        static_cast<ParserConfig& (ParserConfig::*)(bool)>(&ParserConfig::parse_dyldinfo_deeply),
-        "If set to ``True``, parse deeply the " RST_CLASS_REF(lief.MachO.DyldInfo) " "
-        "structure. It includes Exports, Bindings and Rebases")
+    .def_readwrite("parse_dyld_exports", &ParserConfig::parse_dyld_exports,
+                   "Parse the Dyld export trie")
+
+    .def_readwrite("parse_dyld_bindings", &ParserConfig::parse_dyld_bindings,
+                   "Parse the Dyld binding opcodes")
+
+    .def_readwrite("parse_dyld_rebases", &ParserConfig::parse_dyld_rebases,
+                   "Parse the Dyld rebase opcodes")
+
+    .def("full_dyldinfo",  &ParserConfig::full_dyldinfo,
+         R"delim(
+         If ``flag`` is set to ``true``, Exports, Bindings and Rebases opcodes are parsed.
+
+         .. warning::
+
+            Enabling this flag can slow down the parsing
+         )delim",
+         "flag"_a)
 
     .def_property_readonly_static("deep",
       [] (py::object /* self */) { return ParserConfig::deep(); },
-      "foobar")
+      R"delim(
+      Return a parser configuration such as all the objects supported by LIEF are parsed
+      )delim")
 
     .def_property_readonly_static("quick",
       [] (py::object /* self */) { return ParserConfig::quick(); },
-      "");
+      R"delim(
+      Return a configuration to parse the most important MachO structures
+      )delim");
 }
 
 }

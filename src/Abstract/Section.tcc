@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ namespace LIEF {
 template<typename T>
 std::vector<size_t> Section::search_all_(const T& v) const {
   std::vector<size_t> result;
-  size_t pos = this->search(v, 0);
+  size_t pos = search(v, 0);
 
   if (pos == Section::npos) {
     return result;
@@ -28,7 +28,7 @@ std::vector<size_t> Section::search_all_(const T& v) const {
 
   do {
     result.push_back(pos);
-    pos = this->search(v, pos + 1);
+    pos = search(v, pos + 1);
   } while(pos != Section::npos);
 
   return result;

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,29 +23,30 @@
 namespace LIEF {
 namespace PE {
 
+//! Class which represents an entry associated to the RichHeader
 class LIEF_API RichEntry : public Object {
   public:
 
-  RichEntry(void);
+  RichEntry();
   RichEntry(uint16_t id, uint16_t build_id, uint32_t count);
   RichEntry(const RichEntry&);
   RichEntry& operator=(const RichEntry&);
-  virtual ~RichEntry(void);
+  virtual ~RichEntry();
 
-  //! @brief Entry type
-  uint16_t id(void) const;
+  //! Entry type
+  uint16_t id() const;
 
-  //! @brief Builder number of the tool (if any)
-  uint16_t build_id(void) const;
+  //! Build number of the tool (if any)
+  uint16_t build_id() const;
 
-  //! @brief *Occurrence* count.
-  uint32_t count(void) const;
+  //! *Occurrence* count.
+  uint32_t count() const;
 
   void id(uint16_t id);
   void build_id(uint16_t build_id);
   void count(uint32_t count);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const RichEntry& rhs) const;
   bool operator!=(const RichEntry& rhs) const;

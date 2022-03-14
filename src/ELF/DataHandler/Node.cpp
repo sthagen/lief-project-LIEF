@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "LIEF/ELF/DataHandler/Node.hpp"
+#include "ELF/DataHandler/Node.hpp"
 
 namespace LIEF {
 namespace ELF {
@@ -21,13 +21,9 @@ namespace DataHandler {
 
 Node& Node::operator=(const Node&) = default;
 Node::Node(const Node&) = default;
+Node::~Node() = default;
 
-Node::Node(void) :
-  size_{0},
-  offset_{0},
-  type_{UNKNOWN}
-{}
-
+Node::Node() = default;
 
 Node::Node(uint64_t offset, uint64_t size, Type type) :
   size_{size},
@@ -35,66 +31,69 @@ Node::Node(uint64_t offset, uint64_t size, Type type) :
   type_{type}
 {}
 
-uint64_t Node::size(void) const {
-  return this->size_;
+uint64_t Node::size() const {
+  return size_;
 }
 
 
-uint64_t Node::offset(void) const {
-  return this->offset_;
+uint64_t Node::offset() const {
+  return offset_;
 }
 
 
-Node::Type Node::type(void) const {
-  return this->type_;
+Node::Type Node::type() const {
+  return type_;
 }
 
 void Node::size(uint64_t size) {
-  this->size_ = size;
+  size_ = size;
 }
 
 
 void Node::type(Node::Type type) {
-  this->type_ = type;
+  type_ = type;
 }
 
 
 void Node::offset(uint64_t offset) {
-  this->offset_ = offset;
+  offset_ = offset;
 }
 
 
 bool Node::operator==(const Node& rhs) const {
-  return this->type() == rhs.type() and
-         this->size() == rhs.size() and
-         this->offset() == rhs.offset();
+  if (this == &rhs) {
+    return true;
+  }
+  return type() == rhs.type() &&
+         size() == rhs.size() &&
+         offset() == rhs.offset();
 }
 
 bool Node::operator!=(const Node& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 bool Node::operator<(const Node& rhs) const {
-  return ((this->type() == rhs.type() and
-         this->offset() <= rhs.offset() and
-         (this->offset() + this->size()) < (rhs.offset() + rhs.size())) or
-         (this->type() == rhs.type() and
-         this->offset() < rhs.offset() and
-         (this->offset() + this->size()) <= (rhs.offset() + rhs.size())));
+  return ((type() == rhs.type() &&
+         offset() <= rhs.offset() &&
+         (offset() + size()) < (rhs.offset() + rhs.size())) ||
+         (type() == rhs.type() &&
+         offset() < rhs.offset() &&
+         (offset() + size()) <= (rhs.offset() + rhs.size())));
 
 }
 
 bool Node::operator<=(const Node& rhs) const {
-  return (this->type() == rhs.type() and not (*this > rhs));
+  return (type() == rhs.type() && !(*this > rhs));
 }
 
 bool Node::operator>(const Node& rhs) const {
-  return this->type() == rhs.type() and
-        (this->offset() > rhs.offset() or (this->offset() + this->size()) > (rhs.offset() + rhs.size()));
+  return type() == rhs.type() &&
+        (offset() > rhs.offset() || (offset() + size()) > (rhs.offset() + rhs.size()));
 }
 
 bool Node::operator>=(const Node& rhs) const {
-  return (this->type() == rhs.type() and not (*this < rhs));
+  return (type() == rhs.type() && !(*this < rhs));
 }
 
 }

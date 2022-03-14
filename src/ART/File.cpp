@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,16 +21,13 @@
 namespace LIEF {
 namespace ART {
 
-File::File(void) :
-  header_{}
-{}
+File::File() = default;
 
-
-const Header& File::header(void) const {
-  return this->header_;
+const Header& File::header() const {
+  return header_;
 }
 
-Header& File::header(void) {
+Header& File::header() {
   return const_cast<Header&>(static_cast<const File*>(this)->header());
 }
 
@@ -39,17 +36,20 @@ void File::accept(Visitor& visitor) const {
 }
 
 bool File::operator==(const File& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool File::operator!=(const File& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 
-File::~File(void) = default;
+File::~File() = default;
 
 std::ostream& operator<<(std::ostream& os, const File& art_file) {
   os << art_file.header();

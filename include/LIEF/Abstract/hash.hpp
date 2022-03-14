@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,14 +31,14 @@ class LIEF_API AbstractHash : public LIEF::Hash {
   using LIEF::Hash::visit;
 
   public:
-  virtual void visit(const Binary& binary)         override;
-  virtual void visit(const Header& header)         override;
-  virtual void visit(const Section& section)       override;
-  virtual void visit(const Symbol& symbol)         override;
-  virtual void visit(const Relocation& relocation) override;
-  virtual void visit(const Function& function)     override;
+  void visit(const Binary& binary)         override;
+  void visit(const Header& header)         override;
+  void visit(const Section& section)       override;
+  void visit(const Symbol& symbol)         override;
+  void visit(const Relocation& relocation) override;
+  void visit(const Function& function)     override;
 
-  virtual ~AbstractHash(void);
+  virtual ~AbstractHash();
 };
 
 }

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,12 +29,15 @@ using setter_t = void (Relocation::*)(T);
 
 template<>
 void create<Relocation>(py::module& m) {
-  py::class_<Relocation, Object>(m, "Relocation")
+  py::class_<Relocation, Object>(m, "Relocation",
+      R"delim(
+      Class which represents an abstracted Relocation
+      )delim")
     .def(py::init(),
         "Default constructor")
 
     .def(py::init<uint64_t, uint8_t>(),
-        "Constructor from :attr:`~lief.Relocation.address` and :attr:`~lief.Relocation.size`",
+        "Constructor from an :attr:`~lief.Relocation.address` and a :attr:`~lief.Relocation.size`",
         "address"_a, "size"_a)
 
     .def_property("address",

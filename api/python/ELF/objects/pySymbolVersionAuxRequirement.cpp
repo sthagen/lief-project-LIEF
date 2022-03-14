@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,21 +33,28 @@ using setter_t = void (SymbolVersionAuxRequirement::*)(T);
 
 template<>
 void create<SymbolVersionAuxRequirement>(py::module& m) {
-  //
-  // Symbol Version Requirement Auxiliary object
-  //
   py::class_<SymbolVersionAuxRequirement, SymbolVersionAux>(m, "SymbolVersionAuxRequirement")
+    .def(py::init<>(),"Default constructor")
+
     .def_property("hash",
         static_cast<getter_t<uint32_t>>(&SymbolVersionAuxRequirement::hash),
-        static_cast<setter_t<uint32_t>>(&SymbolVersionAuxRequirement::hash))
+        static_cast<setter_t<uint32_t>>(&SymbolVersionAuxRequirement::hash),
+        "Hash value of the dependency name (use ELF hashing function)")
 
     .def_property("flags",
         static_cast<getter_t<uint16_t>>(&SymbolVersionAuxRequirement::flags),
-        static_cast<setter_t<uint16_t>>(&SymbolVersionAuxRequirement::flags))
+        static_cast<setter_t<uint16_t>>(&SymbolVersionAuxRequirement::flags),
+        "Bitmask of flags")
 
     .def_property("other",
         static_cast<getter_t<uint16_t>>(&SymbolVersionAuxRequirement::other),
-        static_cast<setter_t<uint16_t>>(&SymbolVersionAuxRequirement::other))
+        static_cast<setter_t<uint16_t>>(&SymbolVersionAuxRequirement::other),
+        R"delim(
+        It returns the unique version index for the file which is used in the
+        version symbol table. If the highest bit (bit 15) is set this
+        is a hidden symbol which cannot be referenced from outside the
+        object.
+        )delim")
 
 
     .def("__eq__", &SymbolVersionAuxRequirement::operator==)

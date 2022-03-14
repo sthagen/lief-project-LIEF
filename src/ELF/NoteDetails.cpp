@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,46 +33,42 @@
 namespace LIEF {
 namespace ELF {
 
-NoteDetails::~NoteDetails(void) = default;
-
-
-NoteDetails::NoteDetails():
-  note_{nullptr}
-{}
+NoteDetails::~NoteDetails() = default;
+NoteDetails::NoteDetails() = default;
 
 NoteDetails::NoteDetails(Note& note):
   note_{&note}
 {}
 
-NoteDetails* NoteDetails::clone(void) const {
+NoteDetails* NoteDetails::clone() const {
   return new NoteDetails(*this);
 }
 
-const Note::description_t& NoteDetails::description(void) const {
-  if (this->note_ == nullptr) {
-    return this->empty_;
+const Note::description_t& NoteDetails::description() const {
+  if (note_ == nullptr) {
+    return empty_;
   }
-  return this->note_->description();
+  return note_->description();
 }
 
-Note::description_t& NoteDetails::description(void) {
-  if (this->note_ == nullptr) {
-    return this->empty_;
+Note::description_t& NoteDetails::description() {
+  if (note_ == nullptr) {
+    return empty_;
   }
-  return this->note_->description();
+  return note_->description();
 }
 
 
-Binary* NoteDetails::binary(void) {
+Binary* NoteDetails::binary() {
   return const_cast<Binary*>(static_cast<const NoteDetails*>(this)->binary());
 }
 
 
-const Binary* NoteDetails::binary(void) const {
-  if (this->note_ == nullptr) {
+const Binary* NoteDetails::binary() const {
+  if (note_ == nullptr) {
     return nullptr;
   }
-  return this->note_->binary_;
+  return note_->binary_;
 }
 
 void NoteDetails::accept(Visitor& visitor) const {
@@ -81,23 +77,26 @@ void NoteDetails::accept(Visitor& visitor) const {
 
 
 bool NoteDetails::operator==(const NoteDetails& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool NoteDetails::operator!=(const NoteDetails& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 
 void NoteDetails::dump(std::ostream&) const {
 }
 
-void NoteDetails::parse(void) {
+void NoteDetails::parse() {
 }
 
-void NoteDetails::build(void) {
+void NoteDetails::build() {
 }
 
 

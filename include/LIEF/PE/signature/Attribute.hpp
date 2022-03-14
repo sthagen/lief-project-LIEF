@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,21 +34,21 @@ class LIEF_API Attribute : public Object {
   friend class SignatureParser;
 
   public:
-  Attribute(void);
+  Attribute();
   Attribute(const Attribute&);
   Attribute& operator=(const Attribute&);
 
-  virtual std::unique_ptr<Attribute> clone(void) const = 0;
+  virtual std::unique_ptr<Attribute> clone() const = 0;
 
   //! Concrete type of the attribute
   inline virtual SIG_ATTRIBUTE_TYPES type() const {
-    return this->type_;
+    return type_;
   }
 
   //! Print information about the underlying attribute
   virtual std::string print() const = 0;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   virtual ~Attribute();
 

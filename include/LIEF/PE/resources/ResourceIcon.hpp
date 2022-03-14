@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,60 +22,63 @@
 
 #include "LIEF/Object.hpp"
 
-#include "LIEF/PE/Structures.hpp"
+#include "LIEF/PE/enums.hpp"
 
 namespace LIEF {
 namespace PE {
 class ResourcesManager;
+
+namespace details {
+struct pe_resource_icon_group;
+struct pe_icon_header;
+}
 
 class LIEF_API ResourceIcon : public Object {
 
   friend class ResourcesManager;
 
   public:
-  ResourceIcon(void);
-  ResourceIcon(const pe_resource_icon_group *header);
-  ResourceIcon(const pe_icon_header *header);
-
-  ResourceIcon(const std::string& iconpath);
+  ResourceIcon();
+  ResourceIcon(const details::pe_resource_icon_group& header);
+  ResourceIcon(const details::pe_icon_header& header);
 
   ResourceIcon(const ResourceIcon&);
   ResourceIcon& operator=(const ResourceIcon&);
 
-  virtual ~ResourceIcon(void);
+  virtual ~ResourceIcon();
 
-  //! @brief Id associated with the icon
-  uint32_t id(void) const;
+  //! Id associated with the icon
+  uint32_t id() const;
 
-  //! @brief Language associated with the icon
-  RESOURCE_LANGS lang(void) const;
+  //! Language associated with the icon
+  RESOURCE_LANGS lang() const;
 
-  //! @brief Sub language associated with the icon
-  RESOURCE_SUBLANGS sublang(void) const;
+  //! Sub language associated with the icon
+  RESOURCE_SUBLANGS sublang() const;
 
-  //! @brief Width in pixels of the image
-  uint8_t width(void) const;
+  //! Width in pixels of the image
+  uint8_t width() const;
 
-  //! @brief Height in pixels of the image
-  uint8_t height(void) const;
+  //! Height in pixels of the image
+  uint8_t height() const;
 
-  //! @brief Number of colors in image (0 if >=8bpp)
-  uint8_t color_count(void) const;
+  //! Number of colors in image (0 if >=8bpp)
+  uint8_t color_count() const;
 
-  //! @brief Reserved (must be 0)
-  uint8_t reserved(void) const;
+  //! Reserved (must be 0)
+  uint8_t reserved() const;
 
-  //! @brief Color Planes
-  uint16_t planes(void) const;
+  //! Color Planes
+  uint16_t planes() const;
 
-  //! @brief Bits per pixel
-  uint16_t bit_count(void) const;
+  //! Bits per pixel
+  uint16_t bit_count() const;
 
-  //! @brief Size in bytes of the image
-  uint32_t size(void) const;
+  //! Size in bytes of the image
+  uint32_t size() const;
 
-  //! @brief Pixels of the image (as bytes)
-  const std::vector<uint8_t>& pixels(void) const;
+  //! Pixels of the image (as bytes)
+  const std::vector<uint8_t>& pixels() const;
 
   void id(uint32_t id);
   void lang(RESOURCE_LANGS lang);
@@ -88,12 +91,12 @@ class LIEF_API ResourceIcon : public Object {
   void bit_count(uint16_t bit_count);
   void pixels(const std::vector<uint8_t>& pixels);
 
-  //! @brief Save the icon to the given filename
+  //! Save the icon to the given filename
   //!
   //! @param[in] filename Path to file in which the icon will be saved
   void save(const std::string& filename) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const ResourceIcon& rhs) const;
   bool operator!=(const ResourceIcon& rhs) const;
@@ -101,15 +104,15 @@ class LIEF_API ResourceIcon : public Object {
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const ResourceIcon& entry);
 
   private:
-  uint8_t              width_;
-  uint8_t              height_;
-  uint8_t              color_count_;
-  uint8_t              reserved_;
-  uint16_t             planes_;
-  uint16_t             bit_count_;
-  uint32_t             id_;
-  RESOURCE_LANGS       lang_;
-  RESOURCE_SUBLANGS    sublang_;
+  uint8_t              width_ = 0;
+  uint8_t              height_ = 0;
+  uint8_t              color_count_ = 0;
+  uint8_t              reserved_ = 0;
+  uint16_t             planes_ = 0;
+  uint16_t             bit_count_ = 0;
+  uint32_t             id_ = -1u;
+  RESOURCE_LANGS       lang_ = RESOURCE_LANGS::LANG_NEUTRAL;
+  RESOURCE_SUBLANGS    sublang_ = RESOURCE_SUBLANGS::SUBLANG_DEFAULT;
   std::vector<uint8_t> pixels_;
 
 

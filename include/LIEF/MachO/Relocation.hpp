@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,14 +26,14 @@
 #include "LIEF/types.hpp"
 #include "LIEF/Object.hpp"
 
-#include "LIEF/MachO/Structures.hpp"
+#include "LIEF/MachO/enums.hpp"
 
 namespace LIEF {
 namespace MachO {
 
 class BinaryParser;
 
-//! Object modeling relocation
+//! Class that represents a Mach-O relocation
 //!
 //! @see:
 //!   * MachO::RelocationObject
@@ -43,94 +43,87 @@ class LIEF_API Relocation : public LIEF::Relocation {
   friend class BinaryParser;
 
   public:
-    using LIEF::Relocation::address;
-    using LIEF::Relocation::size;
+  using LIEF::Relocation::address;
+  using LIEF::Relocation::size;
 
-    Relocation(void);
-    Relocation(uint64_t address, uint8_t type);
+  Relocation();
+  Relocation(uint64_t address, uint8_t type);
 
-    Relocation& operator=(const Relocation& other);
-    Relocation(const Relocation& other);
-    void swap(Relocation& other);
+  Relocation& operator=(const Relocation& other);
+  Relocation(const Relocation& other);
+  void swap(Relocation& other);
 
-    virtual ~Relocation(void);
+  ~Relocation() override;
 
-    virtual Relocation* clone(void) const = 0;
+  virtual Relocation* clone() const = 0;
 
-    // For @link MachO::FILE_TYPES::MH_OBJECT object @endlink this is an
-    // offset from the start of the @link MachO::Section section @endlink
-    // to the item containing the address requiring relocation.
-    //virtual uint64_t address(void) const override;
+  //! Indicates whether the item containing the address to be
+  //! relocated is part of a CPU instruction that uses PC-relative addressing.
+  //!
+  //! For addresses contained in PC-relative instructions, the CPU adds the address of
+  //! the instruction to the address contained in the instruction.
+  virtual bool is_pc_relative() const = 0;
 
-    //! Indicates whether the item containing the address to be
-    //! relocated is part of a CPU instruction that uses PC-relative addressing.
-    //!
-    //! For addresses contained in PC-relative instructions, the CPU adds the address of
-    //! the instruction to the address contained in the instruction.
-    virtual bool is_pc_relative(void) const = 0;
+  //! Type of the relocation according to the
+  //! Relocation::architecture and/or the Relocation::origin
+  //!
+  //! See:
+  //!   * MachO::X86_RELOCATION
+  //!   * MachO::X86_64_RELOCATION
+  //!   * MachO::PPC_RELOCATION
+  //!   * MachO::ARM_RELOCATION
+  //!   * MachO::ARM64_RELOCATION
+  //!   * MachO::REBASE_TYPES
+  virtual uint8_t type() const;
 
-    //! Type of the relocation according to the
-    //! @link Relocation::architecture architecture@endlink and/or
-    //! @link Relocation::origin origin@endlink
-    //!
-    //! See:
-    //!   * MachO::X86_RELOCATION
-    //!   * MachO::X86_64_RELOCATION
-    //!   * MachO::PPC_RELOCATION
-    //!   * MachO::ARM_RELOCATION
-    //!   * MachO::ARM64_RELOCATION
-    //!   * MachO::REBASE_TYPES
-    virtual uint8_t type(void) const;
+  //! Achitecture targeted by this relocation
+  CPU_TYPES architecture() const;
 
-    //! @link Relocation::architecture architecture @endlink of the relocation
-    CPU_TYPES architecture(void) const;
+  //! Origin of the relocation
+  virtual RELOCATION_ORIGINS origin() const = 0;
 
-    //! Origin of the relocation
-    virtual RELOCATION_ORIGINS origin(void) const = 0;
+  //! ``true`` if the relocation has a symbol associated with
+  bool has_symbol() const;
 
-    //! ``true`` if the relocation has a symbol associated with
-    bool has_symbol(void) const;
+  //! Symbol associated with the relocation, if any,
+  //! otherwise a nullptr.
+  Symbol* symbol();
+  const Symbol* symbol() const;
 
-    //! Symbol associated with the relocation (if any)
-    Symbol& symbol(void);
-    const Symbol& symbol(void) const;
+  //! ``true`` if the relocation has a section associated with
+  bool has_section() const;
 
-    //! ``true`` if the relocation has a section associated with
-    bool has_section(void) const;
+  //! Section associated with the relocation, if any,
+  //! otherwise a nullptr.
+  Section* section();
+  const Section* section() const;
 
-    //! Section associated with the relocation (if any)
-    Section& section(void);
-    const Section& section(void) const;
+  //! ``true`` if the relocation has a SegmentCommand associated with
+  bool has_segment() const;
 
-    //! ``true`` if the relocation has a SegmentCommand associated with
-    bool has_segment(void) const;
+  //! SegmentCommand associated with the relocation, if any,
+  //! otherwise a nullptr.
+  SegmentCommand* segment();
+  const SegmentCommand* segment() const;
 
-    //! SegmentCommand associated with the relocation (if any)
-    SegmentCommand& segment(void);
-    const SegmentCommand& segment(void) const;
+  virtual void pc_relative(bool val) = 0;
+  virtual void type(uint8_t type);
 
-    //virtual void address(uint64_t address) override;
-    virtual void pc_relative(bool val) = 0;
-    virtual void type(uint8_t type);
+  bool operator==(const Relocation& rhs) const;
+  bool operator!=(const Relocation& rhs) const;
 
-    bool operator==(const Relocation& rhs) const;
-    bool operator!=(const Relocation& rhs) const;
+  void accept(Visitor& visitor) const override;
 
-    virtual void accept(Visitor& visitor) const override;
+  virtual std::ostream& print(std::ostream& os) const;
 
-    virtual std::ostream& print(std::ostream& os) const;
-
-    LIEF_API friend std::ostream& operator<<(std::ostream& os, const Relocation& relocation);
-
-
+  LIEF_API friend std::ostream& operator<<(std::ostream& os, const Relocation& relocation);
 
   protected:
-    Symbol*            symbol_{nullptr};
-    uint8_t            type_;
-    CPU_TYPES          architecture_;
-    Section*           section_{nullptr};
-    SegmentCommand*    segment_{nullptr};
-
+  Symbol*         symbol_ = nullptr;
+  uint8_t         type_ = 0;
+  CPU_TYPES       architecture_ = CPU_TYPES::CPU_TYPE_ANY;
+  Section*        section_ = nullptr;
+  SegmentCommand* segment_ = nullptr;
 };
 
 }

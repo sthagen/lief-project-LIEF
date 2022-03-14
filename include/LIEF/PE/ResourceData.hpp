@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,45 +27,44 @@ namespace PE {
 class Parser;
 class Builder;
 
+//! Class which represents a Data Node in the PE resources tree
 class LIEF_API ResourceData : public ResourceNode {
 
   friend class Parser;
   friend class Builder;
 
   public:
-  ResourceData(void);
-  ResourceData(const std::vector<uint8_t>& content, uint32_t code_page);
+  ResourceData();
+  ResourceData(std::vector<uint8_t> content, uint32_t code_page);
 
   ResourceData(const ResourceData& other);
   ResourceData& operator=(ResourceData other);
   void swap(ResourceData& other);
 
-  virtual ~ResourceData(void);
+  virtual ~ResourceData();
 
-  virtual ResourceData* clone(void) const override;
+  ResourceData* clone() const override;
 
-  //! @brief The code page that is used to decode code point
-  //! values within the resource data. Typically, the code
-  //! page would be the Unicode code page.
-  uint32_t code_page(void) const;
+  //! Return the code page that is used to decode code point
+  //! values within the resource data. Typically, the code page is the Unicode code page.
+  uint32_t code_page() const;
 
-  //! @brief Resource content
-  const std::vector<uint8_t>& content(void) const;
+  //! Resource content
+  const std::vector<uint8_t>& content() const;
 
-  //! @brief Reserved value. Should be ``0``
-  uint32_t reserved(void) const;
+  //! Reserved value. Should be ``0``
+  uint32_t reserved() const;
 
-  //! @brief Offset of the content within the resource
+  //! Offset of the content within the resource
   //!
-  //! @warning This value may change when rebuilding
-  //! resource table
-  uint32_t offset(void) const;
+  //! @warning This value may change when rebuilding resource table
+  uint32_t offset() const;
 
   void code_page(uint32_t code_page);
   void content(const std::vector<uint8_t>& content);
   void reserved(uint32_t value);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const ResourceData& rhs) const;
   bool operator!=(const ResourceData& rhs) const;
@@ -74,9 +73,9 @@ class LIEF_API ResourceData : public ResourceNode {
 
   private:
   std::vector<uint8_t> content_;
-  uint32_t             code_page_;
-  uint32_t             reserved_;
-  uint32_t             offset_;
+  uint32_t code_page_ = 0;
+  uint32_t reserved_ = 0;
+  uint32_t offset_ = 0;
 
 };
 

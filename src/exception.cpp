@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <sstream>
+#include <utility>
 
 #include "LIEF/exception.hpp"
 #include "logging.hpp"
@@ -24,7 +25,7 @@ namespace LIEF {
 exception::exception(const exception&) = default;
 exception::~exception() noexcept = default;
 
-exception::exception(const std::string& msg) : msg_{msg} {
+exception::exception(std::string msg) : msg_{std::move(msg)} {
 
 #if defined(LIEF_LOGGING_SUPPORT)
 //std::ostringstream oss;
@@ -41,7 +42,7 @@ exception::exception(const char* msg) : msg_{msg} {
 #endif
 }
 
-const char* exception::what(void) const noexcept {
+const char* exception::what() const noexcept {
   return this->msg_.c_str();
 }
 

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@
 
 #include "LIEF/Object.hpp"
 #include "LIEF/visibility.h"
+#include "LIEF/iterators.hpp"
 
-#include "LIEF/PE/type_traits.hpp"
 #include "LIEF/PE/enums.hpp"
 
 namespace LIEF {
@@ -35,32 +35,36 @@ class LIEF_API Pogo : public Object {
   friend class Parser;
 
   public:
-  Pogo(void);
-  Pogo(POGO_SIGNATURES signature, const std::vector<PogoEntry>& entries);
+  using entries_t        = std::vector<PogoEntry>;
+  using it_entries       = ref_iterator<entries_t&>;
+  using it_const_entries = const_ref_iterator<const entries_t&>;
+
+  Pogo();
+  Pogo(POGO_SIGNATURES signature, std::vector<PogoEntry> entries);
 
   Pogo(const Pogo&);
   Pogo& operator=(const Pogo&);
 
-  virtual Pogo* clone(void) const;
+  virtual Pogo* clone() const;
 
-  POGO_SIGNATURES       signature() const;
-  it_pogo_entries       entries(void);
-  it_const_pogo_entries entries(void) const;
+  POGO_SIGNATURES  signature() const;
+  it_entries       entries();
+  it_const_entries entries() const;
 
   void signature(POGO_SIGNATURES signature);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const Pogo& rhs) const;
   bool operator!=(const Pogo& rhs) const;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const Pogo& entry);
 
-  virtual ~Pogo(void);
+  virtual ~Pogo();
 
   protected:
-  POGO_SIGNATURES signature_;
-  pogo_entries_t entries_;
+  POGO_SIGNATURES signature_ = POGO_SIGNATURES::POGO_UNKNOWN;
+  entries_t entries_;
 };
 
 } // Namespace PE

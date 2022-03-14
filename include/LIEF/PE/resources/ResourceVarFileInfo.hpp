@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,44 +21,45 @@
 #include "LIEF/visibility.h"
 
 #include "LIEF/Object.hpp"
-
-#include "LIEF/PE/Structures.hpp"
-
 namespace LIEF {
 namespace PE {
 
 class ResourcesManager;
 class ResourceVersion;
+struct ResourcesParser;
 
-//! @brief This object describes information about languages supported by the application
+//! This object describes information about languages supported by the application
 //!
 //! @see LIEF::PE::ResourceVersion
 class LIEF_API ResourceVarFileInfo : public Object {
 
   friend class ResourcesManager;
   friend class ResourceVersion;
+  friend struct ResourcesParser;
 
   public:
+  ResourceVarFileInfo();
+  ResourceVarFileInfo(uint16_t type, std::u16string key);
   ResourceVarFileInfo(const ResourceVarFileInfo&);
   ResourceVarFileInfo& operator=(const ResourceVarFileInfo&);
-  virtual ~ResourceVarFileInfo(void);
+  virtual ~ResourceVarFileInfo();
 
-  //! @brief The type of data in the version resource
+  //! The type of data in the version resource
   //! * ``1`` if it contains text data
   //! * ``0`` if it contains binary data
-  uint16_t type(void) const;
+  uint16_t type() const;
 
-  //! @brief Signature of the structure:
+  //! Signature of the structure:
   //! Must be the unicode string "VarFileInfo"
-  const std::u16string& key(void) const;
+  const std::u16string& key() const;
 
-  //! @brief List of languages that the application supports
+  //! List of languages that the application supports
   //!
-  //! The **least** significant 16-bits  must contain a Microsoft language identifier, and the **most** significant 16-bits must contain the
-  //! @link LIEF::PE::CODE_PAGES code page @endlink
+  //! The **least** significant 16-bits  must contain a Microsoft language identifier,
+  //! and the **most** significant 16-bits must contain the PE::CODE_PAGES
   //! Either **most** or **least** 16-bits can be zero, indicating that the file is language or code page independent.
-  const std::vector<uint32_t>& translations(void) const;
-  std::vector<uint32_t>&       translations(void);
+  const std::vector<uint32_t>& translations() const;
+  std::vector<uint32_t>&       translations();
 
   void type(uint16_t type);
 
@@ -67,7 +68,7 @@ class LIEF_API ResourceVarFileInfo : public Object {
 
   void translations(const std::vector<uint32_t>& translations);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const ResourceVarFileInfo& rhs) const;
   bool operator!=(const ResourceVarFileInfo& rhs) const;
@@ -75,10 +76,8 @@ class LIEF_API ResourceVarFileInfo : public Object {
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const ResourceVarFileInfo& entry);
 
   private:
-  ResourceVarFileInfo(void);
-
-  uint16_t              type_;
-  std::u16string        key_;
+  uint16_t       type_ = 0;
+  std::u16string key_;
   std::vector<uint32_t> translations_;
 
 };

@@ -1,5 +1,5 @@
 /* Copyright 2017 - 2021 J. Rieck (based on R. Thomas's work)
- * Copyright 2017 - 2021 Quarkslab
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,29 +25,39 @@
 
 namespace LIEF {
 namespace MachO {
-struct rpath_command;
 
+namespace details {
+struct rpath_command;
+}
+
+//! Class that represents the LC_RPATH command.
+//!
+//! This command is used to add path for searching libraries
+//! associated with the ``@rpath`` prefix.
 class LIEF_API RPathCommand : public LoadCommand {
   public:
-  RPathCommand(void);
-  RPathCommand(const rpath_command *rpathCmd);
+  RPathCommand();
+  RPathCommand(const details::rpath_command& rpathCmd);
 
   RPathCommand& operator=(const RPathCommand& copy);
   RPathCommand(const RPathCommand& copy);
 
-  virtual RPathCommand* clone(void) const override;
+  RPathCommand* clone() const override;
 
-  virtual ~RPathCommand(void);
+  virtual ~RPathCommand();
 
-  const std::string& path(void) const;
+  //! The rpath value as a string
+  const std::string& path() const;
   void path(const std::string& path);
 
   bool operator==(const RPathCommand& rhs) const;
   bool operator!=(const RPathCommand& rhs) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
+
+  static bool classof(const LoadCommand* cmd);
 
   private:
   std::string path_;

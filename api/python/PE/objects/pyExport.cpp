@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include "pyPE.hpp"
+#include "pyIterators.hpp"
 
 #include "LIEF/PE/hash.hpp"
 #include "LIEF/PE/Export.hpp"
@@ -36,37 +37,51 @@ using no_const_getter = T (Export::*)(void);
 
 template<>
 void create<Export>(py::module& m) {
-  py::class_<Export, LIEF::Object>(m, "Export")
+  py::class_<Export, LIEF::Object> exp(m, "Export",
+      R"delim(
+      Class which represents a PE Export
+      )delim");
+
+  init_ref_iterator<Export::it_entries>(exp, "it_entries");
+
+  exp
     .def(py::init<>())
 
     .def_property("name",
         [] (const Export& obj) {
           return safe_string_converter(obj.name());
         },
-        static_cast<setter_t<const std::string&>>(&Export::name))
+        static_cast<setter_t<const std::string&>>(&Export::name),
+        "The name of the library exported (e.g. ``KERNEL32.dll``)")
 
     .def_property("export_flags",
         static_cast<getter_t<uint32_t>>(&Export::export_flags),
-        static_cast<setter_t<uint32_t>>(&Export::export_flags))
+        static_cast<setter_t<uint32_t>>(&Export::export_flags),
+        "According to the PE specifications this value is reserved and should be set to 0")
 
     .def_property("timestamp",
         static_cast<getter_t<uint32_t>>(&Export::timestamp),
-        static_cast<setter_t<uint32_t>>(&Export::timestamp))
+        static_cast<setter_t<uint32_t>>(&Export::timestamp),
+        "The time and date that the export data was created")
 
     .def_property("major_version",
         static_cast<getter_t<uint16_t>>(&Export::major_version),
-        static_cast<setter_t<uint16_t>>(&Export::major_version))
+        static_cast<setter_t<uint16_t>>(&Export::major_version),
+        "The major version number (can be user-defined)")
 
     .def_property("minor_version",
         static_cast<getter_t<uint16_t>>(&Export::minor_version),
-        static_cast<setter_t<uint16_t>>(&Export::minor_version))
+        static_cast<setter_t<uint16_t>>(&Export::minor_version),
+        "The minor version number (can be user-defined)")
 
     .def_property("ordinal_base",
         static_cast<getter_t<uint32_t>>(&Export::ordinal_base),
-        static_cast<setter_t<uint32_t>>(&Export::ordinal_base))
+        static_cast<setter_t<uint32_t>>(&Export::ordinal_base),
+        "The starting number for the exports. Usually this value is set to 1")
 
     .def_property_readonly("entries",
-        static_cast<no_const_getter<it_export_entries>>(&Export::entries),
+        static_cast<no_const_getter<Export::it_entries>>(&Export::entries),
+        "Iterator over the " RST_CLASS_REF(lief.PE.ExportEntry) "",
         py::return_value_policy::reference_internal)
 
 

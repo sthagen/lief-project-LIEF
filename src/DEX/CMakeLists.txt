@@ -1,18 +1,3 @@
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/enums.inc      LIEF_DEX_ENUMS)
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/structures.inc LIEF_DEX_STRUCTURES)
-
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/enums.hpp.in
-  ${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/DEX/enums.hpp
-  @ONLY
-)
-
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/Structures.hpp.in
-  ${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/DEX/Structures.hpp
-  @ONLY
-)
-
 set(LIEF_DEX_SRC
   ${CMAKE_CURRENT_LIST_DIR}/Parser.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Parser.tcc
@@ -41,7 +26,7 @@ set(LIEF_DEX_INC_FILES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/Field.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/CodeInfo.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/Parser.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/type_traits.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/types.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/utils.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/Type.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/Prototype.hpp"
@@ -50,19 +35,20 @@ set(LIEF_DEX_INC_FILES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/instructions.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/EnumToString.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/hash.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/enums.hpp"
 
-  "${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/DEX/Structures.hpp"
-  "${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/DEX/enums.hpp"
+  "${CMAKE_CURRENT_LIST_DIR}/Structures.hpp"
 )
 
-# JSON Part
-# =========
-set(LIEF_DEX_JSON_SRC "${CMAKE_CURRENT_LIST_DIR}/json.cpp")
-set(LIEF_DEX_JSON_HDR "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/json.hpp")
 
+# JSON Public API: Always present
+list(APPEND LIEF_DEX_SRC       "${CMAKE_CURRENT_LIST_DIR}/json_api.cpp")
+list(APPEND LIEF_DEX_INC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/DEX/json.hpp")
+
+# JSON Impl
 if (LIEF_ENABLE_JSON)
-  list(APPEND LIEF_DEX_SRC       ${LIEF_DEX_JSON_SRC})
-  list(APPEND LIEF_DEX_INC_FILES ${LIEF_DEX_JSON_HDR})
+  list(APPEND LIEF_DEX_SRC       "${CMAKE_CURRENT_LIST_DIR}/json.cpp")
+  list(APPEND LIEF_DEX_INC_FILES "${CMAKE_CURRENT_LIST_DIR}/json_internal.hpp")
 endif()
 
 source_group("Source Files\\DEX" FILES ${LIEF_DEX_SRC})

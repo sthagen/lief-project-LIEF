@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 
 #include "LIEF/ELF/Note.hpp"
 #include "LIEF/ELF/NoteDetails/core/CoreSigInfo.hpp"
+#include "ELF/Structures.hpp"
 
 namespace LIEF {
 namespace ELF {
@@ -37,35 +38,35 @@ CoreSigInfo CoreSigInfo::make(Note& note) {
   return pinfo;
 }
 
-CoreSigInfo* CoreSigInfo::clone(void) const {
+CoreSigInfo* CoreSigInfo::clone() const {
   return new CoreSigInfo(*this);
 }
 
-int32_t CoreSigInfo::signo(void) const {
-  return this->siginfo_.si_signo;
+int32_t CoreSigInfo::signo() const {
+  return siginfo_.si_signo;
 }
 
-int32_t CoreSigInfo::sigcode(void) const {
-  return this->siginfo_.si_code;
+int32_t CoreSigInfo::sigcode() const {
+  return siginfo_.si_code;
 }
 
-int32_t CoreSigInfo::sigerrno(void) const {
-  return this->siginfo_.si_errno;
+int32_t CoreSigInfo::sigerrno() const {
+  return siginfo_.si_errno;
 }
 
 void CoreSigInfo::signo(int32_t signo) {
-  this->siginfo_.si_signo = signo;
-  this->build();
+  siginfo_.si_signo = signo;
+  build();
 }
 
 void CoreSigInfo::sigcode(int32_t sigcode) {
-  this->siginfo_.si_code = sigcode;
-  this->build();
+  siginfo_.si_code = sigcode;
+  build();
 }
 
 void CoreSigInfo::sigerrno(int32_t sigerrno) {
-  this->siginfo_.si_errno = sigerrno;
-  this->build();
+  siginfo_.si_errno = sigerrno;
+  build();
 }
 
 void CoreSigInfo::accept(Visitor& visitor) const {
@@ -73,13 +74,16 @@ void CoreSigInfo::accept(Visitor& visitor) const {
 }
 
 bool CoreSigInfo::operator==(const CoreSigInfo& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool CoreSigInfo::operator!=(const CoreSigInfo& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 void CoreSigInfo::dump(std::ostream& os) const {
@@ -87,35 +91,37 @@ void CoreSigInfo::dump(std::ostream& os) const {
   os << std::left;
 
   os << std::setw(WIDTH) << std::setfill(' ') << "Signo: "<< std::dec
-     << this->signo() << std::endl;
+     << signo() << std::endl;
 
   os << std::setw(WIDTH) << std::setfill(' ') << "Code: "<< std::dec
-     << this->sigcode() << std::endl;
+     << sigcode() << std::endl;
 
   os << std::setw(WIDTH) << std::setfill(' ') << "Errno: "<< std::dec
-     << this->sigerrno() << std::endl;
+     << sigerrno() << std::endl;
 }
 
 
-void CoreSigInfo::parse(void) {
-  const Note::description_t& description = this->description();
-  if (description.size() < sizeof(Elf_siginfo)) {
+void CoreSigInfo::parse() {
+  const Note::description_t& desc = description();
+  if (desc.size() < sizeof(details::Elf_siginfo)) {
     return;
   }
-  auto&& siginfo = reinterpret_cast<const Elf_siginfo*>(description.data());
-  this->siginfo_ = *siginfo;
+  const auto* siginfo = reinterpret_cast<const details::Elf_siginfo*>(desc.data());
+  siginfo_.si_signo = siginfo->si_signo;
+  siginfo_.si_code  = siginfo->si_code;
+  siginfo_.si_errno = siginfo->si_errno;
 }
 
 
-void CoreSigInfo::build(void) {
-  Note::description_t& description = this->description();
-  if (description.size() < sizeof(Elf_siginfo)) {
-    description.resize(sizeof(Elf_siginfo));
+void CoreSigInfo::build() {
+  Note::description_t& desc = description();
+  if (desc.size() < sizeof(details::Elf_siginfo)) {
+    desc.resize(sizeof(details::Elf_siginfo));
   }
   std::copy(
-    reinterpret_cast<const uint8_t*>(&this->siginfo_),
-    reinterpret_cast<const uint8_t*>(&this->siginfo_) + sizeof(Elf_siginfo),
-    std::begin(description));
+    reinterpret_cast<const uint8_t*>(&siginfo_),
+    reinterpret_cast<const uint8_t*>(&siginfo_) + sizeof(details::Elf_siginfo),
+    std::begin(desc));
 }
 
 
@@ -125,7 +131,7 @@ std::ostream& operator<<(std::ostream& os, const CoreSigInfo& note) {
 }
 
 
-CoreSigInfo::~CoreSigInfo(void) = default;
+CoreSigInfo::~CoreSigInfo() = default;
 
 } // namespace ELF
 } // namespace LIEF

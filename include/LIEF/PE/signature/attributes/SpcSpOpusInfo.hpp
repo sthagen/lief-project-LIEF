@@ -1,6 +1,6 @@
 
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,22 +52,22 @@ class LIEF_API SpcSpOpusInfo : public Attribute {
   SpcSpOpusInfo(const SpcSpOpusInfo&);
   SpcSpOpusInfo& operator=(const SpcSpOpusInfo&);
 
-  virtual std::unique_ptr<Attribute> clone(void) const override;
+  std::unique_ptr<Attribute> clone() const override;
 
   //! Program description provided by the publisher
   inline const std::string& program_name() const {
-    return this->program_name_;
+    return program_name_;
   }
 
   //! Other information such as an url
   inline const std::string& more_info() const {
-    return this->more_info_;
+    return more_info_;
   }
 
   //! Print information about the attribute
-  virtual std::string print() const override;
+  std::string print() const override;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   virtual ~SpcSpOpusInfo();
 

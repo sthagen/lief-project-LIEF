@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #include <iterator>
 #include <iostream>
 #include <algorithm>
+#include <memory>
 #include <regex>
 #include <stdexcept>
 #include <functional>
@@ -26,120 +27,145 @@
 #include "LIEF/exception.hpp"
 #include "LIEF/BinaryStream/VectorStream.hpp"
 
-#include "LIEF/MachO/Structures.hpp"
 #include "LIEF/MachO/FatBinary.hpp"
 #include "LIEF/MachO/Binary.hpp"
 #include "LIEF/MachO/Parser.hpp"
 #include "LIEF/MachO/BinaryParser.hpp"
 #include "LIEF/MachO/utils.hpp"
-
-#include "filesystem/filesystem.h"
+#include "MachO/Structures.hpp"
 
 namespace LIEF {
 namespace MachO {
-Parser::Parser(void) = default;
-Parser::~Parser(void) = default;
+Parser::Parser() = default;
+Parser::~Parser() = default;
 
 
 // From File
 Parser::Parser(const std::string& file, const ParserConfig& conf) :
   LIEF::Parser{file},
-  stream_{std::unique_ptr<VectorStream>(new VectorStream{file})},
-  binaries_{},
   config_{conf}
 {
-  this->build();
-  for (Binary* binary : this->binaries_) {
-    binary->name(filesystem::path(file).filename());
+  auto stream = VectorStream::from_file(file);
+  if (!stream) {
+    LIEF_ERR("Can't create the stream");
+  } else {
+    stream_ = std::make_unique<VectorStream>(std::move(*stream));
   }
-
 }
 
 
 std::unique_ptr<FatBinary> Parser::parse(const std::string& filename, const ParserConfig& conf) {
-  if (not is_macho(filename)) {
-    throw bad_file("'" + filename + "' is not a MachO binary");
+  if (!is_macho(filename)) {
+    LIEF_ERR("{} is not a MachO file", filename);
+    return nullptr;
   }
 
   Parser parser{filename, conf};
-  return std::unique_ptr<FatBinary>{new FatBinary{parser.binaries_}};
+  parser.build();
+  for (std::unique_ptr<Binary>& binary : parser.binaries_) {
+    binary->name(filename);
+  }
+  return std::unique_ptr<FatBinary>(new FatBinary{std::move(parser.binaries_)});
 }
 
 // From Vector
-Parser::Parser(const std::vector<uint8_t>& data, const std::string& name, const ParserConfig& conf) :
-  stream_{std::unique_ptr<VectorStream>(new VectorStream{data})},
-  binaries_{},
+Parser::Parser(std::vector<uint8_t> data, const ParserConfig& conf) :
+  stream_{std::make_unique<VectorStream>(std::move(data))},
   config_{conf}
-{
-  this->build();
+{}
 
-  for (Binary* binary : this->binaries_) {
+
+std::unique_ptr<FatBinary> Parser::parse(const std::vector<uint8_t>& data,
+                                         const std::string& name, const ParserConfig& conf) {
+  if (!is_macho(data)) {
+    LIEF_ERR("The provided data seem not being related to a MachO binary");
+    return nullptr;
+  }
+
+  Parser parser{data, conf};
+  parser.build();
+
+  for (std::unique_ptr<Binary>& binary : parser.binaries_) {
     binary->name(name);
   }
+  return std::unique_ptr<FatBinary>(new FatBinary{std::move(parser.binaries_)});
 }
 
 
-std::unique_ptr<FatBinary> Parser::parse(const std::vector<uint8_t>& data, const std::string& name, const ParserConfig& conf) {
-  if (not is_macho(data)) {
-    throw bad_file("'" + name + "' is not a MachO binary");
+
+ok_error_t Parser::build_fat() {
+  static constexpr size_t MAX_FAT_ARCH = 10;
+  stream_->setpos(0);
+  const auto header = stream_->read<details::fat_header>();
+  if (!header) {
+    LIEF_ERR("Can't read the FAT header");
+    return make_error_code(lief_errors::read_error);
   }
-
-  Parser parser{data, name, conf};
-  return std::unique_ptr<FatBinary>{new FatBinary{parser.binaries_}};
-}
-
-
-
-void Parser::build_fat(void) {
-
-  const fat_header *header = &this->stream_->peek<fat_header>(0);
   uint32_t nb_arch = Swap4Bytes(header->nfat_arch);
   LIEF_DEBUG("In this Fat binary there is #{:d} archs", nb_arch);
 
-  if (nb_arch > 10) {
-    throw parser_error("Too much architectures");
+  if (nb_arch > MAX_FAT_ARCH) {
+    LIEF_ERR("Too many architectures");
+    return make_error_code(lief_errors::parsing_error);
   }
 
-  const fat_arch* arch = &this->stream_->peek<fat_arch>(sizeof(fat_header));
-
   for (size_t i = 0; i < nb_arch; ++i) {
+    auto res_arch = stream_->read<details::fat_arch>();
+    if (!res_arch) {
+      LIEF_ERR("Can't read arch #{}", i);
+      break;
+    }
+    const auto arch = *res_arch;
 
-    const uint32_t offset = BinaryStream::swap_endian(arch[i].offset);
-    const uint32_t size   = BinaryStream::swap_endian(arch[i].size);
+    const uint32_t offset = BinaryStream::swap_endian(arch.offset);
+    const uint32_t size   = BinaryStream::swap_endian(arch.size);
 
     LIEF_DEBUG("Dealing with arch[{:d}]", i);
     LIEF_DEBUG("    [{:d}].offset", offset);
     LIEF_DEBUG("    [{:d}].size",   size);
 
-    const uint8_t* raw = this->stream_->peek_array<uint8_t>(offset, size, /* check */ false);
-
-    if (raw == nullptr) {
+    std::vector<uint8_t> macho_data;
+    if (!stream_->peek_data(macho_data, offset, size)) {
       LIEF_ERR("MachO #{:d} is corrupted!", i);
       continue;
     }
 
-    std::vector<uint8_t> data = {raw, raw + size};
-
-    Binary *binary = BinaryParser{std::move(data), offset, this->config_}.get_binary();
-    this->binaries_.push_back(binary);
+    std::unique_ptr<Binary> bin = BinaryParser::parse(std::move(macho_data), offset, config_);
+    if (bin == nullptr) {
+      LIEF_ERR("Can't parse the binary at the index #{:d}", i);
+      continue;
+    }
+    binaries_.push_back(std::move(bin));
   }
+  return ok();
 }
 
-void Parser::build(void) {
-  try {
-    MACHO_TYPES type = static_cast<MACHO_TYPES>(this->stream_->peek<uint32_t>(0));
+ok_error_t Parser::build() {
+  auto res_type = stream_->peek<uint32_t>();
+  if (!res_type) {
+    return make_error_code(lief_errors::parsing_error);
+  }
+  auto type = static_cast<MACHO_TYPES>(*res_type);
 
+  try {
     // Fat binary
-    if (type == MACHO_TYPES::FAT_MAGIC or
-        type == MACHO_TYPES::FAT_CIGAM) {
-      this->build_fat();
+    if (type == MACHO_TYPES::FAT_MAGIC || type == MACHO_TYPES::FAT_CIGAM) {
+      if (!build_fat()) {
+        LIEF_WARN("Errors while parsing the Fat MachO");
+      }
     } else { // fit binary
-      Binary *binary = BinaryParser(std::move(this->stream_), 0, this->config_).get_binary();
-      this->binaries_.push_back(binary);
+      std::unique_ptr<Binary> bin = BinaryParser::parse(std::move(stream_), 0, config_);
+      if (bin == nullptr) {
+        return make_error_code(lief_errors::parsing_error);
+      }
+      binaries_.push_back(std::move(bin));
     }
   } catch (const std::exception& e) {
     LIEF_DEBUG("{}", e.what());
+    return make_error_code(lief_errors::parsing_error);
   }
+
+  return ok();
 }
 
 } //namespace MachO

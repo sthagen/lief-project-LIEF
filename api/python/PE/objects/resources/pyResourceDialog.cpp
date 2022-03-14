@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include "pyPE.hpp"
+#include "pyIterators.hpp"
 
 #include "LIEF/PE/hash.hpp"
 #include "LIEF/PE/resources/ResourceDialog.hpp"
@@ -34,8 +35,21 @@ using setter_t = void (ResourceDialog::*)(T);
 
 template<>
 void create<ResourceDialog>(py::module& m) {
-  py::class_<ResourceDialog, LIEF::Object>(m, "ResourceDialog")
+  py::class_<ResourceDialog, LIEF::Object> dialog(m, "ResourceDialog",
+      R"delim(
+      Representation of a dialog box.
 
+      Windows allows two kinds of dialog box:
+
+        * Simple one
+        * Extended one
+
+      :attr:`~lief.PE.ResourceDialog.is_extended` can be used to determine which one is implemented
+      )delim");
+
+  init_ref_iterator<ResourceDialog::it_const_items>(dialog, "it_const_items");
+
+  dialog
     .def_property_readonly("is_extended",
         &ResourceDialog::is_extended,
         "``True`` if the dialog is an extended one")
@@ -46,9 +60,12 @@ void create<ResourceDialog>(py::module& m) {
 
     .def_property_readonly("signature",
         &ResourceDialog::signature,
-        "Indicates whether a template is an extended dialog box template:\n\n"
-        "* ``0xFFFF``: Extended dialog box template\n"
-        "* Other value: Standard dialog box template")
+        R"delim(
+        Indicate whether a template is an extended dialog box template:
+
+          * ``0xFFFF``: Extended dialog box template
+          * Other value: Standard dialog box template
+        )delim")
 
     .def_property_readonly("help_id",
         &ResourceDialog::version,
@@ -107,7 +124,8 @@ void create<ResourceDialog>(py::module& m) {
 
     .def_property_readonly("style",
         &ResourceDialog::extended_style,
-        "The style of the dialog box. This member can be a combination of " RST_CLASS_REF(lief.PE.WINDOW_STYLES)         " and " RST_CLASS_REF(lief.PE.DIALOG_BOX_STYLES) "")
+        "The style of the dialog box. This member can be a combination of "
+        RST_CLASS_REF(lief.PE.WINDOW_STYLES) " and " RST_CLASS_REF(lief.PE.DIALOG_BOX_STYLES) "")
 
     .def_property_readonly("extended_style",
         &ResourceDialog::extended_style,
@@ -115,7 +133,7 @@ void create<ResourceDialog>(py::module& m) {
 
     .def_property_readonly("items",
         &ResourceDialog::items,
-        "Iterator on the controls (" RST_CLASS_REF(lief.PE.ResourceDialogItem) ") that define the Dialog (Button, Label...)")
+        "Iterator over the controls (" RST_CLASS_REF(lief.PE.ResourceDialogItem) ") that defines the Dialog (Button, Label...)")
 
     .def("has_style",
         &ResourceDialog::has_style,

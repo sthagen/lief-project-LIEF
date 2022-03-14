@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ PKCS9CounterSignature::PKCS9CounterSignature(SignerInfo signer) :
   signer_{std::move(signer)}
 {}
 
-std::unique_ptr<Attribute> PKCS9CounterSignature::clone(void) const {
+std::unique_ptr<Attribute> PKCS9CounterSignature::clone() const {
   return std::unique_ptr<Attribute>(new PKCS9CounterSignature{*this});
 }
 
@@ -40,7 +40,7 @@ void PKCS9CounterSignature::accept(Visitor& visitor) const {
 
 std::string PKCS9CounterSignature::print() const {
   std::ostringstream oss;
-  oss << this->signer() << "\n";
+  oss << signer() << "\n";
   return oss.str();
 }
 

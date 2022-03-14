@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,33 +27,38 @@ namespace LIEF {
 namespace MachO {
 class BinaryParser;
 
+namespace details {
 struct linkedit_data_command;
+}
 
+//! Class that represents the LOAD_COMMAND_TYPES::LC_SEGMENT_SPLIT_INFO command
 class LIEF_API SegmentSplitInfo : public LoadCommand {
   friend class BinaryParser;
   public:
-  SegmentSplitInfo(void);
-  SegmentSplitInfo(const linkedit_data_command *cmd);
+  SegmentSplitInfo();
+  SegmentSplitInfo(const details::linkedit_data_command& cmd);
 
   SegmentSplitInfo& operator=(const SegmentSplitInfo& copy);
   SegmentSplitInfo(const SegmentSplitInfo& copy);
 
-  virtual SegmentSplitInfo* clone(void) const override;
+  SegmentSplitInfo* clone() const override;
 
-  uint32_t data_offset(void) const;
-  uint32_t data_size(void) const;
+  uint32_t data_offset() const;
+  uint32_t data_size() const;
 
   void data_offset(uint32_t offset);
   void data_size(uint32_t size);
 
-  virtual ~SegmentSplitInfo(void);
+  virtual ~SegmentSplitInfo();
 
   bool operator==(const SegmentSplitInfo& rhs) const;
   bool operator!=(const SegmentSplitInfo& rhs) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
+
+  static bool classof(const LoadCommand* cmd);
 
   private:
   uint32_t              data_offset_;

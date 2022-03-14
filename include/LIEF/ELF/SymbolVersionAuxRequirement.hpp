@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,44 +20,47 @@
 #include <iostream>
 
 #include "LIEF/visibility.h"
+#include "LIEF/iterators.hpp"
 
 #include "LIEF/ELF/SymbolVersionAux.hpp"
 
 namespace LIEF {
 namespace ELF {
+namespace details {
 struct Elf64_Vernaux;
 struct Elf32_Vernaux;
+}
 
 class LIEF_API SymbolVersionAuxRequirement : public SymbolVersionAux {
   public:
   using SymbolVersionAux::name;
 
-  SymbolVersionAuxRequirement(const Elf64_Vernaux *header);
-  SymbolVersionAuxRequirement(const Elf32_Vernaux *header);
-  SymbolVersionAuxRequirement(void);
+  SymbolVersionAuxRequirement(const details::Elf64_Vernaux& header);
+  SymbolVersionAuxRequirement(const details::Elf32_Vernaux& header);
+  SymbolVersionAuxRequirement();
 
   SymbolVersionAuxRequirement& operator=(const SymbolVersionAuxRequirement&);
   SymbolVersionAuxRequirement(const SymbolVersionAuxRequirement&);
 
-  virtual ~SymbolVersionAuxRequirement(void);
+  virtual ~SymbolVersionAuxRequirement();
 
-  //! @brief Hash value of the dependency name (use ELF hashing function)
-  uint32_t hash(void) const;
+  //! Hash value of the dependency name (use ELF hashing function)
+  uint32_t hash() const;
 
-  //! @brief Bitmask of flags
-  uint16_t flags(void) const;
+  //! Bitmask of flags
+  uint16_t flags() const;
 
-  //! @brief Contains version index unique for the file which is used in the
-  //! version symbol table.  If the highest bit (bit 15) is set this
+  //! It returns the unique version index for the file which is used in the
+  //! version symbol table. If the highest bit (bit 15) is set this
   //! is a hidden symbol which cannot be referenced from outside the
   //! object.
-  uint16_t other(void) const;
+  uint16_t other() const;
 
   void hash(uint32_t hash);
   void flags(uint16_t flags);
   void other(uint16_t other);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const SymbolVersionAuxRequirement& rhs) const;
   bool operator!=(const SymbolVersionAuxRequirement& rhs) const;
@@ -65,9 +68,9 @@ class LIEF_API SymbolVersionAuxRequirement : public SymbolVersionAux {
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const SymbolVersionAuxRequirement& symAux);
 
   private:
-  uint32_t hash_;
-  uint16_t flags_;
-  uint16_t other_;
+  uint32_t hash_ = 0;
+  uint16_t flags_ = 0;
+  uint16_t other_ = 0;
 };
 }
 }

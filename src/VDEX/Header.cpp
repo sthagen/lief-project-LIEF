@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 #include "LIEF/VDEX/Header.hpp"
 #include "LIEF/VDEX/hash.hpp"
+
+#include "VDEX/Structures.hpp"
 
 #include <numeric>
 #include <sstream>
@@ -32,7 +34,7 @@ namespace VDEX {
 Header::Header(const Header&) = default;
 Header& Header::operator=(const Header&) = default;
 
-Header::Header(void) :
+Header::Header() :
   magic_{},
   version_{0},
   nb_dex_files_{0},
@@ -40,35 +42,33 @@ Header::Header(void) :
   verifier_deps_size_{0},
   quickening_info_size_{0}
 {
-  std::copy(
-      std::begin(VDEX::magic),
-      std::end(VDEX::magic),
-      std::begin(this->magic_)
+  std::copy(std::begin(details::magic), std::end(details::magic),
+            std::begin(magic_)
   );
 }
 
-Header::magic_t Header::magic(void) const {
-  return this->magic_;
+Header::magic_t Header::magic() const {
+  return magic_;
 }
 
-vdex_version_t Header::version(void) const {
-  return this->version_;
+vdex_version_t Header::version() const {
+  return version_;
 }
 
-uint32_t Header::nb_dex_files(void) const {
-  return this->nb_dex_files_;
+uint32_t Header::nb_dex_files() const {
+  return nb_dex_files_;
 }
 
-uint32_t Header::dex_size(void) const {
-  return this->dex_size_;
+uint32_t Header::dex_size() const {
+  return dex_size_;
 }
 
-uint32_t Header::verifier_deps_size(void) const {
-  return this->verifier_deps_size_;
+uint32_t Header::verifier_deps_size() const {
+  return verifier_deps_size_;
 }
 
-uint32_t Header::quickening_info_size(void) const {
-  return this->quickening_info_size_;
+uint32_t Header::quickening_info_size() const {
+  return quickening_info_size_;
 }
 
 void Header::accept(Visitor& visitor) const {
@@ -76,13 +76,16 @@ void Header::accept(Visitor& visitor) const {
 }
 
 bool Header::operator==(const Header& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool Header::operator!=(const Header& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const Header& header) {
@@ -90,7 +93,7 @@ std::ostream& operator<<(std::ostream& os, const Header& header) {
 
   std::string magic_str;
   for (uint8_t c : header.magic()) {
-    if (::isprint(c)) {
+    if (::isprint(c) != 0) {
       magic_str.push_back(static_cast<char>(c));
     } else {
       std::stringstream ss;
@@ -111,7 +114,7 @@ std::ostream& operator<<(std::ostream& os, const Header& header) {
   return os;
 }
 
-Header::~Header(void) = default;
+Header::~Header() = default;
 
 } // Namespace VDEX
 } // Namespace LIEF

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,13 +27,13 @@
 using namespace LIEF::ELF;
 
 int main(int argc, char **argv) {
-  std::cout << "ELF Section rename" << std::endl;
+  std::cout << "ELF Section rename" << '\n';
   if (argc != 3) {
-    std::cerr << "Usage: " << argv[0] << "<binary> <binary output name>" << std::endl;
+    std::cerr << "Usage: " << argv[0] << "<binary> <binary output name>" << '\n';
     return -1;
   }
 
-  std::unique_ptr<Binary> binary{Parser::parse(argv[1])};
+  std::unique_ptr<Binary> binary = Parser::parse(argv[1]);
   for (size_t i = 0; i < 2; ++i) {
     Section new_section{".test"};
     std::vector<uint8_t> data(100, 0);

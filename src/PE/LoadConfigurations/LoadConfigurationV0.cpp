@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,33 +25,32 @@ namespace PE {
 
 LoadConfigurationV0& LoadConfigurationV0::operator=(const LoadConfigurationV0&) = default;
 LoadConfigurationV0::LoadConfigurationV0(const LoadConfigurationV0&) = default;
-LoadConfigurationV0::~LoadConfigurationV0(void) = default;
+LoadConfigurationV0::~LoadConfigurationV0() = default;
 
-LoadConfigurationV0::LoadConfigurationV0(void) :
-  LoadConfiguration{},
+LoadConfigurationV0::LoadConfigurationV0() :
   se_handler_table_{0},
   se_handler_count_{0}
 {}
 
 
-WIN_VERSION LoadConfigurationV0::version(void) const {
+WIN_VERSION LoadConfigurationV0::version() const {
   return LoadConfigurationV0::VERSION;
 }
 
-uint64_t LoadConfigurationV0::se_handler_table(void) const {
-  return this->se_handler_table_;
+uint64_t LoadConfigurationV0::se_handler_table() const {
+  return se_handler_table_;
 }
 
-uint64_t LoadConfigurationV0::se_handler_count(void) const {
-  return this->se_handler_count_;
+uint64_t LoadConfigurationV0::se_handler_count() const {
+  return se_handler_count_;
 }
 
 void LoadConfigurationV0::se_handler_table(uint64_t se_handler_table) {
-  this->se_handler_table_ = se_handler_table;
+  se_handler_table_ = se_handler_table;
 }
 
 void LoadConfigurationV0::se_handler_count(uint64_t se_handler_count) {
-  this->se_handler_count_ = se_handler_count;
+  se_handler_count_ = se_handler_count;
 }
 
 void LoadConfigurationV0::accept(Visitor& visitor) const {
@@ -59,20 +58,23 @@ void LoadConfigurationV0::accept(Visitor& visitor) const {
 }
 
 bool LoadConfigurationV0::operator==(const LoadConfigurationV0& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool LoadConfigurationV0::operator!=(const LoadConfigurationV0& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& LoadConfigurationV0::print(std::ostream& os) const {
   LoadConfiguration::print(os);
 
-  os << std::setw(LoadConfiguration::PRINT_WIDTH) << std::setfill(' ') << "SE handler table:" << std::hex << this->se_handler_table() << std::endl;
-  os << std::setw(LoadConfiguration::PRINT_WIDTH) << std::setfill(' ') << "SE handler count:" << std::dec << this->se_handler_count() << std::endl;
+  os << std::setw(LoadConfiguration::PRINT_WIDTH) << std::setfill(' ') << "SE handler table:" << std::hex << se_handler_table() << std::endl;
+  os << std::setw(LoadConfiguration::PRINT_WIDTH) << std::setfill(' ') << "SE handler count:" << std::dec << se_handler_count() << std::endl;
   return os;
 }
 

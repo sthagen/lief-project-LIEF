@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 namespace LIEF {
 namespace DEX {
 
-MapItem::MapItem(void) = default;
+MapItem::MapItem() = default;
 MapItem::MapItem(const MapItem& other) = default;
 MapItem& MapItem::operator=(const MapItem&) = default;
 
@@ -35,20 +35,20 @@ MapItem::MapItem(MapItem::TYPES type, uint32_t offset, uint32_t size, uint16_t r
   offset_{offset}
 {}
 
-MapItem::TYPES MapItem::type(void) const {
-  return this->type_;
+MapItem::TYPES MapItem::type() const {
+  return type_;
 }
 
-uint16_t MapItem::reserved(void) const {
-  return this->reserved_;
+uint16_t MapItem::reserved() const {
+  return reserved_;
 }
 
-uint32_t MapItem::size(void) const {
-  return this->size_;
+uint32_t MapItem::size() const {
+  return size_;
 }
 
-uint32_t MapItem::offset(void) const {
-  return this->offset_;
+uint32_t MapItem::offset() const {
+  return offset_;
 }
 
 void MapItem::accept(Visitor& visitor) const {
@@ -56,13 +56,16 @@ void MapItem::accept(Visitor& visitor) const {
 }
 
 bool MapItem::operator==(const MapItem& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool MapItem::operator!=(const MapItem& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const MapItem& mitem) {
@@ -73,7 +76,7 @@ std::ostream& operator<<(std::ostream& os, const MapItem& mitem) {
 }
 
 
-MapItem::~MapItem(void) = default;
+MapItem::~MapItem() = default;
 
 }
 }

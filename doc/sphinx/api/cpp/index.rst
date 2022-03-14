@@ -3,6 +3,8 @@
 C++
 ===
 
+The original Doxygen documentation is also available `here <../../doxygen/>`_
+
 .. toctree::
   :maxdepth: 2
 
@@ -22,8 +24,37 @@ C++
 
   platforms/android.rst
 
+.. _cpp-api-error-handling:
+
+Error Handling
+--------------
+
+.. doxygentypedef:: LIEF::result
+   :project: lief
+
+.. doxygenfunction:: LIEF::as_lief_err
+   :project: lief
+
+.. doxygenenum:: lief_errors
+   :project: lief
+
+.. doxygentypedef:: LIEF::ok_error_t
+   :project: lief
+
+.. doxygenfunction:: LIEF::ok
+   :project: lief
+
+.. doxygenstruct:: LIEF::ok_t
+   :project: lief
+
+See also the section :ref:`err_handling`
+
 Exceptions
 ----------
+
+.. warning::
+
+   Exceptions will be progressively removed as explained in :ref:`err_handling`
 
 .. doxygenclass:: LIEF::exception
    :project: lief

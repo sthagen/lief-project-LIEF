@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  * Copyright 2017 - 2021 K. Nakagawa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,11 +19,7 @@
 #include <string>
 
 #include "LIEF/visibility.h"
-
 #include "LIEF/Object.hpp"
-
-#include "LIEF/PE/Structures.hpp"
-#include "LIEF/PE/type_traits.hpp"
 
 namespace LIEF {
 namespace PE {
@@ -33,19 +29,22 @@ class LIEF_API ResourceStringTable : public Object {
 
   friend class ResourcesManager;
   public:
-  ResourceStringTable(void);
+  ResourceStringTable();
 
-  ResourceStringTable(int16_t length, const std::u16string& name);
+  ResourceStringTable(int16_t length, std::u16string name);
   ResourceStringTable(const ResourceStringTable&);
 
   ResourceStringTable& operator=(const ResourceStringTable&);
 
-  virtual ~ResourceStringTable(void);
+  virtual ~ResourceStringTable();
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  int16_t length(void) const;
-  const std::u16string& name(void) const;
+  //! The size of the string, not including length field itself.
+  int16_t length() const;
+
+  //! The variable-length Unicode string data, word-aligned.
+  const std::u16string& name() const;
 
   bool operator==(const ResourceStringTable& rhs) const;
   bool operator!=(const ResourceStringTable& rhs) const;

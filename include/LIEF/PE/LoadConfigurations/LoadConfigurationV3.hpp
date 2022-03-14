@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,10 @@
 namespace LIEF {
 namespace PE {
 
+namespace details {
 template<class T>
 struct load_configuration_v3;
+}
 
 //! @brief LoadConfiguration with Control Flow Guard improved
 class LIEF_API LoadConfigurationV3 : public LoadConfigurationV2 {
@@ -34,41 +36,41 @@ class LIEF_API LoadConfigurationV3 : public LoadConfigurationV2 {
 
   static constexpr WIN_VERSION VERSION = WIN_VERSION::WIN10_0_14286;
 
-  LoadConfigurationV3(void);
+  LoadConfigurationV3();
 
   template<class T>
-  LIEF_LOCAL LoadConfigurationV3(const load_configuration_v3<T>* header);
+  LIEF_LOCAL LoadConfigurationV3(const details::load_configuration_v3<T>& header);
 
   LoadConfigurationV3& operator=(const LoadConfigurationV3&);
   LoadConfigurationV3(const LoadConfigurationV3&);
 
-  virtual WIN_VERSION version(void) const override;
+  WIN_VERSION version() const override;
 
   //! @brief VA of a table associated with CFG's *IAT* checks
-  uint64_t guard_address_taken_iat_entry_table(void) const;
+  uint64_t guard_address_taken_iat_entry_table() const;
 
   //! @brief Number of entries in the LoadConfigurationV3::guard_address_taken_iat_entry_table
-  uint64_t guard_address_taken_iat_entry_count(void) const;
+  uint64_t guard_address_taken_iat_entry_count() const;
 
   //! @brief VA of a table associated with CFG's *long jump*
-  uint64_t guard_long_jump_target_table(void) const;
+  uint64_t guard_long_jump_target_table() const;
 
   //! @brief Number of entries in the LoadConfigurationV3::guard_long_jump_target_table
-  uint64_t guard_long_jump_target_count(void) const;
+  uint64_t guard_long_jump_target_count() const;
 
   void guard_address_taken_iat_entry_table(uint64_t value);
   void guard_address_taken_iat_entry_count(uint64_t value);
   void guard_long_jump_target_table(uint64_t value);
   void guard_long_jump_target_count(uint64_t value);
 
-  virtual ~LoadConfigurationV3(void);
+  virtual ~LoadConfigurationV3();
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const LoadConfigurationV3& rhs) const;
   bool operator!=(const LoadConfigurationV3& rhs) const;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
 
   protected:
   uint64_t guard_address_taken_iat_entry_table_;

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,18 +28,7 @@
 #include <spdlog/fmt/fmt.h>
 
 #include "LIEF/utils.hpp"
-#include "LIEF/third-party/utfcpp/utf8.h"
-
-namespace LIEF {
-uint64_t align(uint64_t value, uint64_t align_on) {
-  if ((align_on > 0) and (value % align_on) > 0) {
-    return  value + (align_on - (value % align_on));
-  } else {
-    return value;
-  }
-}
-}
-
+#include "third-party/utfcpp.hpp"
 
 namespace LIEF {
 namespace LEB128 {
@@ -64,10 +53,11 @@ std::string u16tou8(const std::u16string& string, bool remove_null_char) {
 
   std::u16string clean_string;
   std::copy_if(std::begin(string), std::end(string),
-      std::back_inserter(clean_string),
-      utf8::internal::is_code_point_valid<char16_t>);
+               std::back_inserter(clean_string),
+              utf8::internal::is_code_point_valid<char16_t>);
 
-  utf8::unchecked::utf16to8(std::begin(clean_string), std::end(clean_string), std::back_inserter(name));
+  utf8::unchecked::utf16to8(std::begin(clean_string), std::end(clean_string),
+                            std::back_inserter(name));
 
   if (remove_null_char) {
     return std::string{name.c_str()};
@@ -87,7 +77,7 @@ std::string hex_str(uint8_t c) {
   return ss.str();
 }
 
-std::string hex_dump(const std::vector<uint8_t>& data, std::string sep) {
+std::string hex_dump(const std::vector<uint8_t>& data, const std::string& sep) {
 
   std::string hexstring = std::accumulate(std::begin(data), std::end(data), std::string{},
      [sep] (const std::string& a, uint8_t b) {
@@ -100,7 +90,7 @@ std::string hex_dump(const std::vector<uint8_t>& data, std::string sep) {
 
 bool is_printable(const std::string& str) {
   return std::all_of(std::begin(str), std::end(str),
-          std::bind(std::isprint<char>, std::placeholders::_1, std::locale("C")));
+                     [] (char c) { return std::isprint<char>(c, std::locale("C")); });
 }
 
 bool is_hex_number(const std::string& str) {

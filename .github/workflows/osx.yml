@@ -6,7 +6,7 @@ jobs:
     runs-on: macos-11.0
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9, '3.10']
     steps:
       - uses: actions/checkout@v2
         with:
@@ -32,12 +32,23 @@ jobs:
         uses: actions/cache@v1.1.0
         with:
           path: ~/.ccache
-          key: osx-${{ runner.os }}-${{ matrix.python-version }}-${{ steps.get-date.outputs.date }}
+          key: osx-${{ runner.os }}-${{ steps.get-date.outputs.date }}
           restore-keys: |
-              osx-${{ runner.os }}-${{ matrix.python-version }}-
               osx-${{ runner.os }}-
+      - name: Build Python ${{ matrix.python-version }} wheel and Test
+        shell: bash
+        if: matrix.python-version == '3.6'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.14"
+          CCACHE_DIR: ~/.ccache
+          CCACHE_MAXSIZE: 10.0G
+          CCACHE_CPP2: 1
+          CCACHE_COMPRESS: 1
+        run: |
+          python ./setup.py --ninja --lief-test build bdist_wheel --skip-build --plat-name=macosx_${MACOSX_DEPLOYMENT_TARGET}_x86_64
       - name: Build Python ${{ matrix.python-version }} wheel
         shell: bash
+        if: matrix.python-version != '3.6'
         env:
           MACOSX_DEPLOYMENT_TARGET: "10.14"
           CCACHE_DIR: ~/.ccache

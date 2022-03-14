@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@
 
 #include "LIEF/PE/signature/types.hpp"
 #include "LIEF/PE/enums.hpp"
+
+#include "LIEF/iterators.hpp"
 #include "LIEF/enums.hpp"
 
 namespace LIEF {
@@ -45,7 +47,14 @@ class LIEF_API Signature : public Object {
   static std::vector<uint8_t> hash(const std::vector<uint8_t>& input, ALGORITHMS algo);
 
   public:
-  //! Flags returned by verification functions
+
+  //! Iterator which outputs const x509& certificates
+  using it_const_crt = const_ref_iterator<const std::vector<x509>&>;
+
+  //! Iterator which outputs const SignerInfo&
+  using it_const_signers_t = const_ref_iterator<const std::vector<SignerInfo>&>;
+
+  //! Flags returned by the verification functions
   enum class VERIFICATION_FLAGS {
     OK = 0,
     INVALID_SIGNER                = 1 << 0,
@@ -76,31 +85,34 @@ class LIEF_API Signature : public Object {
     SKIP_CERT_TIME   = 1 << 3, /**< Skip the verification of the certificates time validities so that even though a certificate expired, it returns VERIFICATION_FLAGS::OK */
   };
 
-  Signature(void);
+  Signature();
   Signature(const Signature&);
   Signature& operator=(const Signature&);
 
+  Signature(Signature&&);
+  Signature& operator=(Signature&&);
+
   //! Should be 1
-  uint32_t version(void) const;
+  uint32_t version() const;
 
   //! Algorithm used to *digest* the file.
   //!
   //! It should match SignerInfo::digest_algorithm
   inline ALGORITHMS digest_algorithm() const {
-    return this->digest_algorithm_;
+    return digest_algorithm_;
   }
 
   //! Return the ContentInfo
-  const ContentInfo& content_info(void) const;
+  const ContentInfo& content_info() const;
 
   //! Return an iterator over x509 certificates
-  it_const_crt certificates(void) const;
+  it_const_crt certificates() const;
 
   //! Return an iterator over the signers (SignerInfo) defined in the PKCS #7 signature
-  it_const_signers_t signers(void) const;
+  it_const_signers_t signers() const;
 
   //! Return the raw original PKCS7 signature
-  const std::vector<uint8_t>& raw_der(void) const;
+  const std::vector<uint8_t>& raw_der() const;
 
   //! Find x509 certificate according to its serial number
   const x509* find_crt(const std::vector<uint8_t>& serialno) const;
@@ -139,9 +151,9 @@ class LIEF_API Signature : public Object {
   //! See: LIEF::PE::Signature::VERIFICATION_CHECKS to tweak the behavior
   VERIFICATION_FLAGS check(VERIFICATION_CHECKS checks = VERIFICATION_CHECKS::DEFAULT) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual ~Signature(void);
+  virtual ~Signature();
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const Signature& signature);
 

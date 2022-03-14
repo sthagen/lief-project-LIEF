@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@
 #define LIEF_ERR(...)   LIEF::logging::Logger::err(__VA_ARGS__)
 
 #define LIEF_SW_START(X) spdlog::stopwatch X;
-#define LIEF_SW_END(...) LIEF_DEBUG(__VA_ARGS__);
+#define LIEF_SW_END(...) LIEF_INFO(__VA_ARGS__);
 
 #define CHECK(X, ...)        \
   do {                       \
@@ -60,24 +60,24 @@ class Logger {
   static Logger& instance();
 
   //! @brief Disable the logging module
-  static void disable(void);
+  static void disable();
 
   //! @brief Enable the logging module
-  static void enable(void);
+  static void enable();
 
   //! @brief Change the logging level (**hierarchical**)
   static void set_level(LOGGING_LEVEL level);
 
   template <typename... Args>
   static void trace(const char *fmt, const Args &... args) {
-    if /* constexpr */ (lief_logging_support and lief_logging_debug) {
+    if /* constexpr */ (lief_logging_support && lief_logging_debug) {
       Logger::instance().sink_->trace(fmt, args...);
     }
   }
 
   template <typename... Args>
   static void debug(const char *fmt, const Args &... args) {
-    if /* constexpr */ (lief_logging_support and lief_logging_debug) {
+    if /* constexpr */ (lief_logging_support && lief_logging_debug) {
       Logger::instance().sink_->debug(fmt, args...);
     }
   }
@@ -105,11 +105,11 @@ class Logger {
 
   ~Logger();
   private:
-  Logger(void);
+  Logger();
   Logger(Logger&&);
   Logger& operator=(Logger&&);
 
-  static void destroy(void);
+  static void destroy();
   /* inline */ static Logger* instance_;
   std::shared_ptr<spdlog::logger> sink_;
 };

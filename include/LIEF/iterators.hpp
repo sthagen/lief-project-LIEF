@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  * Copyright 2017 - 2021, NVIDIA CORPORATION. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,24 +44,26 @@ using add_lvalue_reference_t = typename std::add_lvalue_reference<T>::type;
 
 
 //! Iterator which returns reference on container's values
-template<class T, class ITERATOR_T = typename decay_t<T>::iterator>
+template<class T, typename U = typename decay_t<T>::value_type,
+         class ITERATOR_T = typename decay_t<T>::iterator>
 class ref_iterator : public std::iterator<
                      std::bidirectional_iterator_tag,
-                     typename decay_t<T>::value_type,
+                     decay_t<U>,
                      ptrdiff_t,
-                     typename std::remove_pointer<typename decay_t<T>::value_type>::type*,
-                     typename std::remove_pointer<typename decay_t<T>::value_type>::type&> {
+                     typename std::remove_pointer<U>::type*,
+                     typename std::remove_pointer<U>::type&> {
   public:
-  using container_type = T;
-  using DT        = decay_t<T>;
-  using ref_t     = typename ref_iterator::reference;
-  using pointer_t = typename ref_iterator::pointer;
+  using container_type = T;          // e.g. std::vector<Section*>&
+  using DT_VAL         = U;          // e.g. Section*
+  using DT             = decay_t<T>; // e.g. std::vector<Section>
+  using ref_t          = typename ref_iterator::reference;
+  using pointer_t      = typename ref_iterator::pointer;
 
   ref_iterator(T container) :
     container_{std::forward<T>(container)},
     distance_{0}
   {
-    this->it_ = std::begin(container_);
+    it_ = std::begin(container_);
   }
 
   ref_iterator(const ref_iterator& copy) :
@@ -69,25 +71,26 @@ class ref_iterator : public std::iterator<
     it_{std::begin(container_)},
     distance_{copy.distance_}
   {
-    std::advance(this->it_, this->distance_);
+    std::advance(it_, distance_);
   }
 
 
   ref_iterator operator=(ref_iterator other) {
-    this->swap(other);
+    swap(other);
     return *this;
   }
 
   void swap(ref_iterator& other) {
-    std::swap(const_cast<add_lvalue_reference_t<remove_const_t<DT>>>(this->container_), const_cast<add_lvalue_reference_t<remove_const_t<DT>>>(other.container_));
-    std::swap(this->it_, other.it_);
-    std::swap(this->distance_, other.distance_);
+    std::swap(const_cast<add_lvalue_reference_t<remove_const_t<DT>>>(container_),
+              const_cast<add_lvalue_reference_t<remove_const_t<DT>>>(other.container_));
+    std::swap(it_, other.it_);
+    std::swap(distance_, other.distance_);
   }
 
 
-  ref_iterator& operator++(void) {
-    this->it_ = std::next(this->it_);
-    this->distance_++;
+  ref_iterator& operator++() {
+    it_ = std::next(it_);
+    distance_++;
     return *this;
   }
 
@@ -97,10 +100,10 @@ class ref_iterator : public std::iterator<
     return retval;
   }
 
-  ref_iterator& operator--(void) {
-    if (this->it_ != std::begin(container_)) {
-      this->it_ = std::prev(this->it_);
-      this->distance_--;
+  ref_iterator& operator--() {
+    if (it_ != std::begin(container_)) {
+      it_ = std::prev(it_);
+      distance_--;
     }
     return *this;
   }
@@ -113,8 +116,8 @@ class ref_iterator : public std::iterator<
 
 
   ref_iterator& operator+=(const typename ref_iterator::difference_type& movement) {
-    std::advance(this->it_, movement);
-    this->distance_ += movement;
+    std::advance(it_, movement);
+    distance_ += movement;
     return *this;
   }
 
@@ -131,7 +134,7 @@ class ref_iterator : public std::iterator<
 
 
   add_const_t<ref_t> operator[](size_t n) const {
-    assert(n < this->size() && "integrity error: out of bound");
+    assert(n < size() && "integrity error: out of bound");
 
     ref_iterator* no_const_this = const_cast<ref_iterator*>(this);
 
@@ -160,7 +163,7 @@ class ref_iterator : public std::iterator<
 
 
   typename ref_iterator::difference_type operator-(const ref_iterator& rhs) const {
-    return this->distance_ - rhs.distance_;
+    return distance_ - rhs.distance_;
   }
 
   bool operator<(const ref_iterator& rhs) const {
@@ -182,54 +185,57 @@ class ref_iterator : public std::iterator<
     return !(*this > rhs);
   }
 
-  ref_iterator begin(void) const {
-    return this->container_;
+  ref_iterator begin() const {
+    return container_;
   }
 
-  ref_iterator cbegin(void) const {
-    return this->begin();
+  ref_iterator cbegin() const {
+    return begin();
   }
 
-  ref_iterator end(void)  const {
-    ref_iterator it = ref_iterator{this->container_};
+  ref_iterator end()  const {
+    ref_iterator it = ref_iterator{container_};
     it.it_ = std::end(it.container_);
     it.distance_ = it.size();
     return it;
   }
 
-  ref_iterator cend(void) const {
-    return this->end();
+  ref_iterator cend() const {
+    return end();
   }
 
   bool operator==(const ref_iterator& other) const {
-    return (this->size() == other.size() and this->distance_ == other.distance_);
+    return (size() == other.size() && distance_ == other.distance_);
   }
 
   bool operator!=(const ref_iterator& other) const {
     return !(*this == other);
   }
 
-  size_t size(void) const {
-    return this->container_.size();
+  size_t size() const {
+    return container_.size();
   }
 
+  bool empty() const {
+    return container_.empty();
+  }
 
   typename std::enable_if<!std::is_const<ref_t>::value, remove_const_t<ref_t>>::type
   operator*() {
     return const_cast<remove_const_t<ref_t>>(static_cast<const ref_iterator*>(this)->operator*());
   }
 
-  template<typename U = typename DT::value_type>
-  typename std::enable_if<std::is_pointer<U>::value, add_const_t<ref_t>>::type
+  template<typename V = DT_VAL>
+  typename std::enable_if<std::is_pointer<V>::value, add_const_t<ref_t>>::type
   operator*() const {
-    assert(*this->it_ && "integrity error: nullptr");
+    assert(*it_ && "integrity error: nullptr");
     return const_cast<add_const_t<ref_t>>(**it_);
   }
 
-  template<typename U = typename DT::value_type>
-  typename std::enable_if<!std::is_pointer<U>::value, add_const_t<ref_t>>::type
+  template<typename V = DT_VAL>
+  typename std::enable_if<!std::is_pointer<V>::value, add_const_t<ref_t>>::type
   operator*() const {
-    return const_cast<add_const_t<ref_t>>(*(this->it_));
+    return const_cast<add_const_t<ref_t>>(*(it_));
   }
 
 
@@ -239,7 +245,7 @@ class ref_iterator : public std::iterator<
   }
 
   add_const_t<pointer_t> operator->() const {
-    return const_cast<add_const_t<pointer_t>>(&(this->operator*()));
+    return const_cast<add_const_t<pointer_t>>(&(operator*()));
   }
 
   protected:
@@ -250,21 +256,23 @@ class ref_iterator : public std::iterator<
 
 
 //! Iterator which return const ref on container's values
-template<class T, class CT = typename std::add_const<T>::type>
-using const_ref_iterator = ref_iterator<CT, typename decay_t<CT>::const_iterator>;
+template<class T, typename U = typename decay_t<T>::value_type, class CT = typename std::add_const<T>::type>
+using const_ref_iterator = ref_iterator<CT, U, typename decay_t<CT>::const_iterator>;
 
 
 //! Iterator which return a ref on container's values given predicates
-template<class T, class ITERATOR_T = typename decay_t<T>::iterator>
+template<class T, typename U = typename decay_t<T>::value_type,
+         class ITERATOR_T = typename decay_t<T>::iterator>
 class filter_iterator : public std::iterator<
-                     std::forward_iterator_tag,
-                     typename decay_t<T>::value_type,
-                     ptrdiff_t,
-                     typename std::remove_pointer<typename decay_t<T>::value_type>::type*,
-                     typename std::remove_pointer<typename decay_t<T>::value_type>::type&> {
+                        std::forward_iterator_tag,
+                        decay_t<U>,
+                        ptrdiff_t,
+                        typename std::remove_pointer<U>::type*,
+                        typename std::remove_pointer<U>::type&> {
 
   public:
   using container_type = T;
+  using DT_VAL         = U;
   using DT        = decay_t<T>;
   using ref_t     = typename filter_iterator::reference;
   using pointer_t = typename filter_iterator::pointer;
@@ -277,14 +285,14 @@ class filter_iterator : public std::iterator<
     distance_{0}
   {
 
-    this->it_ = std::begin(this->container_);
+    it_ = std::begin(container_);
 
-    this->filters_.push_back(filter),
-    this->it_ = std::begin(this->container_);
+    filters_.push_back(filter),
+    it_ = std::begin(container_);
 
-    if (this->it_ != std::end(this->container_)) {
-      if (!std::all_of(std::begin(this->filters_), std::end(this->filters_), [this] (const filter_t& f) {return f(*this->it_);})) {
-        this->next();
+    if (it_ != std::end(container_)) {
+      if (!std::all_of(std::begin(filters_), std::end(filters_), [this] (const filter_t& f) {return f(*it_);})) {
+        next();
       }
     }
   }
@@ -296,11 +304,11 @@ class filter_iterator : public std::iterator<
     distance_{0}
   {
 
-    this->it_ = std::begin(this->container_);
+    it_ = std::begin(container_);
 
-    if (this->it_ != std::end(this->container_)) {
-      if (!std::all_of(std::begin(this->filters_), std::end(this->filters_), [this] (const filter_t& f) {return f(*this->it_);})) {
-        this->next();
+    if (it_ != std::end(container_)) {
+      if (!std::all_of(std::begin(filters_), std::end(filters_), [this] (const filter_t& f) {return f(*it_);})) {
+        next();
       }
     }
   }
@@ -311,7 +319,7 @@ class filter_iterator : public std::iterator<
     filters_{},
     distance_{0}
   {
-    this->it_ = std::begin(this->container_);
+    it_ = std::begin(container_);
   }
 
   filter_iterator(const filter_iterator& copy) :
@@ -321,31 +329,31 @@ class filter_iterator : public std::iterator<
     filters_{copy.filters_},
     distance_{copy.distance_}
   {
-    std::advance(this->it_, this->distance_);
+    std::advance(it_, distance_);
   }
 
   filter_iterator operator=(filter_iterator other) {
-    this->swap(other);
+    swap(other);
     return *this;
   }
 
   void swap(filter_iterator& other) {
-    std::swap(const_cast<remove_const_t<DT>&>(this->container_), const_cast<remove_const_t<DT>&>(other.container_));
-    std::swap(this->it_,        other.it_);
-    std::swap(this->filters_,   other.filters_);
-    std::swap(this->size_c_,    other.size_c_);
-    std::swap(this->distance_,  other.distance_);
+    std::swap(const_cast<remove_const_t<DT>&>(container_), const_cast<remove_const_t<DT>&>(other.container_));
+    std::swap(it_,        other.it_);
+    std::swap(filters_,   other.filters_);
+    std::swap(size_c_,    other.size_c_);
+    std::swap(distance_,  other.distance_);
   }
 
 
   filter_iterator& def(filter_t func) {
-    this->filters_.push_back(func);
-    this->size_c_ = 0;
+    filters_.push_back(func);
+    size_c_ = 0;
     return *this;
   }
 
   filter_iterator& operator++() {
-    this->next();
+    next();
     return *this;
   }
 
@@ -355,17 +363,17 @@ class filter_iterator : public std::iterator<
     return retval;
   }
 
-  filter_iterator begin(void) const {
-    return {this->container_, this->filters_};
+  filter_iterator begin() const {
+    return {container_, filters_};
   }
 
-  filter_iterator cbegin(void) const {
-    return this->begin();
+  filter_iterator cbegin() const {
+    return begin();
   }
 
-  filter_iterator end(void) const {
+  filter_iterator end() const {
     // we don't need filter for the end iterator
-    filter_iterator it_end{this->container_};
+    filter_iterator it_end{container_};
 
     it_end.it_       =  it_end.container_.end();
     it_end.distance_ = it_end.container_.size();
@@ -373,8 +381,8 @@ class filter_iterator : public std::iterator<
     return it_end;
   }
 
-  filter_iterator cend(void) const {
-    return this->end();
+  filter_iterator cend() const {
+    return end();
   }
 
   typename std::enable_if<!std::is_const<ref_t>::value, remove_const_t<ref_t>>::type
@@ -382,17 +390,17 @@ class filter_iterator : public std::iterator<
     return const_cast<remove_const_t<ref_t>>(static_cast<const filter_iterator*>(this)->operator*());
   }
 
-  template<typename U = typename DT::value_type>
-  typename std::enable_if<std::is_pointer<U>::value, add_const_t<ref_t>>::type
+  template<typename V = DT_VAL>
+  typename std::enable_if<std::is_pointer<V>::value, add_const_t<ref_t>>::type
   operator*() const {
-    assert(*this->it_ && "integrity error: nullptr");
+    assert(*it_ && "integrity error: nullptr");
     return const_cast<add_const_t<ref_t>>(**it_);
   }
 
-  template<typename U = typename DT::value_type>
-  typename std::enable_if<!std::is_pointer<U>::value, add_const_t<ref_t>>::type
+  template<typename V = DT_VAL>
+  typename std::enable_if<!std::is_pointer<V>::value, add_const_t<ref_t>>::type
   operator*() const {
-    return const_cast<add_const_t<ref_t>>(*(this->it_));
+    return const_cast<add_const_t<ref_t>>(*(it_));
   }
 
 
@@ -402,9 +410,9 @@ class filter_iterator : public std::iterator<
   }
 
   add_const_t<ref_t> operator[](size_t n) const {
-    assert(n < this->size() && "integrity error: out of bound");
+    assert(n < size() && "integrity error: out of bound");
 
-    auto it = this->begin();
+    auto it = begin();
     std::advance(it, n);
     return const_cast<add_const_t<ref_t>>(*it);
   }
@@ -416,29 +424,34 @@ class filter_iterator : public std::iterator<
   }
 
   add_const_t<pointer_t> operator->() const {
-    return const_cast<add_const_t<pointer_t>>(&(this->operator*()));
+    return const_cast<add_const_t<pointer_t>>(&(operator*()));
   }
 
-  size_t size(void) const {
-    if (this->filters_.size() == 0) {
-      return this->container_.size();
+  size_t size() const {
+    if (filters_.size() == 0) {
+      return container_.size();
     }
 
-    if (this->size_c_ > 0) {
-      return this->size_c_;
+    if (size_c_ > 0) {
+      return size_c_;
     }
-    filter_iterator it = this->begin();
+    filter_iterator it = begin();
     size_t size = 0;
 
     auto end_iter = std::end(it);
     for (; it != end_iter; ++it) ++size;
-    this->size_c_ = size;
-    return this->size_c_;
+    size_c_ = size;
+    return size_c_;
+  }
+
+
+  bool empty() const {
+    return size() == 0;
   }
 
 
   bool operator==(const filter_iterator& other) const {
-    return (this->container_.size() == other.container_.size() and this->distance_ == other.distance_);
+    return (container_.size() == other.container_.size() && distance_ == other.distance_);
   }
 
   bool operator!=(const filter_iterator& other) const {
@@ -446,25 +459,18 @@ class filter_iterator : public std::iterator<
   }
 
   protected:
-  void next(void) {
-    if (this->it_ == std::end(this->container_)) {
-      this->distance_ = this->container_.size();
+  void next() {
+    if (it_ == std::end(container_)) {
+      distance_ = container_.size();
       return;
     }
 
     do {
-      this->it_ = std::next(this->it_);
-      this->distance_++;
-    } while(
-        this->it_ != std::end(this->container_) and
-        !std::all_of(
-          std::begin(this->filters_),
-          std::end(this->filters_),
-          [this] (const filter_t& f) {
-            return f(*this->it_);
-          }
-        )
-      );
+      it_ = std::next(it_);
+      distance_++;
+    } while(it_ != std::end(container_) &&
+            !std::all_of(std::begin(filters_), std::end(filters_),
+                         [this] (const filter_t& f) { return f(*it_); }));
 
   }
 
@@ -477,8 +483,9 @@ class filter_iterator : public std::iterator<
 };
 
 //! Iterator which return a const ref on container's values given predicates
-template<class T, class CT = typename std::add_const<T>::type>
-using const_filter_iterator = filter_iterator<CT, typename decay_t<CT>::const_iterator>;
+template<class T, typename U = typename decay_t<T>::value_type,
+         class CT = typename std::add_const<T>::type>
+using const_filter_iterator = filter_iterator<CT, U, typename decay_t<CT>::const_iterator>;
 
 }
 

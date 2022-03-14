@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,53 +20,61 @@
 
 namespace LIEF {
 namespace PE {
-ExportEntry::~ExportEntry(void) = default;
+ExportEntry::~ExportEntry() = default;
 ExportEntry::ExportEntry(const ExportEntry&) = default;
 ExportEntry& ExportEntry::operator=(const ExportEntry&) = default;
 
-ExportEntry::ExportEntry(void) = default;
+ExportEntry::ExportEntry() = default;
+
+ExportEntry::ExportEntry(uint32_t address, bool is_extern, uint16_t ordinal, uint32_t function_rva) :
+  function_rva_{function_rva},
+  ordinal_{ordinal},
+  address_{address},
+  is_extern_{is_extern}
+{}
+
 
 ExportEntry::forward_information_t::operator bool() const {
-  return library.size() > 0 or function.size() > 0;
+  return !library.empty() || !function.empty();
 }
 
-uint16_t ExportEntry::ordinal(void) const {
-  return this->ordinal_;
+uint16_t ExportEntry::ordinal() const {
+  return ordinal_;
 }
 
-uint32_t ExportEntry::address(void) const {
-  return this->address_;
+uint32_t ExportEntry::address() const {
+  return address_;
 }
 
-bool ExportEntry::is_extern(void) const {
-  return this->is_extern_;
+bool ExportEntry::is_extern() const {
+  return is_extern_;
 }
 
-bool ExportEntry::is_forwarded(void) const {
-  return this->forward_info_;
+bool ExportEntry::is_forwarded() const {
+  return forward_info_;
 }
 
-ExportEntry::forward_information_t ExportEntry::forward_information(void) const {
-  if (not this->is_forwarded()) {
+ExportEntry::forward_information_t ExportEntry::forward_information() const {
+  if (!is_forwarded()) {
     return {};
   }
-  return this->forward_info_;
+  return forward_info_;
 }
 
-uint32_t ExportEntry::function_rva(void) const {
-  return this->function_rva_;
+uint32_t ExportEntry::function_rva() const {
+  return function_rva_;
 }
 
 void ExportEntry::ordinal(uint16_t ordinal) {
-  this->ordinal_ = ordinal;
+  ordinal_ = ordinal;
 }
 
 void ExportEntry::address(uint32_t address) {
-  this->address_ = address;
+  address_ = address;
 }
 
 void ExportEntry::is_extern(bool is_extern) {
-  this->is_extern_ = is_extern;
+  is_extern_ = is_extern;
 }
 
 void ExportEntry::accept(LIEF::Visitor& visitor) const {
@@ -74,13 +82,16 @@ void ExportEntry::accept(LIEF::Visitor& visitor) const {
 }
 
 bool ExportEntry::operator==(const ExportEntry& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool ExportEntry::operator!=(const ExportEntry& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 
@@ -99,7 +110,7 @@ std::ostream& operator<<(std::ostream& os, const ExportEntry& export_entry) {
   os << std::setw(33) << name;
   os << std::setw(5)  << export_entry.ordinal();
 
-  if (not export_entry.is_extern()) {
+  if (!export_entry.is_extern()) {
     os << std::setw(10) << export_entry.address();
   } else {
     os << std::setw(10) << "[Extern]";

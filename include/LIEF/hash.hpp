@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,13 @@
 #include "LIEF/visibility.h"
 #include "LIEF/Object.hpp"
 #include "LIEF/Visitor.hpp"
+#include "LIEF/span.hpp"
 
 
 namespace LIEF {
 LIEF_API size_t hash(const Object& v);
 LIEF_API size_t hash(const std::vector<uint8_t>& raw);
+LIEF_API size_t hash(span<const uint8_t> raw);
 
 class LIEF_API Hash : public Visitor {
 
@@ -34,6 +36,7 @@ class LIEF_API Hash : public Visitor {
   static size_t hash(const Object& obj);
 
   static size_t hash(const std::vector<uint8_t>& raw);
+  static size_t hash(span<const uint8_t> raw);
   static size_t hash(const void* raw, size_t size);
 
   // combine two elements to produce a size_t.
@@ -42,7 +45,7 @@ class LIEF_API Hash : public Visitor {
 
   public:
   using Visitor::visit;
-  Hash(void);
+  Hash();
   Hash(size_t init_value);
 
   virtual Hash& process(const Object& obj);
@@ -50,53 +53,54 @@ class LIEF_API Hash : public Visitor {
   virtual Hash& process(const std::string& str);
   virtual Hash& process(const std::u16string& str);
   virtual Hash& process(const std::vector<uint8_t>& raw);
+  virtual Hash& process(span<const uint8_t> raw);
 
   template<class T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
   Hash& process(T v) {
-    return this->process(static_cast<size_t>(v));
+    return process(static_cast<size_t>(v));
   }
 
   template<class It>
   Hash& process(typename It::iterator v) {
-    return this->process(std::begin(v), std::end(v));
+    return process(std::begin(v), std::end(v));
   }
 
 
   template<class T, size_t N>
   Hash& process(const std::array<T, N>& array) {
-    this->process(std::begin(array), std::end(array));
+    process(std::begin(array), std::end(array));
     return *this;
   }
 
   template<class T>
   Hash& process(const std::vector<T>& vector) {
-    this->process(std::begin(vector), std::end(vector));
+    process(std::begin(vector), std::end(vector));
     return *this;
   }
 
   template<class T>
   Hash& process(const std::set<T>& set) {
-    this->process(std::begin(set), std::end(set));
+    process(std::begin(set), std::end(set));
     return *this;
   }
 
   template<class U, class V>
   Hash& process(const std::pair<U, V>& p) {
-    this->process(p.first);
-    this->process(p.second);
+    process(p.first);
+    process(p.second);
     return *this;
   }
 
   template<class InputIt>
   Hash& process(InputIt begin, InputIt end) {
     for (auto&& it = begin; it != end; ++it) {
-      this->process(*it);
+      process(*it);
     }
     return *this;
   }
 
-  size_t value(void) const;
-  virtual ~Hash(void);
+  size_t value() const;
+  virtual ~Hash();
 
   protected:
   size_t value_;

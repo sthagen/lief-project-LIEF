@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,64 +15,60 @@
  */
 #include "LIEF/ELF/hash.hpp"
 
-#include "LIEF/ELF/Structures.hpp"
 #include "LIEF/ELF/SymbolVersionAuxRequirement.hpp"
+#include "ELF/Structures.hpp"
 
 namespace LIEF {
 namespace ELF {
 
-SymbolVersionAuxRequirement::SymbolVersionAuxRequirement(void) :
-  hash_{0},
-  flags_{0},
-  other_{0}
-{}
+SymbolVersionAuxRequirement::SymbolVersionAuxRequirement() = default;
 
-SymbolVersionAuxRequirement::~SymbolVersionAuxRequirement(void) = default;
+SymbolVersionAuxRequirement::~SymbolVersionAuxRequirement() = default;
 SymbolVersionAuxRequirement& SymbolVersionAuxRequirement::operator=(const SymbolVersionAuxRequirement&) = default;
 SymbolVersionAuxRequirement::SymbolVersionAuxRequirement(const SymbolVersionAuxRequirement&) = default;
 
 
-SymbolVersionAuxRequirement::SymbolVersionAuxRequirement(const Elf64_Vernaux* header) :
-  hash_{header->vna_hash},
-  flags_{header->vna_flags},
-  other_{header->vna_other}
+SymbolVersionAuxRequirement::SymbolVersionAuxRequirement(const details::Elf64_Vernaux& header) :
+  hash_{header.vna_hash},
+  flags_{header.vna_flags},
+  other_{header.vna_other}
 {}
 
 
-SymbolVersionAuxRequirement::SymbolVersionAuxRequirement(const Elf32_Vernaux* header) :
-  hash_{header->vna_hash},
-  flags_{header->vna_flags},
-  other_{header->vna_other}
+SymbolVersionAuxRequirement::SymbolVersionAuxRequirement(const details::Elf32_Vernaux& header) :
+  hash_{header.vna_hash},
+  flags_{header.vna_flags},
+  other_{header.vna_other}
 {}
 
 
-uint32_t SymbolVersionAuxRequirement::hash(void) const {
-  return this->hash_;
+uint32_t SymbolVersionAuxRequirement::hash() const {
+  return hash_;
 }
 
 
-uint16_t SymbolVersionAuxRequirement::flags(void) const {
-  return this->flags_;
+uint16_t SymbolVersionAuxRequirement::flags() const {
+  return flags_;
 }
 
 
-uint16_t SymbolVersionAuxRequirement::other(void) const {
-  return this->other_;
+uint16_t SymbolVersionAuxRequirement::other() const {
+  return other_;
 }
 
 
 void SymbolVersionAuxRequirement::hash(uint32_t hash) {
-  this->hash_ = hash;
+  hash_ = hash;
 }
 
 
 void SymbolVersionAuxRequirement::flags(uint16_t flags) {
-  this->flags_ = flags;
+  flags_ = flags;
 }
 
 
 void SymbolVersionAuxRequirement::other(uint16_t other) {
-  this->other_ = other;
+  other_ = other;
 }
 
 void SymbolVersionAuxRequirement::accept(Visitor& visitor) const {
@@ -80,13 +76,16 @@ void SymbolVersionAuxRequirement::accept(Visitor& visitor) const {
 }
 
 bool SymbolVersionAuxRequirement::operator==(const SymbolVersionAuxRequirement& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool SymbolVersionAuxRequirement::operator!=(const SymbolVersionAuxRequirement& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 

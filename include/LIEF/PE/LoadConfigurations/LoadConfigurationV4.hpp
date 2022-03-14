@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,10 @@
 namespace LIEF {
 namespace PE {
 
+namespace details {
 template<class T>
 struct load_configuration_v4;
+}
 
 //! @brief Load Configuration enhanced with
 //! * Kind of dynamic relocations
@@ -35,32 +37,32 @@ class LIEF_API LoadConfigurationV4 : public LoadConfigurationV3 {
   public:
   static constexpr WIN_VERSION VERSION = WIN_VERSION::WIN10_0_14383;
 
-  LoadConfigurationV4(void);
+  LoadConfigurationV4();
 
   template<class T>
-  LIEF_LOCAL LoadConfigurationV4(const load_configuration_v4<T>* header);
+  LIEF_LOCAL LoadConfigurationV4(const details::load_configuration_v4<T>& header);
 
   LoadConfigurationV4& operator=(const LoadConfigurationV4&);
   LoadConfigurationV4(const LoadConfigurationV4&);
 
-  virtual WIN_VERSION version(void) const override;
+  WIN_VERSION version() const override;
 
   //! @brief VA of pointing to a ``IMAGE_DYNAMIC_RELOCATION_TABLE``
-  uint64_t dynamic_value_reloc_table(void) const;
+  uint64_t dynamic_value_reloc_table() const;
 
-  uint64_t hybrid_metadata_pointer(void) const;
+  uint64_t hybrid_metadata_pointer() const;
 
   void dynamic_value_reloc_table(uint64_t value);
   void hybrid_metadata_pointer(uint64_t value);
 
-  virtual ~LoadConfigurationV4(void);
+  virtual ~LoadConfigurationV4();
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const LoadConfigurationV4& rhs) const;
   bool operator!=(const LoadConfigurationV4& rhs) const;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
 
   protected:
   uint64_t dynamic_value_reloc_table_;

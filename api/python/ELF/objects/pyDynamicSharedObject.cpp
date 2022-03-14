@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,10 +36,14 @@ using setter_t = void (DynamicSharedObject::*)(T);
 template<>
 void create<DynamicSharedObject>(py::module& m) {
 
-  //
-  // Dynamic Shared Object object
-  //
-  py::class_<DynamicSharedObject, DynamicEntry>(m, "DynamicSharedObject")
+  py::class_<DynamicSharedObject, DynamicEntry>(m, "DynamicSharedObject",
+      R"delim(
+      Class which represents a ``DT_SONAME`` entry in the dynamic table
+      This kind of entry is usually used no name the original library.
+
+      This entry is not present for executable.
+      )delim")
+
     .def(py::init<const std::string &>(),
         "Constructor from library name",
         "library_name"_a)
@@ -59,12 +63,10 @@ void create<DynamicSharedObject>(py::module& m) {
         })
 
     .def("__str__",
-        [] (const DynamicSharedObject& dynamicSharedObject)
-        {
-        std::ostringstream stream;
-        stream << dynamicSharedObject;
-        std::string str =  stream.str();
-        return str;
+        [] (const DynamicSharedObject& dynamicSharedObject) {
+          std::ostringstream stream;
+          stream << dynamicSharedObject;
+          return stream.str();
         });
 }
 

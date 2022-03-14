@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,11 +36,16 @@ using setter_t = void (DylinkerCommand::*)(T);
 template<>
 void create<DylinkerCommand>(py::module& m) {
 
-  py::class_<DylinkerCommand, LoadCommand>(m, "DylinkerCommand")
+  py::class_<DylinkerCommand, LoadCommand>(m, "DylinkerCommand",
+      R"delim(
+      Class that represents the Mach-O linker, also named loader
+      Most of the time, :attr:`~lief.MachO.DylinkerCommand.name` returns ``/usr/lib/dyld``
+      )delim")
+
     .def_property("name",
         static_cast<getter_t<const std::string&>>(&DylinkerCommand::name),
         static_cast<setter_t<const std::string&>>(&DylinkerCommand::name),
-        "Path to the loader used to load the binary",
+        "Path to the loader/linker",
         py::return_value_policy::reference_internal)
 
     .def("__eq__", &DylinkerCommand::operator==)

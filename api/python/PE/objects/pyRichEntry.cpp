@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,10 @@ using setter_t = void (RichEntry::*)(T);
 
 template<>
 void create<RichEntry>(py::module& m) {
-  py::class_<RichEntry, LIEF::Object>(m, "RichEntry")
+  py::class_<RichEntry, LIEF::Object>(m, "RichEntry",
+      R"delim(
+      Class which represents an entry associated to the RichHeader
+      )delim")
     .def(py::init<>())
     .def(py::init<uint16_t, uint16_t, uint32_t>(),
         "Contructor from "

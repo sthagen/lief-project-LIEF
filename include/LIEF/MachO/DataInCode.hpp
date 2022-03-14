@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 
 #include "LIEF/visibility.h"
 #include "LIEF/types.hpp"
+#include "LIEF/iterators.hpp"
 
 #include "LIEF/MachO/LoadCommand.hpp"
 #include "LIEF/MachO/DataCodeEntry.hpp"
@@ -28,9 +29,16 @@
 namespace LIEF {
 namespace MachO {
 class BinaryParser;
+
+namespace details {
 struct linkedit_data_command;
+}
 
 //! Interface of the LC_DATA_IN_CODE command
+//! This command is used to list slices of code sections that contain data. The *slices*
+//! information are stored as an array of DataCodeEntry
+//!
+//! @see DataCodeEntry
 class LIEF_API DataInCode : public LoadCommand {
   friend class BinaryParser;
   public:
@@ -39,33 +47,40 @@ class LIEF_API DataInCode : public LoadCommand {
   using it_entries       = ref_iterator<entries_t&>;
 
   public:
-  DataInCode(void);
-  DataInCode(const linkedit_data_command *cmd);
+  DataInCode();
+  DataInCode(const details::linkedit_data_command& cmd);
 
   DataInCode& operator=(const DataInCode&);
   DataInCode(const DataInCode&);
 
-  virtual DataInCode* clone(void) const override;
+  DataInCode* clone() const override;
 
-  uint32_t data_offset(void) const;
-  uint32_t data_size(void) const;
+  //! Start of the array of the DataCodeEntry entries
+  uint32_t data_offset() const;
+
+  //! Whole size of the array (``size = sizeof(DataCodeEntry) * nb_elements``)
+  uint32_t data_size() const;
 
   void data_offset(uint32_t offset);
   void data_size(uint32_t size);
 
+  //! Add a new entry
   DataInCode& add(const DataCodeEntry& entry);
 
-  it_const_entries entries(void) const;
-  it_entries entries(void);
+  //! Iterator over the DataCodeEntry
+  it_const_entries entries() const;
+  it_entries entries();
 
-  virtual ~DataInCode(void);
+  virtual ~DataInCode();
 
   bool operator==(const DataInCode& rhs) const;
   bool operator!=(const DataInCode& rhs) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
+
+  static bool classof(const LoadCommand* cmd);
 
   private:
   uint32_t  data_offset_;

@@ -1,6 +1,6 @@
 
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,7 @@
 #ifndef LIEF_DEX_HEADER_H_
 #define LIEF_DEX_HEADER_H_
 
-#include "LIEF/DEX/type_traits.hpp"
-#include "LIEF/DEX/Structures.hpp"
+#include "LIEF/DEX/types.hpp"
 
 #include "LIEF/visibility.h"
 #include "LIEF/Object.hpp"
@@ -27,52 +26,72 @@ namespace LIEF {
 namespace DEX {
 class Parser;
 
+//! Class which represents the DEX header.
+//! This is the first structure that begins the DEX format.
+//!
+//! The official documentation is provided here:
+//! https://source.android.com/devices/tech/dalvik/dex-format#header-item
 class LIEF_API Header : public Object {
   friend class Parser;
 
   public:
   using location_t = std::pair<uint32_t, uint32_t>;
-  Header(void);
+
+  using magic_t     = std::array<uint8_t, 8>;
+  using signature_t = std::array<uint8_t, 20>;
+
+  Header();
   Header(const Header&);
   Header& operator=(const Header&);
 
   template<class T>
-  LIEF_LOCAL Header(const T* header);
+  LIEF_LOCAL Header(const T& header);
 
-  magic_t magic(void) const;
-  uint32_t checksum(void) const;
-  signature_t signature(void) const;
+  //! The DEX magic bytes (``DEX\n`` followed by the DEX version)
+  magic_t magic() const;
 
-  uint32_t file_size(void) const;
-  uint32_t header_size(void) const;
-  uint32_t endian_tag(void) const;
+  //! The file checksum
+  uint32_t checksum() const;
 
-  uint32_t map(void) const;
+  //! SHA-1 DEX signature (which is not really used as a signature)
+  signature_t signature() const;
 
-  location_t strings(void) const;
-  location_t link(void) const;
-  location_t types(void) const;
-  location_t prototypes(void) const;
-  location_t fields(void) const;
-  location_t methods(void) const;
-  location_t classes(void) const;
-  location_t data(void) const;
+  //! Size of the entire file (including the current the header)
+  uint32_t file_size() const;
 
-  uint32_t nb_classes(void) const;
+  //! Size of this header. It should be 0x70
+  uint32_t header_size() const;
 
-  uint32_t nb_methods(void) const;
+  //! File endianess of the file
+  uint32_t endian_tag() const;
 
-  virtual void accept(Visitor& visitor) const override;
+  //! Offset from the start of the file to the map list (see: DEX::MapList)
+  uint32_t map() const;
+
+  //! Offset and size of the string pool
+  location_t strings() const;
+  location_t link() const;
+  location_t types() const;
+  location_t prototypes() const;
+  location_t fields() const;
+  location_t methods() const;
+  location_t classes() const;
+  location_t data() const;
+
+  uint32_t nb_classes() const;
+
+  uint32_t nb_methods() const;
+
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const Header& rhs) const;
   bool operator!=(const Header& rhs) const;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const Header& hdr);
 
-  virtual ~Header(void);
+  virtual ~Header();
 
   private:
-
   magic_t magic_;
   uint32_t checksum_;
   signature_t signature_;
@@ -106,7 +125,6 @@ class LIEF_API Header : public Object {
 
   uint32_t data_size_;
   uint32_t data_off_;
-
 };
 
 } // Namespace DEX

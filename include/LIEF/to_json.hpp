@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,6 @@
 
 #ifdef LIEF_JSON_SUPPORT
 
-#include "LIEF/json.hpp"
-
-#include "LIEF/visitors/json.hpp"
 
 #ifdef LIEF_ELF_SUPPORT
 #include "LIEF/ELF/json.hpp"

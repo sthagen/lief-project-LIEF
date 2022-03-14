@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,104 +23,82 @@
 #include "LIEF/PE/Symbol.hpp"
 #include "LIEF/PE/Section.hpp"
 #include "LIEF/PE/EnumToString.hpp"
+#include "PE/Structures.hpp"
 
 namespace LIEF {
 namespace PE {
 
-Symbol::Symbol(void) :
-  LIEF::Symbol{},
-  section_number_{0},
-  type_{0},
-  storage_class_{SYMBOL_STORAGE_CLASS::IMAGE_SYM_CLASS_INVALID},
-  numberof_aux_symbols_{0},
-  section_{nullptr}
-{}
+Symbol::Symbol() = default;
+Symbol::~Symbol() = default;
 
-Symbol::~Symbol(void) = default;
-
-Symbol::Symbol(const Symbol& other) :
-  LIEF::Symbol{other},
-  section_number_{other.section_number_},
-  type_{other.type_},
-  storage_class_{other.storage_class_},
-  numberof_aux_symbols_{other.numberof_aux_symbols_},
-  section_{nullptr}
-{}
-
+Symbol::Symbol(const Symbol&) = default;
 
 Symbol& Symbol::operator=(Symbol other) {
-  this->swap(other);
+  swap(other);
   return *this;
 }
 
 void Symbol::swap(Symbol& other) {
   LIEF::Symbol::swap(other);
 
-  std::swap(this->section_number_,        other.section_number_);
-  std::swap(this->type_,                  other.type_);
-  std::swap(this->storage_class_,         other.storage_class_);
-  std::swap(this->numberof_aux_symbols_,  other.numberof_aux_symbols_);
-  std::swap(this->section_,               other.section_);
+  std::swap(section_number_,        other.section_number_);
+  std::swap(type_,                  other.type_);
+  std::swap(storage_class_,         other.storage_class_);
+  std::swap(numberof_aux_symbols_,  other.numberof_aux_symbols_);
+  std::swap(section_,               other.section_);
 }
 
-Symbol::Symbol(const pe_symbol* header) :
-  LIEF::Symbol{},
-  section_number_(header->SectionNumber),
-  type_(header->Type),
-  storage_class_(static_cast<SYMBOL_STORAGE_CLASS>(header->StorageClass)),
-  numberof_aux_symbols_(header->NumberOfAuxSymbols),
-  section_{nullptr}
+Symbol::Symbol(const details::pe_symbol& header) :
+  section_number_(header.SectionNumber),
+  type_(header.Type),
+  numberof_aux_symbols_(header.NumberOfAuxSymbols),
+  storage_class_(static_cast<SYMBOL_STORAGE_CLASS>(header.StorageClass))
 {
-  this->value_ = header->Value;
+  value_ = header.Value;
 }
 
 
-int16_t Symbol::section_number(void) const {
-  return this->section_number_;
+int16_t Symbol::section_number() const {
+  return section_number_;
 }
 
-uint16_t Symbol::type(void) const {
-  return this->type_;
+uint16_t Symbol::type() const {
+  return type_;
 }
 
-SYMBOL_BASE_TYPES Symbol::base_type(void) const {
-  return static_cast<SYMBOL_BASE_TYPES>(this->type_ & 0x0F);
+SYMBOL_BASE_TYPES Symbol::base_type() const {
+  return static_cast<SYMBOL_BASE_TYPES>(type_ & 0x0F);
 }
 
-SYMBOL_COMPLEX_TYPES Symbol::complex_type(void) const {
-  return static_cast<SYMBOL_COMPLEX_TYPES>((this->type_ >> 4) & 0x0F);
-}
-
-
-SYMBOL_STORAGE_CLASS Symbol::storage_class(void) const {
-  return this->storage_class_;
+SYMBOL_COMPLEX_TYPES Symbol::complex_type() const {
+  return static_cast<SYMBOL_COMPLEX_TYPES>((type_ >> 4) & 0x0F);
 }
 
 
-uint8_t Symbol::numberof_aux_symbols(void) const {
-  return this->numberof_aux_symbols_;
+SYMBOL_STORAGE_CLASS Symbol::storage_class() const {
+  return storage_class_;
 }
 
 
-std::wstring Symbol::wname(void) const {
-  return {std::begin(this->name_), std::end(this->name_)};
+uint8_t Symbol::numberof_aux_symbols() const {
+  return numberof_aux_symbols_;
 }
 
 
-const Section& Symbol::section(void) const {
-  if (this->has_section()) {
-    return *(this->section_);
-  } else {
-    throw not_found("No section associated with this symbol");
-  }
+std::wstring Symbol::wname() const {
+  return {std::begin(name_), std::end(name_)};
 }
 
-Section& Symbol::section(void) {
-  return const_cast<Section&>(static_cast<const Symbol*>(this)->section());
+const Section* Symbol::section() const {
+  return section_;
 }
 
-bool Symbol::has_section(void) const {
-  return this->section_ != nullptr;
+Section* Symbol::section() {
+  return const_cast<Section*>(static_cast<const Symbol*>(this)->section());
+}
+
+bool Symbol::has_section() const {
+  return section_ != nullptr;
 }
 
 void Symbol::accept(LIEF::Visitor& visitor) const {
@@ -128,24 +106,27 @@ void Symbol::accept(LIEF::Visitor& visitor) const {
 }
 
 bool Symbol::operator==(const Symbol& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool Symbol::operator!=(const Symbol& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 
 std::ostream& operator<<(std::ostream& os, const Symbol& entry) {
-  std::string section_number_str = "";
+  std::string section_number_str;
   if (entry.section_number() <= 0) {
     section_number_str = to_string(
         static_cast<SYMBOL_SECTION_NUMBER>(entry.section_number()));
   } else {
     if (entry.has_section()) {
-      section_number_str = entry.section().name();
+      section_number_str = entry.section()->name();
     } else {
       section_number_str = std::to_string(static_cast<uint32_t>(entry.section_number())); // section
     }
@@ -153,12 +134,10 @@ std::ostream& operator<<(std::ostream& os, const Symbol& entry) {
 
   std::string name = entry.name();
   // UTF8 -> ASCII
-  std::transform(
-      std::begin(name),
-      std::end(name),
+  std::transform(std::begin(name), std::end(name),
       std::begin(name),
       [] (char c) {
-        return (c <= '~' and c >= '!') ? c : ' ';
+        return (c <= '~' && c >= '!') ? c : ' ';
       });
 
   if (name.size() > 20) {

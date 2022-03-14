@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,133 +16,93 @@
 #include "LIEF/Abstract/Binary.hpp"
 #include "LIEF/exception.hpp"
 #include "LIEF/config.h"
+#include "logging.hpp"
 
-#if defined(LIEF_ELF_SUPPORT)
-#include "LIEF/ELF/Binary.hpp"
-#endif
-
-#if defined(LIEF_PE_SUPPORT)
-#include "LIEF/PE/Binary.hpp"
-#endif
-
-#if defined(LIEF_MACHO_SUPPORT)
-#include "LIEF/MachO/Binary.hpp"
-#endif
+#include "LIEF/Abstract/Relocation.hpp"
+#include "LIEF/Abstract/Section.hpp"
+#include "LIEF/Abstract/Symbol.hpp"
 
 namespace LIEF {
-Binary::Binary(void) :
-  name_{""},
-  original_size_{0}
-{}
+Binary::Binary() = default;
 
-Binary::~Binary(void) = default;
+Binary::~Binary() = default;
 Binary& Binary::operator=(const Binary&) = default;
 Binary::Binary(const Binary&) = default;
 
-EXE_FORMATS Binary::format(void) const {
-
-#if defined(LIEF_ELF_SUPPORT)
-  if (typeid(*this) == typeid(LIEF::ELF::Binary)) {
-    return EXE_FORMATS::FORMAT_ELF;
-  }
-#endif
-
-
-#if defined(LIEF_PE_SUPPORT)
-  if (typeid(*this) == typeid(LIEF::PE::Binary)) {
-    return EXE_FORMATS::FORMAT_PE;
-  }
-#endif
-
-#if defined(LIEF_MACHO_SUPPORT)
-  if (typeid(*this) == typeid(LIEF::MachO::Binary)) {
-    return EXE_FORMATS::FORMAT_MACHO;
-  }
-#endif
-
-  return EXE_FORMATS::FORMAT_UNKNOWN;
+EXE_FORMATS Binary::format() const {
+  return format_;
 }
 
-Header Binary::header(void) const {
-  return this->get_abstract_header();
+Header Binary::header() const {
+  return get_abstract_header();
 }
 
-it_symbols Binary::symbols(void) {
-  return this->get_abstract_symbols();
+Binary::it_symbols Binary::symbols() {
+  return get_abstract_symbols();
 }
 
-it_const_symbols Binary::symbols(void) const {
+Binary::it_const_symbols Binary::symbols() const {
   return const_cast<Binary*>(this)->get_abstract_symbols();
 }
 
 
 bool Binary::has_symbol(const std::string& name) const {
-  symbols_t symbols = const_cast<Binary*>(this)->get_abstract_symbols();
-  auto&& it_symbol = std::find_if(
-      std::begin(symbols),
-      std::end(symbols),
-      [&name] (const Symbol* s) {
-        return s->name() == name;
-      });
-
-  return it_symbol != std::end(symbols);
+  return get_symbol(name) != nullptr;
 }
 
-const Symbol& Binary::get_symbol(const std::string& name) const {
-  if (not this->has_symbol(name)) {
-    throw not_found("Symbol '" + name + "' not found!");
+const Symbol* Binary::get_symbol(const std::string& name) const {
+  symbols_t symbols = const_cast<Binary*>(this)->get_abstract_symbols();
+  const auto it_symbol = std::find_if(std::begin(symbols), std::end(symbols),
+                                      [&name] (const Symbol* s) {
+                                        return s->name() == name;
+                                      });
+
+  if (it_symbol == std::end(symbols)) {
+    return nullptr;
   }
 
-  symbols_t symbols = const_cast<Binary*>(this)->get_abstract_symbols();
-
-  auto&& it_symbol = std::find_if(
-      std::begin(symbols),
-      std::end(symbols),
-      [&name] (const Symbol* s) {
-        return s->name() == name;
-      });
-
-  return **it_symbol;
+  return *it_symbol;
 }
 
-Symbol& Binary::get_symbol(const std::string& name) {
-  return const_cast<Symbol&>(static_cast<const Binary*>(this)->get_symbol(name));
+Symbol* Binary::get_symbol(const std::string& name) {
+  return const_cast<Symbol*>(static_cast<const Binary*>(this)->get_symbol(name));
 }
 
-it_sections Binary::sections(void) {
-  return this->get_abstract_sections();
+Binary::it_sections Binary::sections() {
+  return get_abstract_sections();
 }
 
 
-it_const_sections Binary::sections(void) const {
+Binary::it_const_sections Binary::sections() const {
   return const_cast<Binary*>(this)->get_abstract_sections();
 }
 
 
-it_relocations Binary::relocations(void) {
-  return this->get_abstract_relocations();
+Binary::it_relocations Binary::relocations() {
+  return get_abstract_relocations();
 }
 
-it_const_relocations Binary::relocations(void) const {
+Binary::it_const_relocations Binary::relocations() const {
   return const_cast<Binary*>(this)->get_abstract_relocations();
 }
 
 
-Binary::functions_t Binary::exported_functions(void) const {
-  return this->get_abstract_exported_functions();
+Binary::functions_t Binary::exported_functions() const {
+  return get_abstract_exported_functions();
 }
 
-Binary::functions_t Binary::imported_functions(void) const {
-  return this->get_abstract_imported_functions();
+Binary::functions_t Binary::imported_functions() const {
+  return get_abstract_imported_functions();
 }
 
 
-std::vector<std::string> Binary::imported_libraries(void) const {
-  return this->get_abstract_imported_libraries();
+std::vector<std::string> Binary::imported_libraries() const {
+  return get_abstract_imported_libraries();
 }
 
 uint64_t Binary::get_function_address(const std::string&) const {
-  throw not_implemented("Not implemented for this format");
+  LIEF_ERR("Not implemented for this format");
+  return 0;
 }
 
 std::vector<uint64_t> Binary::xref(uint64_t address) const {
@@ -162,23 +122,23 @@ void Binary::accept(Visitor& visitor) const {
   visitor.visit(*this);
 }
 
-const std::string& Binary::name(void) const {
-  return this->name_;
+const std::string& Binary::name() const {
+  return name_;
 }
 
 
-uint64_t Binary::original_size(void) const {
-  return this->original_size_;
+uint64_t Binary::original_size() const {
+  return original_size_;
 }
 
 
 void Binary::name(const std::string& name) {
-  this->name_ = name;
+  name_ = name;
 }
 
 
 void Binary::original_size(uint64_t size) {
-  this->original_size_ = size;
+  original_size_ = size;
 }
 
 

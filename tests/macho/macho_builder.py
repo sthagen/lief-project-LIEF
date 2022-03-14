@@ -151,7 +151,6 @@ class TestExtendCommand(TestCase):
         uuid_cmd = original[lief.MachO.LOAD_COMMAND_TYPES.UUID]
         original_size = uuid_cmd.size
         original.extend(uuid_cmd, 0x100)
-        uuid_cmd = original[lief.MachO.LOAD_COMMAND_TYPES.UUID]
 
         # Extend __LINKEDIT (last one)
         original_linkedit_size = original.get_segment("__LINKEDIT").file_size
@@ -316,6 +315,7 @@ class TestLibraryInjection(TestCase):
 
         original.add_library(self.library_path)
 
+        original.remove_signature()
         original.write(output)
 
         if is_osx() and is_x86_64():

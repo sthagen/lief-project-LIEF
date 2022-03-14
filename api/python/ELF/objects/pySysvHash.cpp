@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ namespace LIEF {
 namespace ELF {
 
 template<class T>
-using getter_t = T (SysvHash::*)(void) const;
+using getter_t = T (SysvHash::*)() const;
 
 template<class T>
 using setter_t = void (SysvHash::*)(T);
@@ -33,15 +33,24 @@ using setter_t = void (SysvHash::*)(T);
 template<>
 void create<SysvHash>(py::module& m) {
 
-  py::class_<SysvHash, LIEF::Object>(m, "SysvHash")
+  py::class_<SysvHash, LIEF::Object>(m, "SysvHash",
+    R"delim(
+    Class which represents the SYSV hash for the symbols resolution
+
+    References:
+
+      * http://www.linker-aliens.org/blogs/ali/entry/gnu_hash_elf_sections/
+      * https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-48031.html
+    )delim")
     .def(py::init<>())
 
     .def_property_readonly("nbucket",
       &SysvHash::nbucket,
       "Return the number of buckets")
 
-    .def_property_readonly("nchain",
-      &SysvHash::nchain,
+    .def_property("nchain",
+      static_cast<getter_t<uint32_t>>(&SysvHash::nchain),
+      static_cast<setter_t<uint32_t>>(&SysvHash::nchain),
       "Return the number of *chains* (symbol table index)")
 
     .def_property_readonly("buckets",

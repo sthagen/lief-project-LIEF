@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,23 +26,23 @@ namespace LIEF {
 namespace ELF {
 class Parser;
 
-//! @brief Class which modelize an Auxiliary Symbol version
+//! @brief Class which represents an Auxiliary Symbol version
 class LIEF_API SymbolVersionAux : public Object {
   friend class Parser;
   public:
-  SymbolVersionAux(const std::string& name);
-  SymbolVersionAux(void);
-  virtual ~SymbolVersionAux(void);
+  SymbolVersionAux(std::string name);
+  SymbolVersionAux();
+  virtual ~SymbolVersionAux();
 
   SymbolVersionAux& operator=(const SymbolVersionAux&);
   SymbolVersionAux(const SymbolVersionAux&);
 
-  //! @brief Smybol's aux name (e.g. ``GLIBC_2.2.5``)
-  const std::string& name(void) const;
+  //! Smybol's aux name (e.g. ``GLIBC_2.2.5``)
+  const std::string& name() const;
 
   void name(const std::string& name);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const SymbolVersionAux& rhs) const;
   bool operator!=(const SymbolVersionAux& rhs) const;

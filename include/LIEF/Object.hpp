@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,20 +39,17 @@ class LIEF_API Object {
   using output_const_t = add_pointer_t<add_const_t<decay_t<T>>>;
 
   public:
-  Object(void);
+  Object();
   Object(const Object& other);
   Object& operator=(const Object& other);
 
   template<class T>
-  LIEF_LOCAL bool is(void) const;
+  LIEF_LOCAL output_t<T> as();
 
   template<class T>
-  LIEF_LOCAL output_t<T> as(void);
+  LIEF_LOCAL output_const_t<T> as() const;
 
-  template<class T>
-  LIEF_LOCAL output_const_t<T> as(void) const;
-
-  virtual ~Object(void);
+  virtual ~Object();
   virtual void accept(Visitor& visitor) const = 0;
 };
 }

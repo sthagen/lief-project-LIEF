@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,4 +21,16 @@
 void init_hash_functions(py::module& m) {
   m.def("hash", static_cast<size_t(*)(const LIEF::Object&)>(&LIEF::hash));
   m.def("hash", static_cast<size_t(*)(const std::vector<uint8_t>&)>(&LIEF::hash));
+  m.def("hash",
+        [] (py::bytes bytes) {
+          std::string x = bytes;
+          std::vector<uint8_t> data = {std::begin(x), std::end(x)};
+          return LIEF::hash(data);
+        });
+
+  m.def("hash",
+        [] (const std::string& bytes) {
+          std::vector<uint8_t> data = {std::begin(bytes), std::end(bytes)};
+          return LIEF::hash(data);
+        });
 }

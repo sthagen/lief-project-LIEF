@@ -1,6 +1,6 @@
 
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,77 +32,78 @@
 namespace LIEF {
 namespace DEX {
 
+Header::Header() = default;
 Header::Header(const Header&) = default;
 Header& Header::operator=(const Header&) = default;
 
-Header::Header(void) {
-}
 
 
-magic_t Header::magic(void) const {
-  return this->magic_;
-}
-uint32_t Header::checksum(void) const {
-  return this->checksum_;
-}
-signature_t Header::signature(void) const {
-  return this->signature_;
+Header::magic_t Header::magic() const {
+  return magic_;
 }
 
-uint32_t Header::file_size(void) const {
-  return this->file_size_;
+uint32_t Header::checksum() const {
+  return checksum_;
 }
 
-uint32_t Header::header_size(void) const {
-  return this->header_size_;
+Header::signature_t Header::signature() const {
+  return signature_;
 }
 
-uint32_t Header::endian_tag(void) const {
-  return this->endian_tag_;
+uint32_t Header::file_size() const {
+  return file_size_;
 }
 
-uint32_t Header::nb_classes(void) const {
-  return this->class_defs_size_;
+uint32_t Header::header_size() const {
+  return header_size_;
 }
 
-uint32_t Header::nb_methods(void) const {
-  return this->method_ids_size_;
+uint32_t Header::endian_tag() const {
+  return endian_tag_;
 }
 
-uint32_t Header::map(void) const {
-  return this->map_off_;
+uint32_t Header::nb_classes() const {
+  return class_defs_size_;
 }
 
-Header::location_t Header::strings(void) const {
-  return {this->string_ids_off_, this->string_ids_size_};
+uint32_t Header::nb_methods() const {
+  return method_ids_size_;
 }
 
-Header::location_t Header::link(void) const {
-  return {this->link_off_, this->link_size_};
+uint32_t Header::map() const {
+  return map_off_;
 }
 
-Header::location_t Header::types(void) const {
-  return {this->type_ids_off_, this->type_ids_size_};
+Header::location_t Header::strings() const {
+  return {string_ids_off_, string_ids_size_};
 }
 
-Header::location_t Header::prototypes(void) const {
-  return {this->proto_ids_off_, this->proto_ids_size_};
+Header::location_t Header::link() const {
+  return {link_off_, link_size_};
 }
 
-Header::location_t Header::fields(void) const {
-  return {this->field_ids_off_, this->field_ids_size_};
+Header::location_t Header::types() const {
+  return {type_ids_off_, type_ids_size_};
 }
 
-Header::location_t Header::methods(void) const {
-  return {this->method_ids_off_, this->method_ids_size_};
+Header::location_t Header::prototypes() const {
+  return {proto_ids_off_, proto_ids_size_};
 }
 
-Header::location_t Header::classes(void) const {
-  return {this->class_defs_off_, this->class_defs_size_};
+Header::location_t Header::fields() const {
+  return {field_ids_off_, field_ids_size_};
 }
 
-Header::location_t Header::data(void) const {
-  return {this->data_off_, this->data_size_};
+Header::location_t Header::methods() const {
+  return {method_ids_off_, method_ids_size_};
+}
+
+Header::location_t Header::classes() const {
+  return {class_defs_off_, class_defs_size_};
+}
+
+Header::location_t Header::data() const {
+  return {data_off_, data_size_};
 }
 
 
@@ -111,13 +112,16 @@ void Header::accept(Visitor& visitor) const {
 }
 
 bool Header::operator==(const Header& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool Header::operator!=(const Header& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const Header& hdr) {
@@ -125,7 +129,7 @@ std::ostream& operator<<(std::ostream& os, const Header& hdr) {
 
   std::string magic_str;
   for (uint8_t c : hdr.magic()) {
-    if (::isprint(c)) {
+    if (::isprint(c) != 0) {
       magic_str.push_back(static_cast<char>(c));
     } else {
       std::stringstream ss;
@@ -134,7 +138,7 @@ std::ostream& operator<<(std::ostream& os, const Header& hdr) {
     }
   }
 
-  const signature_t& sig = hdr.signature();
+  const Header::signature_t& sig = hdr.signature();
   std::string sig_str = std::accumulate(
       std::begin(sig),
       std::end(sig),
@@ -166,7 +170,7 @@ std::ostream& operator<<(std::ostream& os, const Header& hdr) {
   return os;
 }
 
-Header::~Header(void) = default;
+Header::~Header() = default;
 
 
 

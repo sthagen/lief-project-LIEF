@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,8 @@ using setter_t = void (LoadCommand::*)(T);
 template<>
 void create<LoadCommand>(py::module& m) {
 
-  py::class_<LoadCommand, LIEF::Object>(m, "LoadCommand")
+  py::class_<LoadCommand, LIEF::Object>(m, "LoadCommand",
+      "Based class for the Mach-O load commands")
     .def(py::init<>())
 
     .def_property("command",

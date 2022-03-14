@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #include <iomanip>
 #include <sstream>
 #include <numeric>
+#include <utility>
 
 #include "LIEF/PE/hash.hpp"
 
@@ -27,14 +28,14 @@ namespace PE {
 
 PogoEntry::PogoEntry(const PogoEntry&) = default;
 PogoEntry& PogoEntry::operator=(const PogoEntry&) = default;
-PogoEntry::~PogoEntry(void) = default;
+PogoEntry::~PogoEntry() = default;
 
-PogoEntry::PogoEntry(void) :
-  start_rva_{0}, size_{0}, name_{}
+PogoEntry::PogoEntry() :
+  start_rva_{0}, size_{0}
 {}
 
-PogoEntry::PogoEntry(uint32_t start_rva, uint32_t size, const std::string& name) :
-  start_rva_{start_rva}, size_{size}, name_{name}
+PogoEntry::PogoEntry(uint32_t start_rva, uint32_t size, std::string name) :
+  start_rva_{start_rva}, size_{size}, name_{std::move(name)}
 {}
 
 
@@ -43,37 +44,40 @@ void PogoEntry::accept(LIEF::Visitor& visitor) const {
 }
 
 bool PogoEntry::operator==(const PogoEntry& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool PogoEntry::operator!=(const PogoEntry& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 uint32_t PogoEntry::start_rva() const {
-  return this->start_rva_;
+  return start_rva_;
 }
 
 uint32_t PogoEntry::size() const {
-  return this->size_;
+  return size_;
 }
 
 const std::string& PogoEntry::name() const {
-  return this->name_;
+  return name_;
 }
 
 void PogoEntry::start_rva(uint32_t start_rva){
-  this->start_rva_ = start_rva;
+  start_rva_ = start_rva;
 }
 
 void PogoEntry::size(uint32_t size){
-  this->size_ = size;
+  size_ = size;
 }
 
 void PogoEntry::name(const std::string& name){
-  this->name_ = name;
+  name_ = name;
 }
 
 

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,8 @@ using setter_t = void (VersionMin::*)(T);
 template<>
 void create<VersionMin>(py::module& m) {
 
-  py::class_<VersionMin, LoadCommand>(m, "VersionMin")
+  py::class_<VersionMin, LoadCommand>(m, "VersionMin",
+      "Class that wraps the LC_VERSION_MIN_MACOSX, LC_VERSION_MIN_IPHONEOS, ... commands")
 
     .def_property("version",
         static_cast<getter_t<const VersionMin::version_t&>>(&VersionMin::version),

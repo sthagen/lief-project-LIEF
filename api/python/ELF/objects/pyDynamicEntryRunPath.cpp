@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,12 +36,14 @@ using setter_t = void (DynamicEntryRunPath::*)(T);
 template<>
 void create<DynamicEntryRunPath>(py::module& m) {
 
-  //
-  // Dynamic Entry RUNPATH object
-  //
-  py::class_<DynamicEntryRunPath, DynamicEntry>(m, "DynamicEntryRunPath")
+  py::class_<DynamicEntryRunPath, DynamicEntry>(m, "DynamicEntryRunPath",
+      R"delim(
+      Class that represents a ``DT_RUNPATH`` wich is used by the loader
+      to resolve libraries (:class:`~lief.ELF.DynamicEntryLibrary`).
+      )delim")
+
     .def(py::init<const std::string &>(),
-        "Constructor from (run)path",
+        "Constructor from a (run)path",
         "path"_a = "")
 
     .def(py::init<const std::vector<std::string> &>(),

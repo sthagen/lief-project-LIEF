@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ PKCS9AtSequenceNumber::PKCS9AtSequenceNumber() :
 PKCS9AtSequenceNumber::PKCS9AtSequenceNumber(const PKCS9AtSequenceNumber&) = default;
 PKCS9AtSequenceNumber& PKCS9AtSequenceNumber::operator=(const PKCS9AtSequenceNumber&) = default;
 
-std::unique_ptr<Attribute> PKCS9AtSequenceNumber::clone(void) const {
+std::unique_ptr<Attribute> PKCS9AtSequenceNumber::clone() const {
   return std::unique_ptr<Attribute>(new PKCS9AtSequenceNumber{*this});
 }
 
@@ -39,7 +39,7 @@ void PKCS9AtSequenceNumber::accept(Visitor& visitor) const {
 }
 
 std::string PKCS9AtSequenceNumber::print() const {
-  return std::to_string(this->number());
+  return std::to_string(number());
 }
 
 

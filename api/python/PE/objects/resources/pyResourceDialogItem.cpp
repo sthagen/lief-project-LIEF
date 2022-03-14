@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,10 @@ using setter_t = void (ResourceDialogItem::*)(T);
 
 template<>
 void create<ResourceDialogItem>(py::module& m) {
-  py::class_<ResourceDialogItem, LIEF::Object>(m, "ResourceDialogItem")
+  py::class_<ResourceDialogItem, LIEF::Object>(m, "ResourceDialogItem",
+      R"delim(
+      This class represents an item in the :class:`lief.PE.ResourceDialog`
+      )delim")
 
     .def_property_readonly("is_extended",
         &ResourceDialogItem::is_extended,

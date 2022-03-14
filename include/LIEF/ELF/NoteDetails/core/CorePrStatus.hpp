@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@
 #include "LIEF/Object.hpp"
 #include "LIEF/visibility.h"
 
-#include "LIEF/ELF/Structures.hpp"
 #include "LIEF/ELF/NoteDetails.hpp"
 
 namespace LIEF {
@@ -39,6 +38,17 @@ class LIEF_API CorePrStatus : public NoteDetails {
 
   public:
   using NoteDetails::NoteDetails;
+  struct siginfo_t {
+    int32_t si_signo;
+    int32_t si_code;
+    int32_t si_errno;
+  };
+
+  struct timeval_t {
+    uint64_t sec;
+    uint64_t usec;
+  };
+
 
   enum class REGISTERS  {
     UNKNOWN,
@@ -81,52 +91,52 @@ class LIEF_API CorePrStatus : public NoteDetails {
   public:
   static CorePrStatus make(Note& note);
 
-  virtual CorePrStatus* clone(void) const override;
+  CorePrStatus* clone() const override;
 
   //! Info associated with the signal
-  const Elf_siginfo& siginfo(void) const;
+  const siginfo_t& siginfo() const;
 
   //! Current Signal
-  uint16_t current_sig(void) const;
+  uint16_t current_sig() const;
 
   //! Set of pending signals
-  uint64_t sigpend(void) const;
+  uint64_t sigpend() const;
 
   //! Set of held signals
-  uint64_t sighold(void) const;
+  uint64_t sighold() const;
 
   //! Process ID
-  int32_t pid(void) const;
+  int32_t pid() const;
 
   //! Process parent ID
-  int32_t ppid(void) const;
+  int32_t ppid() const;
 
   //! Process group ID
-  int32_t pgrp(void) const;
+  int32_t pgrp() const;
 
   //! Process session ID
-  int32_t sid(void) const;
+  int32_t sid() const;
 
   //! User time
-  Elf64_timeval utime(void) const;
+  timeval_t utime() const;
 
   //! System time
-  Elf64_timeval stime(void) const;
+  timeval_t stime() const;
 
   //! Cumulative user time
-  Elf64_timeval cutime(void) const;
+  timeval_t cutime() const;
 
   //! Cumulative system time
-  Elf64_timeval cstime(void) const;
+  timeval_t cstime() const;
 
   //! GP registers state
-  const reg_context_t& reg_context(void) const;
+  const reg_context_t& reg_context() const;
 
   //! Return the program counter
-  uint64_t pc(void) const;
+  uint64_t pc() const;
 
   //! Return the stack pointer
-  uint64_t sp(void) const;
+  uint64_t sp() const;
 
   //! Get register value. If ``error`` is set,
   //! this function and the register exists, the function set the boolean value to ``false``
@@ -136,7 +146,7 @@ class LIEF_API CorePrStatus : public NoteDetails {
   //! Check if the given register is present in the info
   bool has(REGISTERS reg) const;
 
-  void siginfo(const Elf_siginfo& siginfo);
+  void siginfo(const siginfo_t& siginfo);
   void current_sig(uint16_t current_sig);
 
   void sigpend(uint64_t sigpend);
@@ -147,10 +157,10 @@ class LIEF_API CorePrStatus : public NoteDetails {
   void pgrp(int32_t pgrp);
   void sid(int32_t sid);
 
-  void utime(Elf64_timeval utime);
-  void stime(Elf64_timeval stime);
-  void cutime(Elf64_timeval cutime);
-  void cstime(Elf64_timeval cstime);
+  void utime(timeval_t utime);
+  void stime(timeval_t stime);
+  void cutime(timeval_t cutime);
+  void cstime(timeval_t cstime);
 
   void reg_context(const reg_context_t& ctx);
 
@@ -161,47 +171,47 @@ class LIEF_API CorePrStatus : public NoteDetails {
 
   uint64_t& operator[](REGISTERS reg);
 
-  virtual void dump(std::ostream& os) const override;
-  static std::ostream& dump(std::ostream& os, const Elf64_timeval& time);
-  static std::ostream& dump(std::ostream& os, const Elf_siginfo& siginfo);
+  void dump(std::ostream& os) const override;
+  static std::ostream& dump(std::ostream& os, const timeval_t& time);
+  static std::ostream& dump(std::ostream& os, const siginfo_t& siginfo);
   static std::ostream& dump(std::ostream& os, const reg_context_t& ctx);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual ~CorePrStatus(void);
+  virtual ~CorePrStatus();
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const CorePrStatus& note);
 
   protected:
   template <typename ELF_T>
-  LIEF_LOCAL void parse_(void);
+  LIEF_LOCAL void parse_();
 
   template <typename ELF_T>
-  LIEF_LOCAL void build_(void);
+  LIEF_LOCAL void build_();
 
-  virtual void parse(void) override;
-  virtual void build(void) override;
+  void parse() override;
+  void build() override;
 
   private:
   CorePrStatus(Note& note);
 
-  std::pair<size_t, size_t> reg_enum_range(void) const;
+  std::pair<size_t, size_t> reg_enum_range() const;
 
-  Elf_siginfo siginfo_;
-  uint16_t    cursig_;
+  siginfo_t siginfo_;
+  uint16_t  cursig_;
 
-  uint64_t    sigpend_;
-  uint64_t    sighold_;
+  uint64_t sigpend_;
+  uint64_t sighold_;
 
-  int32_t    pid_;
-  int32_t    ppid_;
-  int32_t    pgrp_;
-  int32_t    sid_;
+  int32_t pid_;
+  int32_t ppid_;
+  int32_t pgrp_;
+  int32_t sid_;
 
-  Elf64_timeval utime_;
-  Elf64_timeval stime_;
-  Elf64_timeval cutime_;
-  Elf64_timeval cstime_;
+  timeval_t utime_;
+  timeval_t stime_;
+  timeval_t cutime_;
+  timeval_t cstime_;
 
   reg_context_t ctx_;
 };

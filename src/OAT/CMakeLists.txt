@@ -1,24 +1,4 @@
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/OAT/enums.inc      LIEF_OAT_ENUMS)
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/OAT/structures.inc LIEF_OAT_STRUCTURES)
-
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/OAT/enums.hpp.in
-  ${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/OAT/enums.hpp
-  @ONLY
-)
-
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/OAT/Structures.hpp.in
-  ${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/OAT/Structures.hpp
-  @ONLY
-)
-
 set(LIEF_OAT_SRC
-  ${CMAKE_CURRENT_LIST_DIR}/Parser.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/oat_64.tcc
-  ${CMAKE_CURRENT_LIST_DIR}/oat_79.tcc
-  ${CMAKE_CURRENT_LIST_DIR}/oat_131.tcc
-  ${CMAKE_CURRENT_LIST_DIR}/oat_124.tcc
   ${CMAKE_CURRENT_LIST_DIR}/Parser.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Parser.tcc
   ${CMAKE_CURRENT_LIST_DIR}/Binary.cpp
@@ -30,6 +10,11 @@ set(LIEF_OAT_SRC
   ${CMAKE_CURRENT_LIST_DIR}/EnumToString.cpp
   ${CMAKE_CURRENT_LIST_DIR}/utils.cpp
   ${CMAKE_CURRENT_LIST_DIR}/hash.cpp
+
+  ${CMAKE_CURRENT_LIST_DIR}/oat_64.tcc
+  ${CMAKE_CURRENT_LIST_DIR}/oat_79.tcc
+  ${CMAKE_CURRENT_LIST_DIR}/oat_131.tcc
+  ${CMAKE_CURRENT_LIST_DIR}/oat_124.tcc
 )
 
 set(LIEF_OAT_INC_FILES
@@ -43,20 +28,19 @@ set(LIEF_OAT_INC_FILES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/OAT/utils.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/OAT/EnumToString.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/OAT/hash.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/OAT/enums.hpp"
 
-  "${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/OAT/Structures.hpp"
-  "${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/OAT/enums.hpp"
+  "${CMAKE_CURRENT_LIST_DIR}/Structures.hpp"
 )
 
+# JSON Public API: Always present
+list(APPEND LIEF_OAT_SRC       "${CMAKE_CURRENT_LIST_DIR}/json_api.cpp")
+list(APPEND LIEF_OAT_INC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/OAT/json.hpp")
 
-# JSON Part
-# =========
-set(LIEF_OAT_JSON_SRC "${CMAKE_CURRENT_LIST_DIR}/json.cpp")
-set(LIEF_OAT_JSON_HDR "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/OAT/json.hpp")
-
+# JSON Impl
 if (LIEF_ENABLE_JSON)
-  list(APPEND LIEF_OAT_SRC       ${LIEF_OAT_JSON_SRC})
-  list(APPEND LIEF_OAT_INC_FILES ${LIEF_OAT_JSON_HDR})
+  list(APPEND LIEF_OAT_SRC       "${CMAKE_CURRENT_LIST_DIR}/json.cpp")
+  list(APPEND LIEF_OAT_INC_FILES "${CMAKE_CURRENT_LIST_DIR}/json_internal.hpp")
 endif()
 
 source_group("Source Files\\OAT" FILES ${LIEF_OAT_SRC})

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ class LIEF_API ContentInfo : public Object {
   friend class SignatureParser;
 
   public:
-  ContentInfo(void);
+  ContentInfo();
   ContentInfo(const ContentInfo&);
   ContentInfo& operator=(const ContentInfo&);
 
@@ -89,23 +89,23 @@ class LIEF_API ContentInfo : public Object {
   //!
   //! It should match LIEF::PE::SignerInfo::digest_algorithm
   inline ALGORITHMS digest_algorithm() const {
-    return this->digest_algorithm_;
+    return digest_algorithm_;
   }
 
   //! PE's authentihash
   //!
   //! @see LIEF::PE::Binary::authentihash
   inline const std::vector<uint8_t>& digest() const {
-    return this->digest_;
+    return digest_;
   }
 
   inline const std::string& file() const {
-    return this->file_;
+    return file_;
   }
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual ~ContentInfo(void);
+  virtual ~ContentInfo();
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const ContentInfo& content_info);
 

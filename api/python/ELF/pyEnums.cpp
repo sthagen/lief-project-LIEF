@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 #include "pyELF.hpp"
 #include "enums_wrapper.hpp"
 
-#include "LIEF/ELF/Structures.hpp"
+#include "LIEF/ELF/enums.hpp"
 #include "LIEF/ELF/EnumToString.hpp"
 
 #define PY_ENUM(x) to_string(x), x
@@ -1093,6 +1093,7 @@ void init_enums(py::module& m) {
     .value(PY_ENUM(NOTE_TYPES::NT_GNU_HWCAP))
     .value(PY_ENUM(NOTE_TYPES::NT_GNU_BUILD_ID))
     .value(PY_ENUM(NOTE_TYPES::NT_GNU_GOLD_VERSION))
+    .value(PY_ENUM(NOTE_TYPES::NT_GNU_PROPERTY_TYPE_0))
     .value(PY_ENUM(NOTE_TYPES::NT_CRASHPAD));
 
 

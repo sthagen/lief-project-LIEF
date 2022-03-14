@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,42 +23,44 @@
 namespace LIEF {
 namespace PE {
 
+namespace details {
 template<class T>
 struct load_configuration_v0;
+}
 
-//! @brief LoadConfiguration enhanced with SEH
+//! LoadConfiguration enhanced with SEH
 class LIEF_API LoadConfigurationV0 : public LoadConfiguration {
   public:
   static constexpr WIN_VERSION VERSION = WIN_VERSION::WIN_SEH;
 
-  LoadConfigurationV0(void);
+  LoadConfigurationV0();
 
   LoadConfigurationV0& operator=(const LoadConfigurationV0&);
   LoadConfigurationV0(const LoadConfigurationV0&);
 
   template<class T>
-  LIEF_LOCAL LoadConfigurationV0(const load_configuration_v0<T>* header);
+  LIEF_LOCAL LoadConfigurationV0(const details::load_configuration_v0<T>& header);
 
-  virtual WIN_VERSION version(void) const override;
+  WIN_VERSION version() const override;
 
-  //! @brief The VA of the sorted table of RVAs of each valid, unique
+  //! The VA of the sorted table of RVAs of each valid, unique
   //! SE handler in the image.
-  uint64_t se_handler_table(void) const;
+  uint64_t se_handler_table() const;
 
-  //! @brief The count of unique handlers in the table.
-  uint64_t se_handler_count(void) const;
+  //! The count of unique handlers in the table.
+  uint64_t se_handler_count() const;
 
   void se_handler_table(uint64_t se_handler_table);
   void se_handler_count(uint64_t se_handler_count);
 
-  virtual ~LoadConfigurationV0(void);
+  virtual ~LoadConfigurationV0();
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const LoadConfigurationV0& rhs) const;
   bool operator!=(const LoadConfigurationV0& rhs) const;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
 
   protected:
   uint64_t se_handler_table_;

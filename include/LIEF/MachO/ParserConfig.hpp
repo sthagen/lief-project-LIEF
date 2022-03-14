@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,38 +20,25 @@
 namespace LIEF {
 namespace MachO {
 
-class LIEF_API ParserConfig {
-  public:
-  ParserConfig(void);
-  ParserConfig& operator=(const ParserConfig&);
-  ParserConfig(const ParserConfig&);
-  ~ParserConfig(void);
-
-  //! @brief Return a configuration so that the all objects supported by
+//! This structure is used to tweak the MachO Parser (MachO::Parser)
+struct LIEF_API ParserConfig {
+  //! Return a parser configuration such as all the objects supported by
   //! LIEF are parsed
-  //!
-  //! With this configuration:
-  //! * ``parse_dyldinfo_deeply`` is set to ``true``
-  static ParserConfig deep(void);
+  static ParserConfig deep();
 
-  //! Return a configuration so that the parsing is quick
-  //!
-  //! With this configuration:
-  //! * ``parse_dyldinfo_deeply`` is set to ``false``
-  static ParserConfig quick(void);
+  //! Return a configuration to parse the most important MachO
+  //! structures
+  static ParserConfig quick();
 
-  //! @brief If ``flag`` is set to ``true``,
-  //! Exports, Bindings and Rebases opcodes are
+  //! If ``flag`` is set to ``true``, Exports, Bindings and Rebases opcodes are
   //! parsed.
   //!
   //! @warning Enabling this flag can slow down the parsing
-  ParserConfig& parse_dyldinfo_deeply(bool flag);
+  ParserConfig& full_dyldinfo(bool flag);
 
-  //! @brief Whether or not bindings, exports, and rebases are parsed
-  bool parse_dyldinfo_deeply(void) const;
-
-  private:
-  bool dyldinfo_deeply_;
+  bool parse_dyld_exports  = true; ///< Parse the Dyld export trie
+  bool parse_dyld_bindings = true; ///< Parse the Dyld binding opcodes
+  bool parse_dyld_rebases  = true; ///< Parse the Dyld rebase opcodes
 };
 
 }

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,16 +25,15 @@ using namespace LIEF::ART;
 int main(int argc, char **argv) {
   LIEF::logging::set_level(LIEF::logging::LOGGING_LEVEL::LOG_DEBUG);
   if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <ART file>" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " <ART file>" << '\n';
     return EXIT_FAILURE;
   }
 
-  std::unique_ptr<const File> file;
 
   try {
-    file = std::unique_ptr<const File>{LIEF::ART::Parser::parse(argv[1])};
+     std::unique_ptr<const File> file = LIEF::ART::Parser::parse(argv[1]);
   } catch (const LIEF::exception& e) {
-    std::cerr << e.what() << std::endl;
+    std::cerr << e.what() << '\n';
     return EXIT_FAILURE;
   }
 

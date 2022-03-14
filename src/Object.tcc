@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,18 +19,13 @@
 namespace LIEF {
 
 template<class T>
-bool Object::is(void) const {
-  return typeid(*this) == typeid(T);
+Object::output_t<T> Object::as() {
+  return static_cast<Object::output_t<T>>(this);
 }
 
 template<class T>
-Object::output_t<T> Object::as(void) {
-  return reinterpret_cast<Object::output_t<T>>(this);
-}
-
-template<class T>
-Object::output_const_t<T> Object::as(void) const {
-  return reinterpret_cast<Object::output_const_t<T>>(this);
+Object::output_const_t<T> Object::as() const {
+  return static_cast<Object::output_const_t<T>>(this);
 }
 
 

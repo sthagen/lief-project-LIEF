@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@
 #include <frozen/map.h>
 #define CONST_MAP(KEY, VAL, NUM) constexpr frozen::map<KEY, VAL, NUM>
 #else
-#include <map>
-#define CONST_MAP(KEY, VAL, NUM) static const std::map<KEY, VAL>
+#include <unordered_map>
+#define CONST_MAP(KEY, VAL, NUM) static const std::unordered_map<KEY, VAL>
 #endif
 
 #endif

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,13 @@
 #define LIEF_MACHO_ENUM_TO_STRING_H
 #include "LIEF/visibility.h"
 
-#include "LIEF/MachO/Structures.hpp"
+#include "LIEF/MachO/enums.hpp"
 #include "LIEF/MachO/DataCodeEntry.hpp"
 #include "LIEF/MachO/BuildVersion.hpp"
 
 namespace LIEF {
 namespace MachO {
+
 LIEF_API const char* to_string(LOAD_COMMAND_TYPES e);
 LIEF_API const char* to_string(MACHO_TYPES e);
 LIEF_API const char* to_string(FILE_TYPES e);

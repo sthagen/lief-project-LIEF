@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@
 #include "LIEF/Object.hpp"
 #include "LIEF/visibility.h"
 
-#include "LIEF/ELF/Structures.hpp"
 #include "LIEF/ELF/NoteDetails.hpp"
 
 namespace LIEF {
@@ -44,16 +43,16 @@ class LIEF_API CoreSigInfo : public NoteDetails {
   public:
   static CoreSigInfo make(Note& note);
 
-  virtual CoreSigInfo* clone(void) const override;
+  CoreSigInfo* clone() const override;
 
   //! Signal number.
-  int32_t signo(void) const;
+  int32_t signo() const;
 
   //! Signal code.
-  int32_t sigcode(void) const;
+  int32_t sigcode() const;
 
   //! If non-zero, an errno value associated with this signal.
-  int32_t sigerrno(void) const;
+  int32_t sigerrno() const;
 
   void signo(int32_t signo);
   void sigcode(int32_t sigcode);
@@ -62,22 +61,27 @@ class LIEF_API CoreSigInfo : public NoteDetails {
   bool operator==(const CoreSigInfo& rhs) const;
   bool operator!=(const CoreSigInfo& rhs) const;
 
-  virtual void dump(std::ostream& os) const override;
+  void dump(std::ostream& os) const override;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual ~CoreSigInfo(void);
+  virtual ~CoreSigInfo();
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const CoreSigInfo& note);
 
   protected:
-  virtual void parse(void) override;
-  virtual void build(void) override;
+  void parse() override;
+  void build() override;
 
   private:
   CoreSigInfo(Note& note);
+  struct siginfo_t {
+    int32_t si_signo;
+    int32_t si_code;
+    int32_t si_errno;
+  };
 
-  Elf_siginfo siginfo_;
+  siginfo_t siginfo_;
 };
 
 

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,81 +16,68 @@
 #include <fstream>
 #include <map>
 
+#include "LIEF/BinaryStream/FileStream.hpp"
+#include "LIEF/BinaryStream/SpanStream.hpp"
 #include "LIEF/VDEX/utils.hpp"
-#include "LIEF/VDEX/Structures.hpp"
+#include "VDEX/Structures.hpp"
 
 namespace LIEF {
 namespace VDEX {
-bool is_vdex(const std::string& file) {
-  if (std::ifstream ifs{file, std::ios::in | std::ios::binary}) {
 
-    char magic[sizeof(VDEX::magic)];
-
-    ifs.seekg(0, std::ios::beg);
-    ifs.read(magic, sizeof(magic));
-
-    return std::equal(
-        std::begin(magic),
-        std::end(magic),
-        std::begin(VDEX::magic));
-
+inline bool is_vdex(BinaryStream& stream) {
+  using magic_t = std::array<char, sizeof(details::magic)>;
+  if (auto magic_res = stream.peek<magic_t>(0)) {
+    const auto magic = *magic_res;
+    return std::equal(std::begin(magic), std::end(magic),
+                      std::begin(details::magic));
   }
+  return false;
+}
 
+inline vdex_version_t version(BinaryStream& stream) {
+  using version_t = std::array<char, 4>;
+  stream.setpos(0);
+  if (!is_vdex(stream)) {
+    return 0;
+  }
+  stream.increment_pos(sizeof(details::magic));
+  if (auto ver_res = stream.peek<version_t>()) {
+    const auto version = *ver_res;
+    const bool are_digits = std::all_of(std::begin(version), std::end(version),
+        [] (char c) { return c == 0 || ::isdigit(c); });
+    if (!are_digits) {
+      return 0;
+    }
+    return static_cast<vdex_version_t>(std::stoul(version.data()));
+  }
+  return 0;
+}
+
+bool is_vdex(const std::string& file) {
+  if (auto stream = FileStream::from_file(file)) {
+    return is_vdex(*stream);
+  }
   return false;
 }
 
 bool is_vdex(const std::vector<uint8_t>& raw) {
-  if (raw.size() < sizeof(VDEX::magic)) {
-    return false;
+  if (auto stream = SpanStream::from_vector(raw)) {
+    return is_vdex(*stream);
   }
-
-  char magic[sizeof(VDEX::magic)];
-  std::copy(
-    reinterpret_cast<const uint8_t*>(raw.data()),
-    reinterpret_cast<const uint8_t*>(raw.data()) + sizeof(VDEX::magic),
-    magic);
-
-  return std::equal(std::begin(magic), std::end(magic), std::begin(VDEX::magic));
+  return false;
 }
 
 vdex_version_t version(const std::string& file) {
-  if (not is_vdex(file)) {
-    return 0;
-  }
-
-  if (std::ifstream ifs{file, std::ios::in | std::ios::binary}) {
-
-    char version[4];
-
-    ifs.seekg(sizeof(VDEX::magic), std::ios::beg);
-    ifs.read(version, sizeof(version) + 1);
-
-    if (std::all_of(std::begin(version), std::end(version) - 1, ::isdigit)) {
-      return static_cast<vdex_version_t>(std::stoul(version));
-    }
-    return 0;
-
+  if (auto stream = FileStream::from_file(file)) {
+    return version(*stream);
   }
   return 0;
-
 }
 
 vdex_version_t version(const std::vector<uint8_t>& raw) {
-  if (raw.size() < 8) {
-    return 0;
+  if (auto stream = SpanStream::from_vector(raw)) {
+    return version(*stream);
   }
-
-  char version[4];
-  std::copy(
-    reinterpret_cast<const uint8_t*>(raw.data()) + sizeof(VDEX::magic),
-    reinterpret_cast<const uint8_t*>(raw.data()) + sizeof(VDEX::magic) + sizeof(version) + 1,
-    version);
-
-
-  if (std::all_of(std::begin(version), std::end(version), ::isdigit)) {
-    return static_cast<vdex_version_t>(std::stoul(version));
-  }
-
   return 0;
 }
 

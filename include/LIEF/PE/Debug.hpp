@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include <string>
 #include <iostream>
+#include <memory>
 
 #include "LIEF/Object.hpp"
 #include "LIEF/visibility.h"
@@ -31,7 +32,10 @@ class Parser;
 class Builder;
 class CodeView;
 class Pogo;
+
+namespace details {
 struct pe_debug;
+}
 
 class LIEF_API Debug : public Object {
 
@@ -39,49 +43,48 @@ class LIEF_API Debug : public Object {
   friend class Builder;
 
   public:
-  Debug(void);
-  Debug(const pe_debug* debug_s);
+  Debug();
+  Debug(const details::pe_debug& debug_s);
   Debug(const Debug& copy);
   Debug& operator=(Debug copy);
 
   void swap(Debug& other);
 
-  virtual ~Debug(void);
+  virtual ~Debug();
 
   //! Reserved should be 0
-  uint32_t characteristics(void) const;
+  uint32_t characteristics() const;
 
   //! The time and date that the debug data was created.
-  uint32_t timestamp(void) const;
+  uint32_t timestamp() const;
 
   //! The major version number of the debug data format.
-  uint16_t major_version(void) const;
+  uint16_t major_version() const;
 
   //! The minor version number of the debug data format.
-  uint16_t minor_version(void) const;
+  uint16_t minor_version() const;
 
   //! The format DEBUG_TYPES of the debugging information
-  DEBUG_TYPES type(void) const;
+  DEBUG_TYPES type() const;
 
   //! Size of the debug data
-  uint32_t sizeof_data(void) const;
+  uint32_t sizeof_data() const;
 
   //! Address of the debug data relative to the image base
-  uint32_t addressof_rawdata(void) const;
+  uint32_t addressof_rawdata() const;
 
   //! File offset of the debug data
-  uint32_t pointerto_rawdata(void) const;
+  uint32_t pointerto_rawdata() const;
 
-  bool has_code_view(void) const;
+  bool has_code_view() const;
 
-  const CodeView& code_view(void) const;
-  CodeView& code_view(void);
+  const CodeView* code_view() const;
+  CodeView* code_view();
 
-  bool has_pogo(void) const;
+  bool has_pogo() const;
 
-  const Pogo& pogo(void) const;
-  Pogo& pogo(void);
-
+  const Pogo* pogo() const;
+  Pogo* pogo();
 
   void characteristics(uint32_t characteristics);
   void timestamp(uint32_t timestamp);
@@ -92,8 +95,7 @@ class LIEF_API Debug : public Object {
   void addressof_rawdata(uint32_t addressof_rawdata);
   void pointerto_rawdata(uint32_t pointerto_rawdata);
 
-
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const Debug& rhs) const;
   bool operator!=(const Debug& rhs) const;
@@ -102,19 +104,17 @@ class LIEF_API Debug : public Object {
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const Debug& entry);
 
   private:
-  uint32_t    characteristics_;
-  uint32_t    timestamp_;
-  uint16_t    majorversion_;
-  uint16_t    minorversion_;
-  DEBUG_TYPES type_;
-  uint32_t    sizeof_data_;
-  uint32_t    addressof_rawdata_;
-  uint32_t    pointerto_rawdata_;
+  uint32_t    characteristics_ = 0;
+  uint32_t    timestamp_ = 0;
+  uint16_t    majorversion_ = 0;
+  uint16_t    minorversion_ = 0;
+  DEBUG_TYPES type_ = DEBUG_TYPES::IMAGE_DEBUG_TYPE_UNKNOWN;
+  uint32_t    sizeof_data_ = 0;
+  uint32_t    addressof_rawdata_ = 0;
+  uint32_t    pointerto_rawdata_ = 0;
 
-  CodeView* code_view_{nullptr};
-  Pogo* pogo_{nullptr};
-
-
+  std::unique_ptr<CodeView> code_view_;
+  std::unique_ptr<Pogo> pogo_;
 };
 }
 }

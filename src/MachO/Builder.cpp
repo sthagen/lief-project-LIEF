@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #include <list>
 #include <fstream>
 #include <iterator>
+#include <utility>
 
 #include "logging.hpp"
 
@@ -27,210 +28,210 @@
 #include "LIEF/MachO/FatBinary.hpp"
 #include "LIEF/MachO/UUIDCommand.hpp"
 
-#include "Builder.tcc"
 #include "Object.tcc"
+
+#include "MachO/Builder.tcc"
+#include "MachO/Binary.tcc"
 
 namespace LIEF {
 namespace MachO {
 
-Builder::~Builder(void) = default;
+Builder::~Builder() = default;
 
-Builder::Builder(Binary *binary) :
-  binaries_{},
-  binary_{binary},
-  raw_{}
+Builder::Builder(Binary& binary) :
+  binary_{&binary}
 {
-  this->raw_.reserve(binary->original_size());
-  this->binaries_.push_back(std::move(binary));
-  this->build();
+  raw_.reserve(binary_->original_size());
+  binaries_.push_back(binary_);
+  build();
 }
 
 Builder::Builder(std::vector<Binary*> binaries) :
-  binaries_{binaries},
-  binary_{nullptr},
-  raw_{}
+  binaries_{std::move(binaries)}
 {
-  this->build_fat();
+  build_fat();
 }
 
-Builder::Builder(FatBinary* fat) :
-  binaries_{fat->binaries_},
-  binary_{nullptr},
-  raw_{}
-{
-  this->build_fat();
+Builder::Builder(FatBinary& fat) {
+  binaries_.reserve(fat.binaries_.size());
+  std::transform(std::begin(fat.binaries_), std::end(fat.binaries_),
+                 std::back_inserter(binaries_),
+                 [] (const std::unique_ptr<Binary>& bin) {
+                   return bin.get();
+                 });
+  build_fat();
 }
 
-
-std::vector<uint8_t> Builder::operator()(void) {
-  return this->get_build();
-}
-
-void Builder::build(void) {
-  if (this->binary_->is64_) {
-    this->build<MachO64>();
+void Builder::build() {
+  if (binary_->is64_) {
+    build<details::MachO64>();
   } else {
-    this->build<MachO32>();
+    build<details::MachO32>();
   }
 }
 
 
 template <typename T>
-void Builder::build(void) {
-  if (this->binaries_.size() > 1) {
-    throw not_supported("Actually, builder only support single binary");
+ok_error_t Builder::build() {
+  if (binaries_.size() > 1) {
+    LIEF_ERR("More than one binary!");
+    return make_error_code(lief_errors::build_error);
   }
 
+  build_uuid();
 
-  this->build_uuid();
-
-  for (LoadCommand* cmd : this->binary_->commands_) {
-    if (cmd->is<DylibCommand>()) {
-      this->build<T>(cmd->as<DylibCommand>());
+  for (std::unique_ptr<LoadCommand>& cmd : binary_->commands_) {
+    if (DylibCommand::classof(cmd.get())) {
+      build<T>(cmd->as<DylibCommand>());
       continue;
     }
 
-    if (cmd->is<DylinkerCommand>()) {
-      this->build<T>(cmd->as<DylinkerCommand>());
+    if (DylinkerCommand::classof(cmd.get())) {
+      build<T>(cmd->as<DylinkerCommand>());
       continue;
     }
 
-    if (cmd->is<VersionMin>()) {
-      this->build<T>(cmd->as<VersionMin>());
+    if (VersionMin::classof(cmd.get())) {
+      build<T>(cmd->as<VersionMin>());
       continue;
     }
 
-    if (cmd->is<SourceVersion>()) {
-      this->build<T>(cmd->as<SourceVersion>());
+    if (SourceVersion::classof(cmd.get())) {
+      build<T>(cmd->as<SourceVersion>());
       continue;
     }
 
-    if (cmd->is<MainCommand>()) {
-      this->build<T>(cmd->as<MainCommand>());
+    if (MainCommand::classof(cmd.get())) {
+      build<T>(cmd->as<MainCommand>());
       continue;
     }
 
-    if (cmd->is<DyldInfo>()) {
-      this->build<T>(cmd->as<DyldInfo>());
+    if (DyldInfo::classof(cmd.get())) {
+      build<T>(cmd->as<DyldInfo>());
       continue;
     }
 
-    if (cmd->is<FunctionStarts>()) {
-      this->build<T>(cmd->as<FunctionStarts>());
+    if (FunctionStarts::classof(cmd.get())) {
+      build<T>(cmd->as<FunctionStarts>());
       continue;
     }
 
-    if (cmd->is<SymbolCommand>()) {
-      this->build<T>(cmd->as<SymbolCommand>());
+    if (SymbolCommand::classof(cmd.get())) {
+      build<T>(cmd->as<SymbolCommand>());
       continue;
     }
 
-    if (cmd->is<DynamicSymbolCommand>()) {
-      this->build<T>(cmd->as<DynamicSymbolCommand>());
+    if (DynamicSymbolCommand::classof(cmd.get())) {
+      build<T>(cmd->as<DynamicSymbolCommand>());
       continue;
     }
 
-    if (cmd->is<DataInCode>()) {
-      this->build<T>(cmd->as<DataInCode>());
+    if (DataInCode::classof(cmd.get())) {
+      build<T>(cmd->as<DataInCode>());
       continue;
     }
 
-    if (cmd->is<CodeSignature>()) {
-      this->build<T>(cmd->as<CodeSignature>());
+    if (CodeSignature::classof(cmd.get())) {
+      build<T>(cmd->as<CodeSignature>());
       continue;
     }
 
-    if (cmd->is<SegmentSplitInfo>()) {
-      this->build<T>(cmd->as<SegmentSplitInfo>());
+    if (SegmentSplitInfo::classof(cmd.get())) {
+      build<T>(cmd->as<SegmentSplitInfo>());
       continue;
     }
 
-    if (cmd->is<SubFramework>()) {
-      this->build<T>(cmd->as<SubFramework>());
+    if (SubFramework::classof(cmd.get())) {
+      build<T>(cmd->as<SubFramework>());
       continue;
     }
 
-    if (cmd->is<DyldEnvironment>()) {
-      this->build<T>(cmd->as<DyldEnvironment>());
+    if (DyldEnvironment::classof(cmd.get())) {
+      build<T>(cmd->as<DyldEnvironment>());
       continue;
     }
 
-    if (cmd->is<ThreadCommand>()) {
-      this->build<T>(cmd->as<ThreadCommand>());
+    if (ThreadCommand::classof(cmd.get())) {
+      build<T>(cmd->as<ThreadCommand>());
       continue;
     }
 
-    if (cmd->is<BuildVersion>()) {
-      this->build<T>(cmd->as<BuildVersion>());
+    if (BuildVersion::classof(cmd.get())) {
+      build<T>(cmd->as<BuildVersion>());
       continue;
     }
   }
 
-  this->build_segments<T>();
-  this->build_load_commands();
-  //this->build_symbols<T>();
+  build_segments<T>();
+  build_load_commands();
+  //build_symbols<T>();
 
-  this->build_header();
+  build_header();
+  return ok();
 }
 
 
-void Builder::build_fat(void) {
+ok_error_t Builder::build_fat() {
 
   // If there is only one binary don't build a FAT
-  if (this->binaries_.size() == 1) {
-    Builder builder{this->binaries_.back()};
-    this->raw_.write(builder());
-    return;
+  if (binaries_.size() == 1) {
+    Builder builder{*binaries_.back()};
+    raw_.write(builder.get_build());
+    return {};
   }
-  this->build_fat_header();
-
-  for (size_t i = 0; i < this->binaries_.size(); ++i) {
-    fat_arch* arch = reinterpret_cast<fat_arch*>(this->raw_.raw().data() + sizeof(fat_header) + i * sizeof(fat_arch));
-    Builder builder{this->binaries_[i]};
-    std::vector<uint8_t> raw = builder();
-    uint32_t alignment = BinaryStream::swap_endian<uint32_t>(arch->align);
-    uint32_t offset = align(this->raw_.size(), 1 << alignment);
+  build_fat_header();
+  constexpr auto fat_header_sz = sizeof(details::fat_header);
+  constexpr auto fat_arch_sz   = sizeof(details::fat_arch);
+  for (size_t i = 0; i < binaries_.size(); ++i) {
+    auto* arch = reinterpret_cast<details::fat_arch*>(raw_.raw().data() + fat_header_sz + i * fat_arch_sz);
+    Builder builder{*binaries_[i]};
+    std::vector<uint8_t> raw = builder.get_build();
+    auto alignment = BinaryStream::swap_endian<uint32_t>(arch->align);
+    uint32_t offset = align(raw_.size(), 1 << alignment);
 
     arch->offset = BinaryStream::swap_endian<uint32_t>(offset);
     arch->size   = BinaryStream::swap_endian<uint32_t>(raw.size());
-    this->raw_.seekp(offset);
-    this->raw_.write(std::move(raw));
+    raw_.seekp(offset);
+    raw_.write(std::move(raw));
   }
+  return ok();
 }
 
-void Builder::build_fat_header(void) {
+ok_error_t Builder::build_fat_header() {
   LIEF_DEBUG("[+] Building Fat Header");
   static constexpr uint32_t ALIGNMENT = 14; // 4096 / 0x1000
-  fat_header header;
+  details::fat_header header;
+
+  std::memset(&header, 0, sizeof(details::fat_header));
+
   header.magic     = static_cast<uint32_t>(MACHO_TYPES::FAT_CIGAM);
-  header.nfat_arch = BinaryStream::swap_endian<uint32_t>(this->binaries_.size());
+  header.nfat_arch = BinaryStream::swap_endian<uint32_t>(binaries_.size());
 
-  this->raw_.seekp(0);
-  this->raw_.write(reinterpret_cast<const uint8_t*>(&header), sizeof(fat_header));
+  raw_.seekp(0);
+  raw_.write(reinterpret_cast<const uint8_t*>(&header), sizeof(details::fat_header));
 
-  for (Binary* binary : this->binaries_) {
+  for (Binary* binary : binaries_) {
     const Header& header = binary->header();
-    fat_arch arch_header;
-    std::fill(
-      reinterpret_cast<uint8_t*>(&arch_header),
-      reinterpret_cast<uint8_t*>(&arch_header) + sizeof(fat_arch),
-      0);
+    details::fat_arch arch_header;
+    std::memset(&arch_header, 0, sizeof(details::fat_arch));
+
     arch_header.cputype    = BinaryStream::swap_endian<uint32_t>(static_cast<uint32_t>(header.cpu_type()));
     arch_header.cpusubtype = BinaryStream::swap_endian<uint32_t>(static_cast<uint32_t>(header.cpu_subtype()));
     arch_header.offset     = 0;
     arch_header.size       = 0;
     arch_header.align      = BinaryStream::swap_endian<uint32_t>(ALIGNMENT);
-    this->raw_.write(reinterpret_cast<const uint8_t*>(&arch_header), sizeof(fat_arch));
+    raw_.write(reinterpret_cast<const uint8_t*>(&arch_header), sizeof(details::fat_arch));
   }
-
+  return ok();
 }
 
 
-void Builder::build_header(void) {
+ok_error_t Builder::build_header() {
   LIEF_DEBUG("[+] Building header");
-  const Header& binary_header = this->binary_->header();
-  if (this->binary_->is64_) {
-    mach_header_64 header;
+  const Header& binary_header = binary_->header();
+  if (binary_->is64_) {
+    details::mach_header_64 header;
+    std::memset(&header, 0, sizeof(details::mach_header_64));
     header.magic      = static_cast<uint32_t>(binary_header.magic());
     header.cputype    = static_cast<uint32_t>(binary_header.cpu_type());
     header.cpusubtype = static_cast<uint32_t>(binary_header.cpu_subtype());
@@ -240,10 +241,12 @@ void Builder::build_header(void) {
     header.flags      = static_cast<uint32_t>(binary_header.flags());
     header.reserved   = static_cast<uint32_t>(binary_header.reserved());
 
-    this->raw_.seekp(0);
-    this->raw_.write(reinterpret_cast<const uint8_t*>(&header), sizeof(mach_header_64));
+    raw_.seekp(0);
+    raw_.write(reinterpret_cast<const uint8_t*>(&header), sizeof(details::mach_header_64));
   } else {
-    mach_header header;
+    details::mach_header header;
+    std::memset(&header, 0, sizeof(details::mach_header));
+
     header.magic      = static_cast<uint32_t>(binary_header.magic());
     header.cputype    = static_cast<uint32_t>(binary_header.cpu_type());
     header.cpusubtype = static_cast<uint32_t>(binary_header.cpu_subtype());
@@ -252,57 +255,50 @@ void Builder::build_header(void) {
     header.sizeofcmds = static_cast<uint32_t>(binary_header.sizeof_cmds());
     header.flags      = static_cast<uint32_t>(binary_header.flags());
 
-    this->raw_.seekp(0);
-    this->raw_.write(reinterpret_cast<const uint8_t*>(&header), sizeof(mach_header));
+    raw_.seekp(0);
+    raw_.write(reinterpret_cast<const uint8_t*>(&header), sizeof(details::mach_header));
   }
-
+  return ok();
 }
 
 
-void Builder::build_load_commands(void) {
+ok_error_t Builder::build_load_commands() {
   LIEF_DEBUG("[+] Building load segments");
 
-  const auto& binary = this->binaries_.back();
+  const auto& binary = binaries_.back();
   // Check if the number of segments is correct
   if (binary->header().nb_cmds() != binary->commands_.size()) {
     LIEF_WARN("Error: header.nb_cmds = {:d} vs number of commands #{:d}",
-      binary->header().nb_cmds(), binary->commands_.size());
-    throw LIEF::builder_error("");
+              binary->header().nb_cmds(), binary->commands_.size());
+    return make_error_code(lief_errors::build_error);
   }
 
-
-  for (const SegmentCommand& segment : binary->segments()) {
-    const std::vector<uint8_t>& segment_content = segment.content();
-    this->raw_.seekp(segment.file_offset());
-    this->raw_.write(segment_content);
+  for (const SegmentCommand* segment : binary->segments_) {
+    span<const uint8_t> segment_content = segment->content();
+    raw_.seekp(segment->file_offset());
+    raw_.write(segment_content.data(), segment_content.size());
   }
 
-  //uint64_t loadCommandsOffset = this->raw_.size();
-  for (const LoadCommand& command : binary->commands()) {
-    auto& data = command.data();
-    uint64_t loadCommandsOffset = command.command_offset();
+  //uint64_t loadCommandsOffset = raw_.size();
+  for (const std::unique_ptr<LoadCommand>& command : binary->commands_) {
+    const auto& data = command->data();
+    uint64_t loadCommandsOffset = command->command_offset();
     LIEF_DEBUG("[+] Command offset: 0x{:04x}", loadCommandsOffset);
-    this->raw_.seekp(loadCommandsOffset);
-    this->raw_.write(data);
+    raw_.seekp(loadCommandsOffset);
+    raw_.write(data);
   }
+  return ok();
 }
 
-void Builder::build_uuid(void) {
-  const auto uuid_it = std::find_if(
-        std::begin(this->binary_->commands_), std::end(this->binary_->commands_),
-        [] (const LoadCommand* command) {
-          return (typeid(*command) == typeid(UUIDCommand));
-        });
-  if (uuid_it == std::end(this->binary_->commands_)) {
+ok_error_t Builder::build_uuid() {
+  auto* uuid_cmd = binary_->command<UUIDCommand>();
+  if (uuid_cmd == nullptr) {
     LIEF_DEBUG("[-] No uuid");
-    return;
+    return ok();
   }
 
-  auto* uuid_cmd = reinterpret_cast<UUIDCommand*>(*uuid_it);
-  uuid_command raw_cmd;
-  std::fill(
-      reinterpret_cast<uint8_t*>(&raw_cmd), reinterpret_cast<uint8_t*>(&raw_cmd) + sizeof(uuid_command),
-      0);
+  details::uuid_command raw_cmd;
+  std::memset(&raw_cmd, 0, sizeof(details::uuid_command));
 
   raw_cmd.cmd     = static_cast<uint32_t>(uuid_cmd->command());
   raw_cmd.cmdsize = static_cast<uint32_t>(uuid_cmd->size()); // sizeof(uuid_command)
@@ -310,41 +306,40 @@ void Builder::build_uuid(void) {
   const uuid_t& uuid = uuid_cmd->uuid();
   std::copy(std::begin(uuid), std::end(uuid), raw_cmd.uuid);
 
-  if (uuid_cmd->size() < sizeof(uuid_command)) {
+  if (uuid_cmd->size() < sizeof(details::uuid_command)) {
     LIEF_WARN("Size of original data is different for '{}' -> Skip!", to_string(uuid_cmd->command()));
-    return;
+    return make_error_code(lief_errors::build_error);
   }
 
   std::copy(
-      reinterpret_cast<const uint8_t*>(&raw_cmd), reinterpret_cast<const uint8_t*>(&raw_cmd) + sizeof(uuid_command),
-      uuid_cmd->originalData_.data());
+      reinterpret_cast<const uint8_t*>(&raw_cmd), reinterpret_cast<const uint8_t*>(&raw_cmd) + sizeof(details::uuid_command),
+      uuid_cmd->original_data_.data());
+  return ok();
 }
 
-const std::vector<uint8_t>& Builder::get_build(void) {
-  return this->raw_.raw();
+const std::vector<uint8_t>& Builder::get_build() {
+  return raw_.raw();
 }
 
 
-void Builder::write(MachO::Binary *binary, const std::string& filename) {
+void Builder::write(MachO::Binary& binary, const std::string& filename) {
   Builder builder{binary};
   builder.write(filename);
 }
 
-void Builder::write(FatBinary* fatbinary, const std::string& filename) {
+void Builder::write(FatBinary& fatbinary, const std::string& filename) {
   Builder builder{fatbinary};
   builder.write(filename);
 }
 
 void Builder::write(const std::string& filename) const {
-
   std::ofstream output_file{filename, std::ios::out | std::ios::binary | std::ios::trunc};
   if (output_file) {
     std::vector<uint8_t> content;
-    this->raw_.get(content);
+    raw_.get(content);
 
-    std::copy(
-        std::begin(content), std::end(content),
-        std::ostreambuf_iterator<char>(output_file));
+    std::copy(std::begin(content), std::end(content),
+              std::ostreambuf_iterator<char>(output_file));
   } else {
     LIEF_ERR("Fail to write binary file");
   }

@@ -103,7 +103,6 @@ class TestELF(TestCase):
             binary.permute_dynamic_symbols(permutation)
 
             builder = lief.ELF.Builder(binary)
-            builder.empties_gnuhash(True)
             builder.build()
             output = os.path.join(tmp_dir, "{}.permutated".format(binary.name))
             self.logger.debug("Output: {}".format(output))
@@ -148,7 +147,7 @@ class TestELF(TestCase):
             0x21, 0x32, 0x9d, 0xc8
             ])
 
-        self.assertEqual("".join(map(chr, n3.description)), "gold 1.12")
+        self.assertEqual("".join(map(chr, n3.description)), "gold 1.12\x00\x00\x00")
 
     def test_symbols_access(self):
         hello = lief.parse(get_sample('ELF/ELF64_x86-64_binary_hello-gdb.bin'))

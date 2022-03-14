@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "LIEF/ELF/hash.hpp"
 #include "LIEF/ELF/SymbolVersionRequirement.hpp"
 
+#include "pyIterators.hpp"
 #include "pyELF.hpp"
 
 namespace LIEF {
@@ -38,22 +39,30 @@ template<>
 void create<SymbolVersionRequirement>(py::module& m) {
 
   // Symbol Version Requirement object
-  py::class_<SymbolVersionRequirement, LIEF::Object>(m, "SymbolVersionRequirement",
-      "Class which modelize an entry in ``DT_VERNEED`` or ``.gnu.version_r`` table")
+  py::class_<SymbolVersionRequirement, LIEF::Object> sym_ver_req(m, "SymbolVersionRequirement",
+      "Class which represents an entry in the ``DT_VERNEED`` or ``.gnu.version_r`` table");
 
+  init_ref_iterator<SymbolVersionRequirement::it_aux_requirement>(sym_ver_req, "it_aux_requirement");
+
+  sym_ver_req
     .def_property("version",
         static_cast<getter_t<uint16_t>>(&SymbolVersionRequirement::version),
         static_cast<setter_t<uint16_t>>(&SymbolVersionRequirement::version),
-        "Version revision. Should holds 1")
+        "Version revision. Should be 1")
 
     .def_property("name",
         static_cast<getter_t<const std::string&>>(&SymbolVersionRequirement::name),
-        static_cast<setter_t<const std::string&>>(&SymbolVersionRequirement::name))
+        static_cast<setter_t<const std::string&>>(&SymbolVersionRequirement::name),
+        "Library's name associated with this requirement (e.g. ``libc.so.6``)")
 
     .def("get_auxiliary_symbols",
-        static_cast<no_const_getter<it_symbols_version_aux_requirement>>(&SymbolVersionRequirement::auxiliary_symbols),
-        "Auxiliary entries",
+        static_cast<no_const_getter<SymbolVersionRequirement::it_aux_requirement>>(&SymbolVersionRequirement::auxiliary_symbols),
+        "Auxiliary entries (iterator over " RST_CLASS_REF(lief.ELF.SymbolVersionAuxRequirement) ")",
         py::return_value_policy::reference_internal)
+
+    .def("add_auxiliary_requirement",
+        static_cast<SymbolVersionAuxRequirement& (SymbolVersionRequirement::*)(const SymbolVersionAuxRequirement&)>(&SymbolVersionRequirement::add_aux_requirement),
+        "Add an auxiliary version requirement to the existing entries")
 
     .def("__eq__", &SymbolVersionRequirement::operator==)
     .def("__ne__", &SymbolVersionRequirement::operator!=)

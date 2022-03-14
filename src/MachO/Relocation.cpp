@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,43 +26,26 @@
 namespace LIEF {
 namespace MachO {
 
-Relocation::~Relocation(void) = default;
-
-Relocation::Relocation(void) :
-  LIEF::Relocation{},
-  symbol_{nullptr},
-  type_{0},
-  architecture_{CPU_TYPES::CPU_TYPE_ANY},
-  section_{nullptr},
-  segment_{nullptr}
-{}
-
-
-Relocation::Relocation(uint64_t address, uint8_t type) :
-  Relocation{}
-{
-  this->address_ = address;
-  this->type_    = type;
-}
-
-
-//Relocation& Relocation::operator=(const Relocation& other) {
-//  return *other.clone();
-//}
+Relocation::~Relocation() = default;
+Relocation::Relocation() = default;
 
 Relocation::Relocation(const Relocation& other) :
   LIEF::Relocation{other},
-  symbol_{nullptr},
   type_{other.type_},
-  architecture_{other.architecture_},
-  section_{nullptr},
-  segment_{nullptr}
-{
+  architecture_{other.architecture_}
+{}
+
+Relocation::Relocation(uint64_t address, uint8_t type) {
+  address_ = address;
+  type_    = type;
 }
 
 
 Relocation& Relocation::operator=(const Relocation& other) {
   if (&other != this) {
+    /* Do not copy pointer as they could be not bind to the same Binary */
+    address_      = other.address_;
+    size_         = other.size_;
     type_         = other.type_;
     architecture_ = other.architecture_;
   }
@@ -71,74 +54,63 @@ Relocation& Relocation::operator=(const Relocation& other) {
 void Relocation::swap(Relocation& other) {
   LIEF::Relocation::swap(other);
 
-  std::swap(this->symbol_,       other.symbol_);
-  std::swap(this->type_,         other.type_);
-  std::swap(this->architecture_, other.architecture_);
-  std::swap(this->section_,      other.section_);
-  std::swap(this->segment_,      other.segment_);
+  std::swap(symbol_,       other.symbol_);
+  std::swap(type_,         other.type_);
+  std::swap(architecture_, other.architecture_);
+  std::swap(section_,      other.section_);
+  std::swap(segment_,      other.segment_);
 }
 
-uint8_t Relocation::type(void) const {
-  return this->type_;
+uint8_t Relocation::type() const {
+  return type_;
 }
 
-CPU_TYPES Relocation::architecture(void) const {
-  return this->architecture_;
+CPU_TYPES Relocation::architecture() const {
+  return architecture_;
 }
 
-bool Relocation::has_symbol(void) const {
-  return (this->symbol_ != nullptr);
+bool Relocation::has_symbol() const {
+  return symbol_ != nullptr;
 }
 
-Symbol& Relocation::symbol(void) {
-  return const_cast<Symbol&>(static_cast<const Relocation*>(this)->symbol());
+Symbol* Relocation::symbol() {
+  return const_cast<Symbol*>(static_cast<const Relocation*>(this)->symbol());
 }
 
-const Symbol& Relocation::symbol(void) const {
-  if (not this->has_symbol()) {
-    throw not_found("No symbol associated with this relocation");
-  }
-  return *this->symbol_;
+const Symbol* Relocation::symbol() const {
+  return symbol_;
 }
 
 
 // Section
 // =======
-bool Relocation::has_section(void) const {
-  return (this->section_ != nullptr);
+bool Relocation::has_section() const {
+  return section_ != nullptr;
 }
 
-Section& Relocation::section(void) {
-  return const_cast<Section&>(static_cast<const Relocation*>(this)->section());
+Section* Relocation::section() {
+  return const_cast<Section*>(static_cast<const Relocation*>(this)->section());
 }
 
-const Section& Relocation::section(void) const {
-  if (not this->has_section()) {
-    throw not_found("No section associated with this relocation");
-  }
-  return *this->section_;
+const Section* Relocation::section() const {
+  return section_;
 }
 
 
-// Segment
-// =======
-bool Relocation::has_segment(void) const {
-  return (this->segment_ != nullptr);
+bool Relocation::has_segment() const {
+  return segment_ != nullptr;
 }
 
-SegmentCommand& Relocation::segment(void) {
-  return const_cast<SegmentCommand&>(static_cast<const Relocation*>(this)->segment());
+SegmentCommand* Relocation::segment() {
+  return const_cast<SegmentCommand*>(static_cast<const Relocation*>(this)->segment());
 }
 
-const SegmentCommand& Relocation::segment(void) const {
-  if (not this->has_segment()) {
-    throw not_found("No segment associated with this relocation");
-  }
-  return *this->segment_;
+const SegmentCommand* Relocation::segment() const {
+  return segment_;
 }
 
 void Relocation::type(uint8_t type) {
-  this->type_ = type;
+  type_ = type;
 }
 
 void Relocation::accept(Visitor& visitor) const {
@@ -147,13 +119,16 @@ void Relocation::accept(Visitor& visitor) const {
 
 
 bool Relocation::operator==(const Relocation& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool Relocation::operator!=(const Relocation& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 
@@ -161,91 +136,91 @@ std::ostream& Relocation::print(std::ostream& os) const {
   os << std::hex;
   os << std::left;
 
-  std::string symbol_name = "";
-  if (this->has_symbol()) {
-    symbol_name = this->symbol().name();
+  std::string symbol_name;
+  if (has_symbol()) {
+    symbol_name = symbol()->name();
   }
 
-  std::string section_name = "";
-  if (this->has_section()) {
-    section_name = this->section().name();
+  std::string section_name;
+  if (has_section()) {
+    section_name = section()->name();
   }
 
-  std::string segment_name = "";
-  if (this->has_segment()) {
-    segment_name = this->segment().name();
+  std::string segment_name;
+  if (has_segment()) {
+    segment_name = segment()->name();
   }
 
-  std::string segment_section_name = "";
-  if (section_name.size() > 0 and segment_name.size() > 0) {
+  std::string segment_section_name;
+  if (!section_name.empty() && !segment_name.empty()) {
     segment_section_name = segment_name + "." + section_name;
   }
-  else if (segment_name.size() > 0) {
+  else if (!segment_name.empty()) {
     segment_section_name = segment_name;
   }
-  else if (section_name.size() > 0) {
+  else if (!section_name.empty()) {
     segment_section_name = section_name;
   }
 
-  std::string relocation_type = "";
-  if (this->origin() == RELOCATION_ORIGINS::ORIGIN_RELOC_TABLE) {
-    switch (this->architecture()) {
+  std::string relocation_type;
+  if (origin() == RELOCATION_ORIGINS::ORIGIN_RELOC_TABLE) {
+    switch (architecture()) {
       case CPU_TYPES::CPU_TYPE_X86:
         {
-          relocation_type = to_string(static_cast<X86_RELOCATION>(this->type()));
+          relocation_type = to_string(static_cast<X86_RELOCATION>(type()));
           break;
         }
 
       case CPU_TYPES::CPU_TYPE_X86_64:
         {
-          relocation_type = to_string(static_cast<X86_64_RELOCATION>(this->type()));
+          relocation_type = to_string(static_cast<X86_64_RELOCATION>(type()));
           break;
         }
 
       case CPU_TYPES::CPU_TYPE_ARM:
         {
-          relocation_type = to_string(static_cast<ARM_RELOCATION>(this->type()));
+          relocation_type = to_string(static_cast<ARM_RELOCATION>(type()));
           break;
         }
 
       case CPU_TYPES::CPU_TYPE_ARM64:
         {
-          relocation_type = to_string(static_cast<ARM64_RELOCATION>(this->type()));
+          relocation_type = to_string(static_cast<ARM64_RELOCATION>(type()));
           break;
         }
 
       case CPU_TYPES::CPU_TYPE_POWERPC:
         {
-          relocation_type = to_string(static_cast<PPC_RELOCATION>(this->type()));
+          relocation_type = to_string(static_cast<PPC_RELOCATION>(type()));
           break;
         }
 
       default:
         {
-          relocation_type = std::to_string(this->type());
+          relocation_type = std::to_string(type());
         }
     }
   }
 
-  if (this->origin() == RELOCATION_ORIGINS::ORIGIN_DYLDINFO) {
-    relocation_type = to_string(static_cast<REBASE_TYPES>(this->type()));
+  if (origin() == RELOCATION_ORIGINS::ORIGIN_DYLDINFO) {
+    relocation_type = to_string(static_cast<REBASE_TYPES>(type()));
   }
 
 
-  os << std::setw(10) << this->address()
+  os << std::setw(10) << address()
      << std::setw(20) << relocation_type
-     << std::setw(4) << std::dec << static_cast<uint32_t>(this->size());
+     << std::setw(4) << std::dec << static_cast<uint32_t>(size());
 
-  os << std::setw(10) << to_string(this->origin());
+  os << std::setw(10) << to_string(origin());
 
-  if (segment_section_name.size() > 0) {
+  if (!segment_section_name.empty()) {
       os << segment_section_name;
   } else {
-    if (section_name.size() > 0) {
+    if (!section_name.empty()) {
       os << section_name;
     }
 
-    if (segment_name.size() > 0) {
+    if (!segment_name.empty()) {
       os << section_name;
     }
   }

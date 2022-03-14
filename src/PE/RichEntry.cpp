@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,11 @@
 namespace LIEF {
 namespace PE {
 
-RichEntry::~RichEntry(void) = default;
+RichEntry::~RichEntry() = default;
 RichEntry::RichEntry(const RichEntry&) = default;
 RichEntry& RichEntry::operator=(const RichEntry&) = default;
 
-RichEntry::RichEntry(void) :
+RichEntry::RichEntry() :
   id_{0},
   build_id_{0},
   count_{0}
@@ -39,28 +39,28 @@ RichEntry::RichEntry(uint16_t id, uint16_t build_id, uint32_t count) :
 {}
 
 
-uint16_t RichEntry::id(void) const {
-  return this->id_;
+uint16_t RichEntry::id() const {
+  return id_;
 }
 
-uint16_t RichEntry::build_id(void) const {
-  return this->build_id_;
+uint16_t RichEntry::build_id() const {
+  return build_id_;
 }
 
-uint32_t RichEntry::count(void) const {
-  return this->count_;
+uint32_t RichEntry::count() const {
+  return count_;
 }
 
 void RichEntry::id(uint16_t id) {
-  this->id_ = id;
+  id_ = id;
 }
 
 void RichEntry::build_id(uint16_t build_id) {
-  this->build_id_ = build_id;
+  build_id_ = build_id;
 }
 
 void RichEntry::count(uint32_t count) {
-  this->count_ = count;
+  count_ = count;
 }
 
 void RichEntry::accept(LIEF::Visitor& visitor) const {
@@ -68,13 +68,16 @@ void RichEntry::accept(LIEF::Visitor& visitor) const {
 }
 
 bool RichEntry::operator==(const RichEntry& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool RichEntry::operator!=(const RichEntry& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 

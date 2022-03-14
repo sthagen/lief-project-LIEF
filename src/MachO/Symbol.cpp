@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,24 +23,17 @@
 
 #include "LIEF/MachO/Symbol.hpp"
 #include "LIEF/MachO/EnumToString.hpp"
+#include "MachO/Structures.hpp"
 
 namespace LIEF {
 namespace MachO {
 
-Symbol::~Symbol(void) = default;
+Symbol::~Symbol() = default;
 
-Symbol::Symbol(void) :
-  LIEF::Symbol{},
-  type_{0},
-  numberof_sections_{0},
-  description_{0},
-  binding_info_{nullptr},
-  export_info_{nullptr},
-  origin_{SYMBOL_ORIGINS::SYM_ORIGIN_UNKNOWN}
-{}
+Symbol::Symbol() = default;
 
 Symbol& Symbol::operator=(Symbol other) {
-  this->swap(other);
+  swap(other);
   return *this;
 }
 
@@ -49,115 +42,102 @@ Symbol::Symbol(const Symbol& other) :
   type_{other.type_},
   numberof_sections_{other.numberof_sections_},
   description_{other.description_},
-  binding_info_{nullptr},
-  export_info_{nullptr},
   origin_{other.origin_}
 {}
 
 
-Symbol::Symbol(const nlist_32 *cmd) :
-  LIEF::Symbol{},
-  type_{cmd->n_type},
-  numberof_sections_{cmd->n_sect},
-  description_{static_cast<uint16_t>(cmd->n_desc)},
-  binding_info_{nullptr},
-  export_info_{nullptr},
+Symbol::Symbol(const details::nlist_32& cmd) :
+  type_{cmd.n_type},
+  numberof_sections_{cmd.n_sect},
+  description_{static_cast<uint16_t>(cmd.n_desc)},
   origin_{SYMBOL_ORIGINS::SYM_ORIGIN_LC_SYMTAB}
 {
-  this->value_ = cmd->n_value;
+  value_ = cmd.n_value;
 }
 
-Symbol::Symbol(const nlist_64 *cmd) :
-  LIEF::Symbol{},
-  type_{cmd->n_type},
-  numberof_sections_{cmd->n_sect},
-  description_{cmd->n_desc},
-  binding_info_{nullptr},
-  export_info_{nullptr},
+Symbol::Symbol(const details::nlist_64& cmd) :
+  type_{cmd.n_type},
+  numberof_sections_{cmd.n_sect},
+  description_{cmd.n_desc},
   origin_{SYMBOL_ORIGINS::SYM_ORIGIN_LC_SYMTAB}
 {
-  this->value_ = cmd->n_value;
+  value_ = cmd.n_value;
 }
 
 
 void Symbol::swap(Symbol& other) {
   LIEF::Symbol::swap(other);
 
-  std::swap(this->type_,              other.type_);
-  std::swap(this->numberof_sections_, other.numberof_sections_);
-  std::swap(this->description_,       other.description_);
-  std::swap(this->binding_info_,      other.binding_info_);
-  std::swap(this->export_info_,       other.export_info_);
-  std::swap(this->origin_,            other.origin_);
+  std::swap(type_,              other.type_);
+  std::swap(numberof_sections_, other.numberof_sections_);
+  std::swap(description_,       other.description_);
+  std::swap(binding_info_,      other.binding_info_);
+  std::swap(export_info_,       other.export_info_);
+  std::swap(origin_,            other.origin_);
 }
 
-uint8_t Symbol::type(void) const {
-  return this->type_;
+uint8_t Symbol::type() const {
+  return type_;
 }
 
-uint8_t  Symbol::numberof_sections(void) const {
-  return this->numberof_sections_;
+uint8_t  Symbol::numberof_sections() const {
+  return numberof_sections_;
 }
 
-uint16_t Symbol::description(void) const {
-  return this->description_;
+uint16_t Symbol::description() const {
+  return description_;
 }
 
-SYMBOL_ORIGINS Symbol::origin(void) const {
-  return this->origin_;
+SYMBOL_ORIGINS Symbol::origin() const {
+  return origin_;
 }
 
 void Symbol::type(uint8_t type) {
-  this->type_ = type;
+  type_ = type;
 }
 
 void Symbol::numberof_sections(uint8_t nbsections) {
-  this->numberof_sections_ = nbsections;
+  numberof_sections_ = nbsections;
 }
 
 void Symbol::description(uint16_t desc) {
-  this->description_ = desc;
+  description_ = desc;
 }
 
-bool Symbol::is_external(void) const {
+bool Symbol::is_external() const {
   static constexpr size_t N_TYPE = 0x0e;
-  return static_cast<N_LIST_TYPES>(this->type_ & N_TYPE) == N_LIST_TYPES::N_UNDF;
-    //(this->type_ & MACHO_SYMBOL_TYPES::N_EXT) == MACHO_SYMBOL_TYPES::N_EXT;
-    //(this->type_ & MACHO_SYMBOL_TYPES::N_PEXT) == 0;
+  return static_cast<N_LIST_TYPES>(type_ & N_TYPE) == N_LIST_TYPES::N_UNDF;
+    //(type_ & MACHO_SYMBOL_TYPES::N_EXT) == MACHO_SYMBOL_TYPES::N_EXT;
+    //(type_ & MACHO_SYMBOL_TYPES::N_PEXT) == 0;
 }
 
 
-bool Symbol::has_export_info(void) const {
-  return this->export_info_ != nullptr;
+bool Symbol::has_export_info() const {
+  return export_info_ != nullptr;
 }
 
-const ExportInfo& Symbol::export_info(void) const {
-  if (not this->has_export_info()) {
-    throw not_found("'" + this->name() + "' hasn't export info");
-  }
-  return *this->export_info_;
+const ExportInfo* Symbol::export_info() const {
+  return export_info_;
 }
 
-ExportInfo& Symbol::export_info(void) {
-  return const_cast<ExportInfo&>(static_cast<const Symbol*>(this)->export_info());
+ExportInfo* Symbol::export_info() {
+  return const_cast<ExportInfo*>(static_cast<const Symbol*>(this)->export_info());
 }
 
-bool Symbol::has_binding_info(void) const {
-  return this->binding_info_ != nullptr;
-}
-const BindingInfo& Symbol::binding_info(void) const {
-  if (not this->has_binding_info()) {
-    throw not_found("'" + this->name() + "' hasn't binding info");
-  }
-  return *this->binding_info_;
+bool Symbol::has_binding_info() const {
+  return binding_info_ != nullptr;
 }
 
-BindingInfo& Symbol::binding_info(void) {
-  return const_cast<BindingInfo&>(static_cast<const Symbol*>(this)->binding_info());
+const BindingInfo* Symbol::binding_info() const {
+  return binding_info_;
+}
+
+BindingInfo* Symbol::binding_info() {
+  return const_cast<BindingInfo*>(static_cast<const Symbol*>(this)->binding_info());
 }
 
 
-std::string Symbol::demangled_name(void) const {
+std::string Symbol::demangled_name() const {
 #if defined(__unix__)
   int status;
   const std::string& name = this->name().c_str();
@@ -167,11 +147,10 @@ std::string Symbol::demangled_name(void) const {
     std::string realname = demangled_name;
     free(demangled_name);
     return realname;
-  } else {
-    return name;
   }
+  return name;
 #else
-  throw not_supported("Can't demangle name");
+  return "";
 #endif
 }
 
@@ -181,13 +160,16 @@ void Symbol::accept(Visitor& visitor) const {
 
 
 bool Symbol::operator==(const Symbol& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool Symbol::operator!=(const Symbol& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 

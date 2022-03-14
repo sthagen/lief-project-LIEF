@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,15 @@ using setter_t = void (RelocationDyld::*)(T);
 template<>
 void create<RelocationDyld>(py::module& m) {
 
-  py::class_<RelocationDyld, Relocation>(m, "RelocationDyld")
+  py::class_<RelocationDyld, Relocation>(m, "RelocationDyld",
+      R"delim(
+      Class that represents a relocation found in the :class:`~lief.MachO.DyldInfo` structure.
+
+      While this class does not have an associated structure in the Mach-O format specification,
+      it provides a convenient interface for the :attr:`lief.MachO.DyldInfo.rebase` values
+
+      See also: :class:`~lief.MachO.RelocationObject`
+      )delim")
 
     .def("__le__", &RelocationDyld::operator<=)
     .def("__lt__", &RelocationDyld::operator<)

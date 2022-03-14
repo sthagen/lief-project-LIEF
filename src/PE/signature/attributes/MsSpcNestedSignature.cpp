@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ MsSpcNestedSignature::MsSpcNestedSignature(Signature sig) :
   sig_{std::move(sig)}
 {}
 
-std::unique_ptr<Attribute> MsSpcNestedSignature::clone(void) const {
+std::unique_ptr<Attribute> MsSpcNestedSignature::clone() const {
   return std::unique_ptr<Attribute>(new MsSpcNestedSignature{*this});
 }
 
@@ -44,7 +44,7 @@ void MsSpcNestedSignature::accept(Visitor& visitor) const {
 std::string MsSpcNestedSignature::print() const {
   std::ostringstream oss;
   oss << "Nested signature:\n";
-  oss << this->sig();
+  oss << sig();
   return oss.str();
 }
 

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,45 +23,56 @@
 #include "LIEF/visibility.h"
 #include "LIEF/Object.hpp"
 
-#include "LIEF/DEX.hpp"
-
 namespace LIEF {
+namespace DEX {
+class File;
+}
+namespace OAT {
+class Binary;
+}
+
 namespace VDEX {
 class Parser;
 
+//! Main class for the VDEX module which represents a VDEX file
 class LIEF_API File : public Object {
   friend class Parser;
+  friend class OAT::Binary;
 
   public:
+  using dex_files_t = std::vector<std::unique_ptr<DEX::File>>;
+  using it_dex_files = ref_iterator<dex_files_t&, DEX::File*>;
+  using it_const_dex_files = const_ref_iterator<const dex_files_t&, const DEX::File*>;
+
   File& operator=(const File& copy) = delete;
   File(const File& copy)            = delete;
 
   //! VDEX Header
-  const Header& header(void) const;
-  Header& header(void);
+  const Header& header() const;
+  Header& header();
 
   //! Iterator over LIEF::DEX::Files registered
-  DEX::it_dex_files       dex_files(void);
-  DEX::it_const_dex_files dex_files(void) const;
+  it_dex_files       dex_files();
+  it_const_dex_files dex_files() const;
 
-  dex2dex_info_t dex2dex_info(void) const;
+  dex2dex_info_t dex2dex_info() const;
 
-  std::string dex2dex_json_info(void);
+  std::string dex2dex_json_info();
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const File& rhs) const;
   bool operator!=(const File& rhs) const;
 
-  virtual ~File(void);
+  virtual ~File();
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const File& vdex_file);
 
   private:
-  File(void);
+  File();
 
-  Header           header_;
-  DEX::dex_files_t dex_files_;
+  Header header_;
+  dex_files_t dex_files_;
 };
 
 }

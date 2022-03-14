@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,10 +32,10 @@ class LIEF_API Hash : public LIEF::Hash {
   using LIEF::Hash::visit;
 
   public:
-  virtual void visit(const File& file)      override;
-  virtual void visit(const Header& header)  override;
+  void visit(const File& file)      override;
+  void visit(const Header& header)  override;
 
-  virtual ~Hash(void);
+  ~Hash() override;
 };
 
 }

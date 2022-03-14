@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,59 +20,55 @@
 
 #include "LIEF/ELF/SymbolVersion.hpp"
 #include "LIEF/ELF/SymbolVersionAux.hpp"
+#include "LIEF/ELF/SymbolVersionAuxRequirement.hpp"
 
 namespace LIEF {
 namespace ELF {
 
-SymbolVersion::SymbolVersion(void) :
-  value_{0},
-  symbol_aux_{nullptr}
-{}
-
-SymbolVersion::~SymbolVersion(void) = default;
+SymbolVersion::SymbolVersion() = default;
+SymbolVersion::~SymbolVersion() = default;
 
 SymbolVersion& SymbolVersion::operator=(const SymbolVersion&) = default;
 
 SymbolVersion::SymbolVersion(const SymbolVersion&) = default;
 
 SymbolVersion::SymbolVersion(uint16_t value) :
-  value_{value},
-  symbol_aux_{nullptr}
+  value_{value}
 {}
 
 
-SymbolVersion SymbolVersion::local(void) {
+SymbolVersion SymbolVersion::local() {
   return SymbolVersion{0};
 }
 
-SymbolVersion SymbolVersion::global(void) {
+SymbolVersion SymbolVersion::global() {
   return SymbolVersion{1};
 }
 
-uint16_t SymbolVersion::value(void) const {
-  return this->value_;
+uint16_t SymbolVersion::value() const {
+  return value_;
 }
 
 
-bool SymbolVersion::has_auxiliary_version(void) const {
-  return this->symbol_aux_ != nullptr;
+bool SymbolVersion::has_auxiliary_version() const {
+  return symbol_aux_ != nullptr;
 }
 
-const SymbolVersionAux& SymbolVersion::symbol_version_auxiliary(void) const {
-  if (this->symbol_aux_ != nullptr) {
-    return *this->symbol_aux_;
-  } else {
-    throw not_found("No auxiliary symbol associated with this version");
-  }
-
+const SymbolVersionAux* SymbolVersion::symbol_version_auxiliary() const {
+  return symbol_aux_;
 }
 
-SymbolVersionAux& SymbolVersion::symbol_version_auxiliary(void) {
-  return const_cast<SymbolVersionAux&>(static_cast<const SymbolVersion*>(this)->symbol_version_auxiliary());
+SymbolVersionAux* SymbolVersion::symbol_version_auxiliary() {
+  return const_cast<SymbolVersionAux*>(static_cast<const SymbolVersion*>(this)->symbol_version_auxiliary());
+}
+
+void SymbolVersion::symbol_version_auxiliary(SymbolVersionAuxRequirement& svauxr) {
+  symbol_aux_ = &svauxr;
+  value_      = svauxr.other();
 }
 
 void SymbolVersion::value(uint16_t value) {
-  this->value_ = value;
+  value_ = value;
 }
 
 void SymbolVersion::accept(Visitor& visitor) const {
@@ -80,18 +76,21 @@ void SymbolVersion::accept(Visitor& visitor) const {
 }
 
 bool SymbolVersion::operator==(const SymbolVersion& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool SymbolVersion::operator!=(const SymbolVersion& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const ELF::SymbolVersion& symv) {
   if (symv.has_auxiliary_version()) {
-    os << symv.symbol_version_auxiliary().name() << "(" << symv.value() << ")";
+    os << symv.symbol_version_auxiliary()->name() << "(" << symv.value() << ")";
   } else {
     std::string type;
     if (symv.value() == 0) {

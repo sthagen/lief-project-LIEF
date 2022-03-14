@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 namespace LIEF {
 namespace ELF {
 
-Hash::~Hash(void) = default;
+Hash::~Hash() = default;
 
 size_t Hash::hash(const Object& obj) {
   return LIEF::Hash::hash<LIEF::ELF::Hash>(obj);
@@ -39,11 +39,11 @@ void Hash::visit(const Binary& binary) {
   process(std::begin(binary.notes()), std::end(binary.notes()));
 
   if (binary.use_gnu_hash()) {
-    process(binary.gnu_hash());
+    process(*binary.gnu_hash());
   }
 
   if (binary.use_sysv_hash()) {
-    process(binary.sysv_hash());
+    process(*binary.sysv_hash());
   }
 
   if (binary.has_interpreter()) {
@@ -103,37 +103,37 @@ void Hash::visit(const DynamicEntry& entry) {
 
 
 void Hash::visit(const DynamicEntryArray& entry) {
-  this->visit(static_cast<const DynamicEntry&>(entry));
+  visit(static_cast<const DynamicEntry&>(entry));
   process(entry.array());
 }
 
 
 void Hash::visit(const DynamicEntryLibrary& entry) {
-  this->visit(static_cast<const DynamicEntry&>(entry));
+  visit(static_cast<const DynamicEntry&>(entry));
   process(entry.name());
 }
 
 
 void Hash::visit(const DynamicEntryRpath& entry) {
-  this->visit(static_cast<const DynamicEntry&>(entry));
+  visit(static_cast<const DynamicEntry&>(entry));
   process(entry.rpath());
 }
 
 
 void Hash::visit(const DynamicEntryRunPath& entry) {
-  this->visit(static_cast<const DynamicEntry&>(entry));
+  visit(static_cast<const DynamicEntry&>(entry));
   process(entry.runpath());
 }
 
 
 void Hash::visit(const DynamicSharedObject& entry) {
-  this->visit(static_cast<const DynamicEntry&>(entry));
+  visit(static_cast<const DynamicEntry&>(entry));
   process(entry.name());
 }
 
 
 void Hash::visit(const DynamicEntryFlags& entry) {
-  this->visit(static_cast<const DynamicEntry&>(entry));
+  visit(static_cast<const DynamicEntry&>(entry));
   process(entry.flags());
 }
 
@@ -149,22 +149,24 @@ void Hash::visit(const Symbol& symbol) {
   process(symbol.section_idx());
   process(symbol.visibility());
   process(symbol.value());
-  if (symbol.has_version()) {
-    process(symbol.symbol_version());
+  const SymbolVersion* symver = symbol.symbol_version();
+  if (symver != nullptr) {
+    process(*symver);
   }
 }
 
 void Hash::visit(const Relocation& relocation) {
-  this->process(relocation.address());
-  this->process(relocation.size());
+  process(relocation.address());
+  process(relocation.size());
 
   process(relocation.addend());
   process(relocation.type());
   process(relocation.architecture());
   process(relocation.purpose());
 
-  if (relocation.has_symbol()) {
-    process(relocation.symbol().name());
+  const Symbol* sym = relocation.symbol();
+  if (sym != nullptr) {
+    process(*sym);
   }
 
 }
@@ -172,7 +174,7 @@ void Hash::visit(const Relocation& relocation) {
 void Hash::visit(const SymbolVersion& sv) {
   process(sv.value());
   if (sv.has_auxiliary_version()) {
-    process(sv.symbol_version_auxiliary());
+    process(*sv.symbol_version_auxiliary());
   }
 }
 
@@ -194,7 +196,7 @@ void Hash::visit(const SymbolVersionAux& sv) {
 }
 
 void Hash::visit(const SymbolVersionAuxRequirement& svar) {
-  this->visit(static_cast<const SymbolVersionAux&>(svar));
+  visit(static_cast<const SymbolVersionAux&>(svar));
   process(svar.hash());
   process(svar.flags());
   process(svar.other());
@@ -211,11 +213,11 @@ void Hash::visit(const NoteDetails& details) {
 }
 
 void Hash::visit(const AndroidNote& note) {
-  this->visit(static_cast<const NoteDetails&>(note));
+  visit(static_cast<const NoteDetails&>(note));
 }
 
 void Hash::visit(const NoteAbi& note) {
-  this->visit(static_cast<const NoteDetails&>(note));
+  visit(static_cast<const NoteDetails&>(note));
 }
 
 void Hash::visit(const CorePrPsInfo& pinfo) {
@@ -242,35 +244,35 @@ void Hash::visit(const CorePrStatus& pstatus) {
   process(pstatus.pgrp());
   process(pstatus.sid());
 
-  process(pstatus.utime().tv_sec);
-  process(pstatus.utime().tv_usec);
+  process(pstatus.utime().sec);
+  process(pstatus.utime().usec);
 
-  process(pstatus.stime().tv_sec);
-  process(pstatus.stime().tv_usec);
+  process(pstatus.stime().sec);
+  process(pstatus.stime().usec);
 
-  process(pstatus.cutime().tv_sec);
-  process(pstatus.cutime().tv_usec);
+  process(pstatus.cutime().sec);
+  process(pstatus.cutime().usec);
 
-  process(pstatus.cstime().tv_sec);
-  process(pstatus.cstime().tv_usec);
+  process(pstatus.cstime().sec);
+  process(pstatus.cstime().usec);
 
   for (const CorePrStatus::reg_context_t::value_type& val : pstatus.reg_context()) {
-    this->process(val.first);  // Register
-    this->process(val.second); // Value
+    process(val.first);  // Register
+    process(val.second); // Value
   }
 }
 
 void Hash::visit(const CoreAuxv& auxv) {
   for (const CoreAuxv::val_context_t::value_type& val : auxv.values()) {
-    this->process(val.first);  // Type
-    this->process(val.second); // Value
+    process(val.first);  // Type
+    process(val.second); // Value
   }
 }
 
 void Hash::visit(const CoreSigInfo& siginfo) {
-  this->process(siginfo.signo());
-  this->process(siginfo.sigcode());
-  this->process(siginfo.sigerrno());
+  process(siginfo.signo());
+  process(siginfo.sigcode());
+  process(siginfo.sigerrno());
 }
 
 void Hash::visit(const CoreFile& file) {

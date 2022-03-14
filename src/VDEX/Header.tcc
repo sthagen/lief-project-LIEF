@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,10 +30,10 @@ Header::Header(const T* header) :
   std::copy(
       std::begin(header->magic),
       std::end(header->magic),
-      std::begin(this->magic_)
+      std::begin(magic_)
   );
 
-  this->version_ = static_cast<vdex_version_t>(std::stoi(std::string{reinterpret_cast<const char*>(header->version), sizeof(header->version)}));
+  version_ = static_cast<vdex_version_t>(std::stoi(std::string{reinterpret_cast<const char*>(header->version), sizeof(header->version)}));
 
 }
 

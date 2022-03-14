@@ -1,6 +1,6 @@
 
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,23 +17,19 @@
 
 #include "LIEF/DEX/CodeInfo.hpp"
 #include "LIEF/DEX/hash.hpp"
+#include "DEX/Structures.hpp"
 
 namespace LIEF {
 namespace DEX {
 
+CodeInfo::CodeInfo() = default;
 CodeInfo::CodeInfo(const CodeInfo&) = default;
 CodeInfo& CodeInfo::operator=(const CodeInfo&) = default;
 
-CodeInfo::CodeInfo(const code_item* codeitem) :
-  nb_registers_{codeitem->registers_size},
-  args_input_sizes_{codeitem->ins_size},
-  output_sizes_{codeitem->outs_size}
-{}
-
-CodeInfo::CodeInfo(void) :
-  nb_registers_{0},
-  args_input_sizes_{0},
-  output_sizes_{0}
+CodeInfo::CodeInfo(const details::code_item& codeitem) :
+  nb_registers_{codeitem.registers_size},
+  args_input_sizes_{codeitem.ins_size},
+  output_sizes_{codeitem.outs_size}
 {}
 
 
@@ -42,13 +38,16 @@ void CodeInfo::accept(Visitor& visitor) const {
 }
 
 bool CodeInfo::operator==(const CodeInfo& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool CodeInfo::operator!=(const CodeInfo& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const CodeInfo& /*cinfo*/) {
@@ -56,7 +55,7 @@ std::ostream& operator<<(std::ostream& os, const CodeInfo& /*cinfo*/) {
   return os;
 }
 
-CodeInfo::~CodeInfo(void) = default;
+CodeInfo::~CodeInfo() = default;
 
 }
 }

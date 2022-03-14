@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #include "pyPE.hpp"
 #define LIEF_PE_FORCE_UNDEF
 #include "LIEF/PE/undef.h"
-#include "LIEF/PE/Structures.hpp"
+#include "LIEF/PE/enums.hpp"
 #include "LIEF/PE/EnumToString.hpp"
 #include "enums_wrapper.hpp"
 
@@ -106,7 +106,8 @@ void init_enums(py::module& m) {
     .value(PY_ENUM(DATA_DIRECTORY::BOUND_IMPORT))
     .value(PY_ENUM(DATA_DIRECTORY::IAT))
     .value(PY_ENUM(DATA_DIRECTORY::DELAY_IMPORT_DESCRIPTOR))
-    .value(PY_ENUM(DATA_DIRECTORY::CLR_RUNTIME_HEADER));
+    .value(PY_ENUM(DATA_DIRECTORY::CLR_RUNTIME_HEADER))
+    .value(PY_ENUM(DATA_DIRECTORY::RESERVED));
 
   LIEF::enum_<DLL_CHARACTERISTICS>(m, "DLL_CHARACTERISTICS", py::arithmetic())
     .value(PY_ENUM(DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_HIGH_ENTROPY_VA))

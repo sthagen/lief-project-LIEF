@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,18 +19,18 @@
 
 #include "LIEF/PE/hash.hpp"
 
-#include "LIEF/PE/Structures.hpp"
 #include "LIEF/PE/EnumToString.hpp"
 #include "LIEF/PE/CodeIntegrity.hpp"
+#include "PE/Structures.hpp"
 
 namespace LIEF {
 namespace PE {
 
-CodeIntegrity::~CodeIntegrity(void) = default;
+CodeIntegrity::~CodeIntegrity() = default;
 CodeIntegrity& CodeIntegrity::operator=(const CodeIntegrity&) = default;
 CodeIntegrity::CodeIntegrity(const CodeIntegrity&) = default;
 
-CodeIntegrity::CodeIntegrity(void) :
+CodeIntegrity::CodeIntegrity() :
   flags_{0},
   catalog_{0},
   catalog_offset_{0},
@@ -38,44 +38,44 @@ CodeIntegrity::CodeIntegrity(void) :
 {}
 
 
-CodeIntegrity::CodeIntegrity(const pe_code_integrity *header) :
-  flags_{header->Flags},
-  catalog_{header->Catalog},
-  catalog_offset_{header->CatalogOffset},
-  reserved_{header->Reserved}
+CodeIntegrity::CodeIntegrity(const details::pe_code_integrity& header) :
+  flags_{header.Flags},
+  catalog_{header.Catalog},
+  catalog_offset_{header.CatalogOffset},
+  reserved_{header.Reserved}
 {}
 
 
-uint16_t CodeIntegrity::flags(void) const {
-  return this->flags_;
+uint16_t CodeIntegrity::flags() const {
+  return flags_;
 }
-uint16_t CodeIntegrity::catalog(void) const {
-  return this->catalog_;
-}
-
-uint32_t CodeIntegrity::catalog_offset(void) const {
-  return this->catalog_offset_;
+uint16_t CodeIntegrity::catalog() const {
+  return catalog_;
 }
 
-uint32_t CodeIntegrity::reserved(void) const {
-  return this->reserved_;
+uint32_t CodeIntegrity::catalog_offset() const {
+  return catalog_offset_;
+}
+
+uint32_t CodeIntegrity::reserved() const {
+  return reserved_;
 }
 
 
 void CodeIntegrity::flags(uint16_t flags) {
-  this->flags_ = flags;
+  flags_ = flags;
 }
 
 void CodeIntegrity::catalog(uint16_t catalog) {
-  this->catalog_ = catalog;
+  catalog_ = catalog;
 }
 
 void CodeIntegrity::catalog_offset(uint32_t catalog_offset) {
-  this->catalog_offset_ = catalog_offset;
+  catalog_offset_ = catalog_offset;
 }
 
 void CodeIntegrity::reserved(uint32_t reserved) {
-  this->reserved_ = reserved;
+  reserved_ = reserved;
 }
 
 void CodeIntegrity::accept(LIEF::Visitor& visitor) const {
@@ -83,13 +83,16 @@ void CodeIntegrity::accept(LIEF::Visitor& visitor) const {
 }
 
 bool CodeIntegrity::operator==(const CodeIntegrity& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool CodeIntegrity::operator!=(const CodeIntegrity& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const CodeIntegrity& entry) {

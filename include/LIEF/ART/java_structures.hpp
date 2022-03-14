@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,13 @@
 
 #include "LIEF/types.hpp"
 #include "LIEF/ART/enums.hpp"
-#include "LIEF/ART/type_traits.hpp"
+#include "LIEF/ART/types.hpp"
 
 namespace LIEF {
 //! @brief Namespace related to the LIEF's ART module
 namespace ART {
+
+namespace details {
 
 struct no_brooks_read_barrier_t {};
 
@@ -386,6 +388,7 @@ using jdex_cache_t = ART_46::Java::jdex_cache_t<T>;
 } // Namespace Java
 } // Namespace ART_56
 
+} // namespace details
 } // Namespace ART
 } // Namespace LIEF
 

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,28 +27,39 @@
 
 namespace LIEF {
 namespace ELF {
+namespace details {
 struct Elf64_Dyn;
 struct Elf32_Dyn;
+}
 
+//! Class which represents an entry in the dynamic table
+//! These entries are located in the ``.dynamic`` section or the ``PT_DYNAMIC`` segment
 class LIEF_API DynamicEntry : public Object {
   public:
 
-  DynamicEntry(const Elf64_Dyn* header);
-  DynamicEntry(const Elf32_Dyn* header);
-  DynamicEntry(void);
+  DynamicEntry(const details::Elf64_Dyn& header);
+  DynamicEntry(const details::Elf32_Dyn& header);
+  DynamicEntry();
   DynamicEntry(DYNAMIC_TAGS tag, uint64_t value);
 
   DynamicEntry& operator=(const DynamicEntry&);
   DynamicEntry(const DynamicEntry&);
-  virtual ~DynamicEntry(void);
+  virtual ~DynamicEntry();
 
-  DYNAMIC_TAGS tag(void) const;
-  uint64_t value(void) const;
+  //! Tag of the current entry. The most common tags are:
+  //! DT_NEEDED, DT_INIT, ...
+  DYNAMIC_TAGS tag() const;
+
+  //! Return the entry's value
+  //!
+  //! The meaning of the value strongly depends on the tag.
+  //! It can be an offset, an index, a flag, ...
+  uint64_t value() const;
 
   void tag(DYNAMIC_TAGS tag);
   void value(uint64_t value);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   virtual std::ostream& print(std::ostream& os) const;
 

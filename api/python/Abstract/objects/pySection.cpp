@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,10 @@ using setter_t = void (Section::*)(T);
 
 template<>
 void create<Section>(py::module& m) {
-  py::class_<Section, Object>(m, "Section")
+  py::class_<Section, Object>(m, "Section",
+      R"delim(
+      Class which represents an abstracted section
+      )delim")
     .def(py::init(),
         "Default constructor")
 
@@ -41,6 +44,10 @@ void create<Section>(py::module& m) {
         static_cast<setter_t<const std::string&>>(&Section::name),
         "Section's name")
 
+    .def_property_readonly("fullname",
+        &Section::fullname,
+        "Return the **fullname** of the section including the trailing bytes")
+
     .def_property("size",
         static_cast<getter_t<uint64_t>>(&Section::size),
         static_cast<setter_t<uint64_t>>(&Section::size),
@@ -49,7 +56,7 @@ void create<Section>(py::module& m) {
     .def_property("offset",
         static_cast<getter_t<uint64_t>>(&Section::offset),
         static_cast<setter_t<uint64_t>>(&Section::offset),
-        "Section's offset")
+        "Section's file offset")
 
     .def_property("virtual_address",
         static_cast<getter_t<uint64_t>>(&Section::virtual_address),
@@ -57,7 +64,10 @@ void create<Section>(py::module& m) {
         "Section's virtual address")
 
     .def_property("content",
-        static_cast<getter_t<std::vector<uint8_t>>>(&Section::content),
+        [] (const Section& self) {
+          span<const uint8_t> content = self.content();
+          return py::memoryview::from_memory(content.data(), content.size());
+        },
         static_cast<setter_t<const std::vector<uint8_t>&>>(&Section::content),
         "Section's content")
 

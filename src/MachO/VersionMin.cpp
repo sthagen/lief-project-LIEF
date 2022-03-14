@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,51 +18,51 @@
 
 #include "LIEF/MachO/hash.hpp"
 
-#include "LIEF/MachO/Structures.hpp"
 #include "LIEF/MachO/VersionMin.hpp"
+#include "MachO/Structures.hpp"
 
 namespace LIEF {
 namespace MachO {
 
-VersionMin::VersionMin(void) = default;
+VersionMin::VersionMin() = default;
 VersionMin& VersionMin::operator=(const VersionMin&) = default;
 VersionMin::VersionMin(const VersionMin&) = default;
-VersionMin::~VersionMin(void) = default;
+VersionMin::~VersionMin() = default;
 
-VersionMin::VersionMin(const version_min_command *version_cmd) :
-  LoadCommand::LoadCommand{static_cast<LOAD_COMMAND_TYPES>(version_cmd->cmd), version_cmd->cmdsize},
+VersionMin::VersionMin(const details::version_min_command& version_cmd) :
+  LoadCommand::LoadCommand{static_cast<LOAD_COMMAND_TYPES>(version_cmd.cmd), version_cmd.cmdsize},
   version_{{
-    static_cast<uint32_t>((version_cmd->version >> 16) & 0xFFFF),
-    static_cast<uint32_t>((version_cmd->version >>  8) & 0xFF),
-    static_cast<uint32_t>((version_cmd->version >>  0) & 0xFF)
+    static_cast<uint32_t>((version_cmd.version >> 16) & 0xFFFF),
+    static_cast<uint32_t>((version_cmd.version >>  8) & 0xFF),
+    static_cast<uint32_t>((version_cmd.version >>  0) & 0xFF)
   }},
   sdk_{{
-    static_cast<uint32_t>((version_cmd->sdk >> 16) & 0xFFFF),
-    static_cast<uint32_t>((version_cmd->sdk >>  8) & 0xFF),
-    static_cast<uint32_t>((version_cmd->sdk >>  0) & 0xFF)
+    static_cast<uint32_t>((version_cmd.sdk >> 16) & 0xFFFF),
+    static_cast<uint32_t>((version_cmd.sdk >>  8) & 0xFF),
+    static_cast<uint32_t>((version_cmd.sdk >>  0) & 0xFF)
   }}
 {
 }
 
-VersionMin* VersionMin::clone(void) const {
+VersionMin* VersionMin::clone() const {
   return new VersionMin(*this);
 }
 
 
- const VersionMin::version_t& VersionMin::version(void) const {
-   return this->version_;
+ const VersionMin::version_t& VersionMin::version() const {
+   return version_;
  }
 
  void VersionMin::version(const VersionMin::version_t& version) {
-   this->version_ = version;
+   version_ = version;
  }
 
- const VersionMin::version_t& VersionMin::sdk(void) const {
-   return this->sdk_;
+ const VersionMin::version_t& VersionMin::sdk() const {
+   return sdk_;
  }
 
  void VersionMin::sdk(const VersionMin::version_t& version) {
-   this->sdk_ = version;
+   sdk_ = version;
  }
 
 void VersionMin::accept(Visitor& visitor) const {
@@ -71,15 +71,25 @@ void VersionMin::accept(Visitor& visitor) const {
 
 
 bool VersionMin::operator==(const VersionMin& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool VersionMin::operator!=(const VersionMin& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
+
+bool VersionMin::classof(const LoadCommand* cmd) {
+  // This must be sync with BinaryParser.tcc
+  const LOAD_COMMAND_TYPES type = cmd->command();
+  return type == LOAD_COMMAND_TYPES::LC_VERSION_MIN_MACOSX ||
+         type == LOAD_COMMAND_TYPES::LC_VERSION_MIN_IPHONEOS;
+}
 
 std::ostream& VersionMin::print(std::ostream& os) const {
   LoadCommand::print(os);

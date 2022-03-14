@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,21 +18,22 @@
 
 #include "LIEF/utils.hpp"
 #include "LIEF/exception.hpp"
+#include "logging.hpp"
 
 #include "LIEF/PE/hash.hpp"
-#include "LIEF/PE/Structures.hpp"
 #include "LIEF/PE/OptionalHeader.hpp"
 #include "LIEF/PE/EnumToString.hpp"
+#include "PE/Structures.hpp"
 
 
 namespace LIEF {
 namespace PE {
 
-OptionalHeader::~OptionalHeader(void) = default;
+OptionalHeader::~OptionalHeader() = default;
 OptionalHeader& OptionalHeader::operator=(const OptionalHeader&) = default;
 OptionalHeader::OptionalHeader(const OptionalHeader&) = default;
 
-OptionalHeader::OptionalHeader(void) :
+OptionalHeader::OptionalHeader() :
   magic_{},
   majorLinkerVersion_(9), // Arbitrary value
   minorLinkerVersion_(0),
@@ -62,252 +63,251 @@ OptionalHeader::OptionalHeader(void) :
   sizeOfHeapReserve_(0x100000),
   sizeOfHeapCommit_(0x1000),
   loaderFlags_(0),
-  numberOfRvaAndSize_(DEFAULT_NUMBER_DATA_DIRECTORIES + 1)
+  numberOfRvaAndSize_(details::DEFAULT_NUMBER_DATA_DIRECTORIES + 1)
 {
-  this->sizeOfHeaders_ = sizeof(pe_dos_header) + sizeof(pe_header);
-  this->sizeOfHeaders_ = LIEF::align(this->sizeOfHeaders_, this->fileAlignment_);
+  sizeOfHeaders_ = sizeof(details::pe_dos_header) + sizeof(details::pe_header);
+  sizeOfHeaders_ = LIEF::align(sizeOfHeaders_, fileAlignment_);
 }
 
 
-OptionalHeader::OptionalHeader(const pe32_optional_header *header):
-  magic_(static_cast<PE_TYPE>(header->Magic)),
-  majorLinkerVersion_(header->MajorLinkerVersion),
-  minorLinkerVersion_(header->MinorLinkerVersion),
-  sizeOfCode_(header->SizeOfCode),
-  sizeOfInitializedData_(header->SizeOfInitializedData),
-  sizeOfUninitializedData_(header->SizeOfUninitializedData),
-  addressOfEntryPoint_(header->AddressOfEntryPoint),
-  baseOfCode_(header->BaseOfCode),
-  baseOfData_(header->BaseOfData),
-  imageBase_(header->ImageBase),
-  sectionAlignment_(header->SectionAlignment),
-  fileAlignment_(header->FileAlignment),
-  majorOperatingSystemVersion_(header->MajorOperatingSystemVersion),
-  minorOperatingSystemVersion_(header->MinorOperatingSystemVersion),
-  majorImageVersion_(header->MajorImageVersion),
-  minorImageVersion_(header->MinorImageVersion),
-  majorSubsystemVersion_(header->MajorSubsystemVersion),
-  minorSubsystemVersion_(header->MinorSubsystemVersion),
-  win32VersionValue_(header->Win32VersionValue),
-  sizeOfImage_(header->SizeOfImage),
-  sizeOfHeaders_(header->SizeOfHeaders),
-  checkSum_(header->CheckSum),
-  subsystem_(static_cast<SUBSYSTEM>(header->Subsystem)),
-  DLLCharacteristics_(header->DLLCharacteristics),
-  sizeOfStackReserve_(header->SizeOfStackReserve),
-  sizeOfStackCommit_(header->SizeOfStackCommit),
-  sizeOfHeapReserve_(header->SizeOfHeapReserve),
-  sizeOfHeapCommit_(header->SizeOfHeapCommit),
-  loaderFlags_(header->LoaderFlags),
-  numberOfRvaAndSize_(header->NumberOfRvaAndSize)
+OptionalHeader::OptionalHeader(const details::pe32_optional_header& header):
+  magic_(static_cast<PE_TYPE>(header.Magic)),
+  majorLinkerVersion_(header.MajorLinkerVersion),
+  minorLinkerVersion_(header.MinorLinkerVersion),
+  sizeOfCode_(header.SizeOfCode),
+  sizeOfInitializedData_(header.SizeOfInitializedData),
+  sizeOfUninitializedData_(header.SizeOfUninitializedData),
+  addressOfEntryPoint_(header.AddressOfEntryPoint),
+  baseOfCode_(header.BaseOfCode),
+  baseOfData_(header.BaseOfData),
+  imageBase_(header.ImageBase),
+  sectionAlignment_(header.SectionAlignment),
+  fileAlignment_(header.FileAlignment),
+  majorOperatingSystemVersion_(header.MajorOperatingSystemVersion),
+  minorOperatingSystemVersion_(header.MinorOperatingSystemVersion),
+  majorImageVersion_(header.MajorImageVersion),
+  minorImageVersion_(header.MinorImageVersion),
+  majorSubsystemVersion_(header.MajorSubsystemVersion),
+  minorSubsystemVersion_(header.MinorSubsystemVersion),
+  win32VersionValue_(header.Win32VersionValue),
+  sizeOfImage_(header.SizeOfImage),
+  sizeOfHeaders_(header.SizeOfHeaders),
+  checkSum_(header.CheckSum),
+  subsystem_(static_cast<SUBSYSTEM>(header.Subsystem)),
+  DLLCharacteristics_(header.DLLCharacteristics),
+  sizeOfStackReserve_(header.SizeOfStackReserve),
+  sizeOfStackCommit_(header.SizeOfStackCommit),
+  sizeOfHeapReserve_(header.SizeOfHeapReserve),
+  sizeOfHeapCommit_(header.SizeOfHeapCommit),
+  loaderFlags_(header.LoaderFlags),
+  numberOfRvaAndSize_(header.NumberOfRvaAndSize)
 {}
 
-OptionalHeader::OptionalHeader(const pe64_optional_header *header):
-  magic_(static_cast<PE_TYPE>(header->Magic)),
-  majorLinkerVersion_(header->MajorLinkerVersion),
-  minorLinkerVersion_(header->MinorLinkerVersion),
-  sizeOfCode_(header->SizeOfCode),
-  sizeOfInitializedData_(header->SizeOfInitializedData),
-  sizeOfUninitializedData_(header->SizeOfUninitializedData),
-  addressOfEntryPoint_(header->AddressOfEntryPoint),
-  baseOfCode_(header->BaseOfCode),
+OptionalHeader::OptionalHeader(const details::pe64_optional_header& header):
+  magic_(static_cast<PE_TYPE>(header.Magic)),
+  majorLinkerVersion_(header.MajorLinkerVersion),
+  minorLinkerVersion_(header.MinorLinkerVersion),
+  sizeOfCode_(header.SizeOfCode),
+  sizeOfInitializedData_(header.SizeOfInitializedData),
+  sizeOfUninitializedData_(header.SizeOfUninitializedData),
+  addressOfEntryPoint_(header.AddressOfEntryPoint),
+  baseOfCode_(header.BaseOfCode),
   baseOfData_(0), // Not in PE64
-  imageBase_(header->ImageBase),
-  sectionAlignment_(header->SectionAlignment),
-  fileAlignment_(header->FileAlignment),
-  majorOperatingSystemVersion_(header->MajorOperatingSystemVersion),
-  minorOperatingSystemVersion_(header->MinorOperatingSystemVersion),
-  majorImageVersion_(header->MajorImageVersion),
-  minorImageVersion_(header->MinorImageVersion),
-  majorSubsystemVersion_(header->MajorSubsystemVersion),
-  minorSubsystemVersion_(header->MinorSubsystemVersion),
-  win32VersionValue_(header->Win32VersionValue),
-  sizeOfImage_(header->SizeOfImage),
-  sizeOfHeaders_(header->SizeOfHeaders),
-  checkSum_(header->CheckSum),
-  subsystem_(static_cast<SUBSYSTEM>(header->Subsystem)),
-  DLLCharacteristics_(header->DLLCharacteristics),
-  sizeOfStackReserve_(header->SizeOfStackReserve),
-  sizeOfStackCommit_(header->SizeOfStackCommit),
-  sizeOfHeapReserve_(header->SizeOfHeapReserve),
-  sizeOfHeapCommit_(header->SizeOfHeapCommit),
-  loaderFlags_(header->LoaderFlags),
-  numberOfRvaAndSize_(header->NumberOfRvaAndSize)
+  imageBase_(header.ImageBase),
+  sectionAlignment_(header.SectionAlignment),
+  fileAlignment_(header.FileAlignment),
+  majorOperatingSystemVersion_(header.MajorOperatingSystemVersion),
+  minorOperatingSystemVersion_(header.MinorOperatingSystemVersion),
+  majorImageVersion_(header.MajorImageVersion),
+  minorImageVersion_(header.MinorImageVersion),
+  majorSubsystemVersion_(header.MajorSubsystemVersion),
+  minorSubsystemVersion_(header.MinorSubsystemVersion),
+  win32VersionValue_(header.Win32VersionValue),
+  sizeOfImage_(header.SizeOfImage),
+  sizeOfHeaders_(header.SizeOfHeaders),
+  checkSum_(header.CheckSum),
+  subsystem_(static_cast<SUBSYSTEM>(header.Subsystem)),
+  DLLCharacteristics_(header.DLLCharacteristics),
+  sizeOfStackReserve_(header.SizeOfStackReserve),
+  sizeOfStackCommit_(header.SizeOfStackCommit),
+  sizeOfHeapReserve_(header.SizeOfHeapReserve),
+  sizeOfHeapCommit_(header.SizeOfHeapCommit),
+  loaderFlags_(header.LoaderFlags),
+  numberOfRvaAndSize_(header.NumberOfRvaAndSize)
 {}
 
-PE_TYPE OptionalHeader::magic(void) const {
-  return this->magic_;
+PE_TYPE OptionalHeader::magic() const {
+  return magic_;
 }
 
 
-uint8_t OptionalHeader::major_linker_version(void) const {
-  return this->majorLinkerVersion_;
+uint8_t OptionalHeader::major_linker_version() const {
+  return majorLinkerVersion_;
 }
 
 
-uint8_t OptionalHeader::minor_linker_version(void) const {
-  return this->minorLinkerVersion_;
+uint8_t OptionalHeader::minor_linker_version() const {
+  return minorLinkerVersion_;
 }
 
 
-uint32_t OptionalHeader::sizeof_code(void) const {
-  return this->sizeOfCode_;
+uint32_t OptionalHeader::sizeof_code() const {
+  return sizeOfCode_;
 }
 
 
-uint32_t OptionalHeader::sizeof_initialized_data(void) const {
-  return this->sizeOfInitializedData_;
+uint32_t OptionalHeader::sizeof_initialized_data() const {
+  return sizeOfInitializedData_;
 }
 
 
-uint32_t OptionalHeader::sizeof_uninitialized_data(void) const {
-  return this->sizeOfUninitializedData_;
+uint32_t OptionalHeader::sizeof_uninitialized_data() const {
+  return sizeOfUninitializedData_;
 }
 
 
-uint32_t OptionalHeader::addressof_entrypoint(void) const {
-  return this->addressOfEntryPoint_;
+uint32_t OptionalHeader::addressof_entrypoint() const {
+  return addressOfEntryPoint_;
 }
 
 
-uint32_t OptionalHeader::baseof_code(void) const {
-  return this->baseOfCode_;
+uint32_t OptionalHeader::baseof_code() const {
+  return baseOfCode_;
 }
 
 
-uint32_t OptionalHeader::baseof_data(void) const {
-  if (this->magic() == PE_TYPE::PE32) {
-    return this->baseOfData_;
-  } else {
-    throw LIEF::bad_format("There isn't this attribute in PE32+");
+uint32_t OptionalHeader::baseof_data() const {
+  if (magic() == PE_TYPE::PE32_PLUS) {
+    LIEF_ERR("baseof_data is not present in PE64 binaries");
+    return 0;
   }
+  return baseOfData_;
 }
 
 
-uint64_t OptionalHeader::imagebase(void) const {
-  return this->imageBase_;
+uint64_t OptionalHeader::imagebase() const {
+  return imageBase_;
 }
 
 
-uint32_t OptionalHeader::section_alignment(void) const {
-  return this->sectionAlignment_;
+uint32_t OptionalHeader::section_alignment() const {
+  return sectionAlignment_;
 }
 
 
-uint32_t OptionalHeader::file_alignment(void) const {
-  return this->fileAlignment_;
+uint32_t OptionalHeader::file_alignment() const {
+  return fileAlignment_;
 }
 
 
-uint16_t OptionalHeader::major_operating_system_version(void) const {
-  return this->majorOperatingSystemVersion_;
+uint16_t OptionalHeader::major_operating_system_version() const {
+  return majorOperatingSystemVersion_;
 }
 
 
-uint16_t OptionalHeader::minor_operating_system_version(void) const {
-  return this->minorOperatingSystemVersion_;
+uint16_t OptionalHeader::minor_operating_system_version() const {
+  return minorOperatingSystemVersion_;
 }
 
 
-uint16_t OptionalHeader::major_image_version(void) const {
-  return this->majorImageVersion_;
+uint16_t OptionalHeader::major_image_version() const {
+  return majorImageVersion_;
 }
 
 
-uint16_t OptionalHeader::minor_image_version(void) const {
-  return this->minorImageVersion_;
+uint16_t OptionalHeader::minor_image_version() const {
+  return minorImageVersion_;
 }
 
 
-uint16_t OptionalHeader::major_subsystem_version(void) const {
-  return this->majorSubsystemVersion_;
+uint16_t OptionalHeader::major_subsystem_version() const {
+  return majorSubsystemVersion_;
 }
 
 
-uint16_t OptionalHeader::minor_subsystem_version(void) const {
-  return this->minorSubsystemVersion_;
+uint16_t OptionalHeader::minor_subsystem_version() const {
+  return minorSubsystemVersion_;
 }
 
 
-uint32_t OptionalHeader::win32_version_value(void) const {
-  return this->win32VersionValue_;
+uint32_t OptionalHeader::win32_version_value() const {
+  return win32VersionValue_;
 }
 
 
-uint32_t OptionalHeader::sizeof_image(void) const {
-  return this->sizeOfImage_;
+uint32_t OptionalHeader::sizeof_image() const {
+  return sizeOfImage_;
 }
 
 
-uint32_t OptionalHeader::sizeof_headers(void) const {
-  return this->sizeOfHeaders_;
+uint32_t OptionalHeader::sizeof_headers() const {
+  return sizeOfHeaders_;
 }
 
 
-uint32_t OptionalHeader::checksum(void) const {
-  return this->checkSum_;
+uint32_t OptionalHeader::checksum() const {
+  return checkSum_;
 }
 
 
-SUBSYSTEM OptionalHeader::subsystem(void) const {
-  return this->subsystem_;
+SUBSYSTEM OptionalHeader::subsystem() const {
+  return subsystem_;
 }
 
 
-uint32_t OptionalHeader::dll_characteristics(void) const {
-  return this->DLLCharacteristics_;
+uint32_t OptionalHeader::dll_characteristics() const {
+  return DLLCharacteristics_;
 }
 
 
-uint64_t OptionalHeader::sizeof_stack_reserve(void) const {
-  return this->sizeOfStackReserve_;
+uint64_t OptionalHeader::sizeof_stack_reserve() const {
+  return sizeOfStackReserve_;
 }
 
 
-uint64_t OptionalHeader::sizeof_stack_commit(void) const {
-  return this->sizeOfStackCommit_;
+uint64_t OptionalHeader::sizeof_stack_commit() const {
+  return sizeOfStackCommit_;
 }
 
 
-uint64_t OptionalHeader::sizeof_heap_reserve(void) const {
-  return this->sizeOfHeapReserve_;
+uint64_t OptionalHeader::sizeof_heap_reserve() const {
+  return sizeOfHeapReserve_;
 }
 
 
-uint64_t OptionalHeader::sizeof_heap_commit(void) const {
-  return this->sizeOfHeapCommit_;
+uint64_t OptionalHeader::sizeof_heap_commit() const {
+  return sizeOfHeapCommit_;
 }
 
 
-uint32_t OptionalHeader::loader_flags(void) const {
-  return this->loaderFlags_;
+uint32_t OptionalHeader::loader_flags() const {
+  return loaderFlags_;
 }
 
 
-uint32_t OptionalHeader::numberof_rva_and_size(void) const {
-  return this->numberOfRvaAndSize_;
+uint32_t OptionalHeader::numberof_rva_and_size() const {
+  return numberOfRvaAndSize_;
 }
 
 bool OptionalHeader::has(DLL_CHARACTERISTICS c) const {
-  return (this->dll_characteristics() & static_cast<uint32_t>(c)) > 0;
+  return (dll_characteristics() & static_cast<uint32_t>(c)) > 0;
 }
 
 void OptionalHeader::add(DLL_CHARACTERISTICS c) {
-  this->dll_characteristics(this->dll_characteristics() | static_cast<uint32_t>(c));
+  dll_characteristics(dll_characteristics() | static_cast<uint32_t>(c));
 }
 
 void OptionalHeader::remove(DLL_CHARACTERISTICS c) {
-  this->dll_characteristics(this->dll_characteristics() & (~ static_cast<uint32_t>(c)));
+  dll_characteristics(dll_characteristics() & (~ static_cast<uint32_t>(c)));
 }
 
 
-std::set<DLL_CHARACTERISTICS> OptionalHeader::dll_characteristics_list(void) const {
+std::set<DLL_CHARACTERISTICS> OptionalHeader::dll_characteristics_list() const {
   std::set<DLL_CHARACTERISTICS> dll_charac;
   std::copy_if(
-      std::begin(dll_characteristics_array),
-      std::end(dll_characteristics_array),
+      std::begin(details::dll_characteristics_array), std::end(details::dll_characteristics_array),
       std::inserter(dll_charac, std::begin(dll_charac)),
-      std::bind(&OptionalHeader::has, this, std::placeholders::_1));
+      [this] (DLL_CHARACTERISTICS f) { return has(f); });
 
   return dll_charac;
 }
@@ -315,157 +315,156 @@ std::set<DLL_CHARACTERISTICS> OptionalHeader::dll_characteristics_list(void) con
 
 
 void OptionalHeader::magic(PE_TYPE magic) {
-  this->magic_ = static_cast<PE_TYPE>(magic);
+  magic_ = static_cast<PE_TYPE>(magic);
 }
 
 
 void OptionalHeader::major_linker_version(uint8_t majorLinkerVersion) {
-  this->majorLinkerVersion_ = majorLinkerVersion;
+  majorLinkerVersion_ = majorLinkerVersion;
 }
 
 
 void OptionalHeader::minor_linker_version(uint8_t minorLinkerVersion) {
-  this->minorLinkerVersion_ = minorLinkerVersion;
+  minorLinkerVersion_ = minorLinkerVersion;
 }
 
 
 void OptionalHeader::sizeof_code(uint32_t sizeOfCode) {
-  this->sizeOfCode_ = sizeOfCode;
+  sizeOfCode_ = sizeOfCode;
 }
 
 
 void OptionalHeader::sizeof_initialized_data(uint32_t sizeOfInitializedData) {
-  this->sizeOfInitializedData_ = sizeOfInitializedData;
+  sizeOfInitializedData_ = sizeOfInitializedData;
 }
 
 
 void OptionalHeader::sizeof_uninitialized_data(uint32_t sizeOfUninitializedData) {
-  this->sizeOfUninitializedData_ = sizeOfUninitializedData;
+  sizeOfUninitializedData_ = sizeOfUninitializedData;
 }
 
 
 void OptionalHeader::addressof_entrypoint(uint32_t addressOfEntryPoint) {
-  this->addressOfEntryPoint_ = addressOfEntryPoint;
+  addressOfEntryPoint_ = addressOfEntryPoint;
 }
 
 
 void OptionalHeader::baseof_code(uint32_t baseOfCode) {
-  this->baseOfCode_ = baseOfCode;
+  baseOfCode_ = baseOfCode;
 }
 
 
 void OptionalHeader::baseof_data(uint32_t baseOfData) {
-  if (this->magic() == PE_TYPE::PE32) {
-    this->baseOfData_ = baseOfData;
-  } else {
-    throw LIEF::bad_format("There isn't this attribute in PE32+");
+  if (magic() == PE_TYPE::PE32_PLUS) {
+    LIEF_ERR("baseof_data is not present in PE64 binaries");
+    return;
   }
-
+  baseOfData_ = baseOfData;
 }
 
 
 void OptionalHeader::imagebase(uint64_t imageBase) {
-  this->imageBase_ = imageBase;
+  imageBase_ = imageBase;
 }
 
 
 void OptionalHeader::section_alignment(uint32_t sectionAlignment) {
-  this->sectionAlignment_ = sectionAlignment;
+  sectionAlignment_ = sectionAlignment;
 }
 
 
 void OptionalHeader::file_alignment(uint32_t fileAlignment) {
-  this->fileAlignment_ = fileAlignment;
+  fileAlignment_ = fileAlignment;
 }
 
 
 void OptionalHeader::major_operating_system_version(uint16_t majorOperatingSystemVersion) {
-  this->majorOperatingSystemVersion_ = majorOperatingSystemVersion;
+  majorOperatingSystemVersion_ = majorOperatingSystemVersion;
 }
 
 
 void OptionalHeader::minor_operating_system_version(uint16_t minorOperatingSystemVersion) {
-  this->minorOperatingSystemVersion_ = minorOperatingSystemVersion;
+  minorOperatingSystemVersion_ = minorOperatingSystemVersion;
 }
 
 
 void OptionalHeader::major_image_version(uint16_t majorImageVersion) {
-  this->majorImageVersion_ = majorImageVersion;
+  majorImageVersion_ = majorImageVersion;
 }
 
 
 void OptionalHeader::minor_image_version(uint16_t minorImageVersion) {
-  this->minorImageVersion_ = minorImageVersion;
+  minorImageVersion_ = minorImageVersion;
 }
 
 
 void OptionalHeader::major_subsystem_version(uint16_t majorSubsystemVersion) {
-  this->majorSubsystemVersion_ = majorSubsystemVersion;
+  majorSubsystemVersion_ = majorSubsystemVersion;
 }
 
 
 void OptionalHeader::minor_subsystem_version(uint16_t minorSubsystemVersion) {
-  this->minorSubsystemVersion_ = minorSubsystemVersion;
+  minorSubsystemVersion_ = minorSubsystemVersion;
 }
 
 
 void OptionalHeader::win32_version_value(uint32_t win32VersionValue) {
-  this->win32VersionValue_ = win32VersionValue;
+  win32VersionValue_ = win32VersionValue;
 }
 
 
 void OptionalHeader::sizeof_image(uint32_t sizeOfImage) {
-  this->sizeOfImage_ = sizeOfImage;
+  sizeOfImage_ = sizeOfImage;
 }
 
 
 void OptionalHeader::sizeof_headers(uint32_t sizeOfHeaders) {
-  this->sizeOfHeaders_ = sizeOfHeaders;
+  sizeOfHeaders_ = sizeOfHeaders;
 }
 
 
 void OptionalHeader::checksum(uint32_t checkSum) {
-  this->checkSum_ = checkSum;
+  checkSum_ = checkSum;
 }
 
 
 void OptionalHeader::subsystem(SUBSYSTEM subsystem) {
-  this->subsystem_ = subsystem;
+  subsystem_ = subsystem;
 }
 
 
 void OptionalHeader::dll_characteristics(uint32_t DLLCharacteristics) {
-  this->DLLCharacteristics_ = DLLCharacteristics;
+  DLLCharacteristics_ = DLLCharacteristics;
 }
 
 
 void OptionalHeader::sizeof_stack_reserve(uint64_t sizeOfStackReserve) {
-  this->sizeOfStackReserve_ = sizeOfStackReserve;
+  sizeOfStackReserve_ = sizeOfStackReserve;
 }
 
 
 void OptionalHeader::sizeof_stack_commit(uint64_t sizeOfStackCommit) {
-  this->sizeOfStackCommit_ = sizeOfStackCommit;
+  sizeOfStackCommit_ = sizeOfStackCommit;
 }
 
 
 void OptionalHeader::sizeof_heap_reserve(uint64_t sizeOfHeapReserve) {
-  this->sizeOfHeapReserve_ = sizeOfHeapReserve;
+  sizeOfHeapReserve_ = sizeOfHeapReserve;
 }
 
 
 void OptionalHeader::sizeof_heap_commit(uint64_t sizeOfHeapCommit) {
-  this->sizeOfHeapCommit_ = sizeOfHeapCommit;
+  sizeOfHeapCommit_ = sizeOfHeapCommit;
 }
 
 
 void OptionalHeader::loader_flags(uint32_t loaderFlags) {
-  this->loaderFlags_ = loaderFlags;
+  loaderFlags_ = loaderFlags;
 }
 
 
 void OptionalHeader::numberof_rva_and_size(uint32_t numberOfRvaAndSize) {
-  this->numberOfRvaAndSize_ = numberOfRvaAndSize;
+  numberOfRvaAndSize_ = numberOfRvaAndSize;
 }
 
 void OptionalHeader::accept(LIEF::Visitor& visitor) const {
@@ -474,23 +473,26 @@ void OptionalHeader::accept(LIEF::Visitor& visitor) const {
 
 
 OptionalHeader& OptionalHeader::operator+=(DLL_CHARACTERISTICS c) {
-  this->add(c);
+  add(c);
   return *this;
 }
 
 OptionalHeader& OptionalHeader::operator-=(DLL_CHARACTERISTICS c) {
-  this->remove(c);
+  remove(c);
   return *this;
 }
 
 bool OptionalHeader::operator==(const OptionalHeader& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool OptionalHeader::operator!=(const OptionalHeader& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 

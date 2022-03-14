@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ namespace DEX {
 class Parser;
 class Class;
 
+//! Class which represents an element of the MapList object
 class LIEF_API MapItem : public Object {
   friend class Parser;
 
@@ -53,25 +54,33 @@ class LIEF_API MapItem : public Object {
   };
 
   public:
-  MapItem(void);
+  MapItem();
   MapItem(TYPES type, uint32_t offset, uint32_t size, uint16_t reserved = 0);
 
   MapItem(const MapItem&);
   MapItem& operator=(const MapItem&);
 
-  TYPES type(void) const;
-  uint16_t reserved(void) const;
-  uint32_t size(void) const;
-  uint32_t offset(void) const;
+  //! The type of the item
+  TYPES type() const;
 
-  virtual void accept(Visitor& visitor) const override;
+  //! Reserved value (likely for alignment prupose)
+  uint16_t reserved() const;
+
+  //! The number of elements (the real meaning depends on the type)
+  uint32_t size() const;
+
+  //! Offset from the start of the DEX file to the items associated with
+  //! the underlying TYPES
+  uint32_t offset() const;
+
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const MapItem& rhs) const;
   bool operator!=(const MapItem& rhs) const;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const MapItem& item);
 
-  virtual ~MapItem(void);
+  virtual ~MapItem();
 
   private:
   TYPES    type_;

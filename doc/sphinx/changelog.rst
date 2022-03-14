@@ -5,6 +5,15 @@ Changelog
 -------------------------
 
 :ELF:
+  * :github_user:`ahaensler` added the support to insert and assign a :class:`lief.ELF.SymbolVersionAuxRequirement` (see: :pr:`670`)
+  * Enhance the ELF parser to support corner cases described by `netspooky <https://n0.lol/>`_ in :
+
+    - https://tmpout.sh/2/14.html (*84 byte aarch64 ELF*)
+    - https://tmpout.sh/2/3.html (*Some ELF Parser Bugs*)
+
+  * New ELF Builder which is more efficient in terms of speed and
+    in terms of number of segments added when modifying binaries (see: https://lief-project.github.io/blog/2022-01-23-new-elf-builder/)
+
   * :github_user:`Clcanny` improved (see :pr:`507` and :pr:`509`) the reconstruction of the dynamic symbol table
     by sorting local symbols and non-exported symbols. It fixes the following warning when parsing
     a modified binary with ``readelf``
@@ -14,11 +23,22 @@ Changelog
       Warning: local symbol 29 found at index >= .dynsym's sh_info value of 1
 
 :MachO:
+  * The API to configure the MachO parser has been redesigned to provide a better granularity
+
+    .. code-block:: python
+
+      config = lief.MachO.ParserConfig()
+      config.parse_dyld_bindings = False
+      config.parse_dyld_exports  = True
+      config.parse_dyld_rebases  = False
+
+      lief.MachO.parse("/tmp/big.macho", config)
+
   * :github_user:`LucaMoroSyn` added the support for the ``LC_FILESET_ENTRY``. This command is usually
     found in kernel cache files
   * ``LIEF::MachO::Binary::get_symbol`` now returns a pointer (instead of a reference). If the symbol
     can't be found, it returns a nullptr.
-  * Add API to select a :class:`~lief.MachO.Binary` from a :class:`~lief.MachO.FatBinary` by its achitecture. See:
+  * Add API to select a :class:`~lief.MachO.Binary` from a :class:`~lief.MachO.FatBinary` by its architecture. See:
     :meth:`lief.MachO.FatBinary.take`.
 
     .. code-block:: python
@@ -29,15 +49,34 @@ Changelog
   * Handle the `0x0D` binding opcode (see: :issue:`524`)
   * :github_user:`xhochy` fixed performances issues in the Mach-O parser (see :pr:`579`)
 
+:PE:
+  * Adding :attr:`lief.PE.OptionalHeader.computed_checksum` that re-computes the :attr:`lief.PE.OptionalHeader.checksum`
+    (c.f. issue :issue:`660`)
+  * Enable to recompute the :class:`~lief.PE.RichHeader` (issue: :issue:`587`)
+
+    - :meth:`~lief.PE.RichHeader.raw`
+    - :meth:`~lief.PE.RichHeader.hash`
+
+  * Add support for PE's delayed imports. see:
+
+    - :class:`~lief.PE.DelayImport` / :class:`~lief.PE.DelayImportEntry`
+    - :attr:`~lief.PE.Binary.delay_imports`
+
+  * :attr:`lief.PE.LoadConfiguration.reserved1` has been aliased to :attr:`lief.PE.LoadConfiguration.dependent_load_flags`
+  * :attr:`lief.PE.LoadConfiguration.characteristics` has been aliased to :attr:`lief.PE.LoadConfiguration.size`
+  * Thanks to :github_user:`gdesmar`, we updated the PE checks to support PE files that have a corrupted
+    :attr:`lief.PE.OptionalHeader.magic` (cf. :issue:`644`)
+
 :DEX:
   * :github_user:`DanielFi` added support for DEX's fields (see: :pr:`547`)
 
 :Abstraction:
-  * Abtract binary imagebase for PE, ELF and Mach-O (:attr:`lief.Binary.imagebase`)
-  * Add :meth:`lief.Binary.offset_to_virtual_addres`
+  * Abstract binary imagebase for PE, ELF and Mach-O (:attr:`lief.Binary.imagebase`)
+  * Add :meth:`lief.Binary.offset_to_virtual_address`
   * Add PE imports/exports as *abstracted* symbols
 
-:Compilation:
+:Compilation & Integration:
+  * :github_user:`ekilmer` updated and modernized the CMake integration files through the PR: :pr:`674`
   * Enable to use a pre-compiled version of spdlog. This feature aims
     at improving compilation time when developing on LIEF.
 
@@ -49,8 +88,103 @@ Changelog
       # or
       $ cmake -DLIEF_EXTERNAL_SPDLOG=ON -Dspdlog_DIR=path/to/lib/cmake/spdlog ...
 
+  * Enable to feed LIEF's dependencies externally (c.f. :ref:`lief_third_party`)
+  * Replace the keywords ``and``, ``or``, ``not`` with ``&&``, ``||`` and ``!``.
+
 :Dependencies:
-  * Upgrade to MbedTLS 3.0.0
+  * Upgrade to MbedTLS 3.1.0
+  * Upgrade Catch2 to 2.13.8
+  * The different dependencies can be *linked* externally (cf. above and :ref:`lief_third_party`)
+
+:Documentation:
+  * New section about the errors handling (:ref:`err_handling`) and the upcoming
+    deprecation of the exceptions.
+  * New section about how to compile LIEF for debugging/developing. See: :ref:`lief_debug`
+
+:General Design:
+
+  :span:
+
+    LIEF now exposes Section/Segment's data through a `span` interface.
+    As `std::span` is available in the STL from C++20 and the LIEF public API aims at being
+    C++11 compliant, we expose this `span` thanks to `tcbrindle/span <https://github.com/tcbrindle/span>`_.
+    This new interface enables to avoid copies of ``std::vector<uint8_t>`` which can be costly.
+    With this new interface, the original ``std::vector<uint8_t>`` can be retrieved as follows:
+
+    .. code-block:: cpp
+
+      auto bin = LIEF::ELF::Parser::parse("/bin/ls");
+
+      if (const auto* section = bin->get_section(".text")) {
+        LIEF::span<const uint8_t> text_ref =  section->content();
+        std::vector<uint8_t> copy = {std::begin(text_ref), std::end(text_ref)};
+      }
+
+    In Python, span are wrapped by a **read-only** `memory view <https://docs.python.org/3/c-api/memoryview.html>`_.
+    The original *list of bytes* can be retrieved as follows:
+
+    .. code-block:: python
+
+      bin = lief.parse("/bin/ls")
+      section = bin.get_section(".text")
+
+      if section is not None:
+        memory_view = section.content
+        list_of_bytes = list(memory_view)
+
+  :Exceptions:
+
+    .. warning::
+
+      We started to refactor the API and the internal design to remove C++ exceptions.
+      These changes are described a the dedicated blog (`LIEF RTTI & Exceptions <https://lief-project.github.io/blog/2022-02-13-lief-rtti-exceptions/>`_)
+
+      To highlighting the content of the blog for the end users,
+      functions that returned a **reference and which threw an exception** in the case
+      of a failure are now returning a **pointer that is set to nullptr** in the case of a failure.
+
+      If we consider this original code:
+
+      .. code-block:: cpp
+
+        LIEF::MachO::Binary& bin = ...;
+
+        try {
+          LIEF::MachO::UUIDCommand& cmd = bin.uuid();
+          std::cout << cmd << "\n";
+        } catch (const LIEF::not_found&) {
+          // ... dedicated processing
+        }
+
+        // Other option with has_uuid()
+        if (bin.has_uuid()) {
+          LIEF::MachO::UUIDCommand& cmd = bin.uuid();
+          std::cout << cmd << "\n";
+        }
+
+      It can now be written as:
+
+      .. code-block:: cpp
+
+        LIEF::MachO::Binary& bin = ...;
+
+        if (LIEF::MachO::UUIDCommand* cmd = bin.uuid();) {
+          std::cout << *cmd << "\n";
+        } else {
+          // ... dedicated processing as it is a nullptr
+        }
+
+        // Other option with has_uuid()
+        if (bin.has_uuid()) { // It ensures that it is not a nullptr
+          LIEF::MachO::UUIDCommand& cmd = *bin.uuid();
+          std::cout << cmd << "\n";
+        }
+
+    .. seealso::
+
+      - :ref:`C++ API for errors handling <cpp-api-error-handling>`
+      - :ref:`Python API for errors handling <python-api-error-handling>`
+      - `List of the functions that changed <https://gist.github.com/romainthomas/37da45b043c5f8b8db6be2767611f625>`_
 
 
 0.11.X - Patch Releases
@@ -59,7 +193,7 @@ Changelog
 .. _release-0115:
 
 0.11.5 - May 22, 2021
-~~~~~~~~~~~~~~~~~~~~~~~
+*********************
 
 * Remove usage of ``not`` in public headers (:commit:`b8e825b464418de385146bb3f89ef6126f4de5d4`)
 
@@ -75,7 +209,7 @@ Changelog
 .. _release-0114:
 
 0.11.4 - March 09, 2021
-~~~~~~~~~~~~~~~~~~~~~~~
+***********************
 
 :PE:
     * Fix missing bound check when computing the authentihash
@@ -83,7 +217,7 @@ Changelog
 .. _release-0113:
 
 0.11.3 - March 03, 2021
-~~~~~~~~~~~~~~~~~~~~~~~
+***********************
 
 :PE:
     * Add sanity check on the signature's length that could lead to a ``std::bad_alloc`` exception
@@ -92,7 +226,7 @@ Changelog
 
 
 0.11.2 - February 24, 2021
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+**************************
 
 :PE:
     * Fix regression in the behavior of the PE section's name. One can now access the full
@@ -101,7 +235,7 @@ Changelog
 .. _release-0111:
 
 0.11.1 - February 22, 2021
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+**************************
 
 :PE:
     * :meth:`lief.PE.x509.is_trusted_by` and :meth:`lief.PE.x509.verify` now return
@@ -143,7 +277,7 @@ Changelog
 
       :class:`lief.PE.IMPHASH_MODE` and :func:`lief.PE.get_imphash`
   * Remove the padding entry (0) from the rich header
-  * :attr:`~lief.PE.LangCodeItem.items` now returns a dictionary whose values are **bytes** (instead of
+  * :attr:`~lief.PE.LangCodeItem.items` now returns a dictionary for which the values are **bytes** (instead of
     ``str`` object). This change is related to ``utf-16`` support.
   * :github_user:`kohnakagawa` fixed wrong enums values: :commit:`c03125045e32a9cd65c613585eb4d0385350c6d2`, :commit:`6ee808a1e4611d09c6cf0aea82a612be69584db9`, :commit:`cd05f34bae681fc8af4b5e7cc28eaef816802b6f`
   * :github_user:`kohnakagawa` fixed a bug in the PE resources parser (:commit:`a7254d1ba935783f16effbc7faddf993c57e82f7`)

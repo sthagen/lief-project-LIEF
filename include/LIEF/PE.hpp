@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,8 @@
 #include "LIEF/PE/ExportEntry.hpp"
 #include "LIEF/PE/Import.hpp"
 #include "LIEF/PE/ImportEntry.hpp"
+#include "LIEF/PE/DelayImport.hpp"
+#include "LIEF/PE/DelayImportEntry.hpp"
 #include "LIEF/PE/Pogo.hpp"
 #include "LIEF/PE/PogoEntry.hpp"
 #include "LIEF/PE/DataDirectory.hpp"

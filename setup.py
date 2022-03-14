@@ -7,7 +7,7 @@ import pathlib
 import sysconfig
 import copy
 import distutils
-from pkg_resources import Distribution, get_distribution
+from pkg_resources import get_distribution
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext, copy_file
 from distutils import log
@@ -49,6 +49,7 @@ class LiefDistribution(setuptools.Distribution):
         ('lief-no-cache', None, 'Do not use compiler cache (ccache)'),
 
         ('spdlog-dir=', None, 'Path to the directory that contains spdlogConfig.cmake'),
+        ('lief-config-extra=', None, "Extra CMake config options (list delimited with ';')"),
     ]
 
     def __init__(self, attrs=None):
@@ -74,6 +75,7 @@ class LiefDistribution(setuptools.Distribution):
         self.lief_no_cache  = False
 
         self.spdlog_dir = None
+        self.lief_config_extra = None
         super().__init__(attrs)
 
 
@@ -113,14 +115,9 @@ class BuildLibrary(build_ext):
         if self.distribution.lief_test:
             log.info("LIEF tests enabled!")
         fullname = self.get_ext_fullname(ext.name)
-        filename = self.get_ext_filename(fullname)
-
         jobs = self.parallel if self.parallel else 1
-        cmake_args = ["-DLIEF_FORCE_API_EXPORTS=ON"]
-
-        source_dir                     = ext.sourcedir
+        cmake_args = ["-DLIEF_FORCE_API_EXPORTS=ON", "-DLIEF_PYTHON_API=on"]
         build_temp                     = self.build_temp
-        extdir                         = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_library_output_directory = os.path.abspath(os.path.dirname(build_temp))
         cfg                            = 'RelWithDebInfo' if self.debug else 'Release'
         is64                           = sys.maxsize > 2**32
@@ -170,6 +167,11 @@ class BuildLibrary(build_ext):
         if self.distribution.spdlog_dir is not None:
             cmake_args.append("-DLIEF_EXTERNAL_SPDLOG=ON")
             cmake_args.append("-Dspdlog_DIR={}".format(self.distribution.spdlog_dir))
+
+        if self.distribution.lief_config_extra is not None and len(self.distribution.lief_config_extra) > 0:
+            args = self.distribution.lief_config_extra.replace("\n", "")
+            args = map(lambda a : a.strip(), args.split(";"))
+            cmake_args += list(args)
 
         # Main formats
         # ============

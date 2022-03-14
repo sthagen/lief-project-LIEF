@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,9 +28,9 @@ class LIEF_API exception : public std::exception {
   public:
 
     exception(const exception& other);
-    explicit exception(const std::string& msg);
+    explicit exception(std::string  msg);
     explicit exception(const char* msg);
-    virtual const char* what(void) const noexcept override;
+    const char* what() const noexcept override;
     virtual ~exception() noexcept;
 
   protected:

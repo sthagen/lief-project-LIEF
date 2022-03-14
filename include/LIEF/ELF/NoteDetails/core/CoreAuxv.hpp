@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,10 +45,10 @@ class LIEF_API CoreAuxv : public NoteDetails {
   public:
   static CoreAuxv make(Note& note);
 
-  virtual CoreAuxv* clone(void) const override;
+  CoreAuxv* clone() const override;
 
   //! Auxiliary values
-  const val_context_t& values(void) const;
+  const val_context_t& values() const;
 
   //! Get an auxiliary value. If ``error`` is set,
   //! this function and the value exists, the function set the boolean value to ``false``
@@ -67,23 +67,23 @@ class LIEF_API CoreAuxv : public NoteDetails {
 
   uint64_t& operator[](AUX_TYPE atype);
 
-  virtual void dump(std::ostream& os) const override;
+  void dump(std::ostream& os) const override;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual ~CoreAuxv(void);
+  virtual ~CoreAuxv();
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const CoreAuxv& note);
 
   protected:
   template <typename ELF_T>
-  LIEF_LOCAL void parse_(void);
+  LIEF_LOCAL void parse_();
 
   template <typename ELF_T>
-  LIEF_LOCAL void build_(void);
+  LIEF_LOCAL void build_();
 
-  virtual void parse(void) override;
-  virtual void build(void) override;
+  void parse() override;
+  void build() override;
 
   private:
   CoreAuxv(Note& note);

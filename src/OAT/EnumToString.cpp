@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ const char* to_string(OAT_CLASS_TYPES e) {
     { OAT_CLASS_TYPES::OAT_CLASS_NONE_COMPILED, "NONE_COMPILED" },
 
   };
-  auto   it  = enumStrings.find(e);
+  const auto it = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
 }
 
@@ -51,7 +51,7 @@ const char* to_string(OAT_CLASS_STATUS e) {
     { OAT_CLASS_STATUS::STATUS_INITIALIZED,                   "INITIALIZED"             },
 
   };
-  auto   it  = enumStrings.find(e);
+  const auto it = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
 }
 
@@ -71,7 +71,7 @@ const char* to_string(HEADER_KEYS e) {
     { HEADER_KEYS::KEY_CONCURRENT_COPYING, "CONCURRENT_COPYING" },
 
   };
-  auto   it  = enumStrings.find(e);
+  const auto it = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
 }
 
@@ -88,7 +88,7 @@ const char* to_string(INSTRUCTION_SETS e) {
     { INSTRUCTION_SETS::INST_SET_MIPS_64, "MIPS_64" },
 
   };
-  auto   it  = enumStrings.find(e);
+  const auto it = enumStrings.find(e);
   return it == enumStrings.end() ? "UNDEFINED" : it->second;
 }
 

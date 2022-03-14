@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ SpcSpOpusInfo::SpcSpOpusInfo() :
 SpcSpOpusInfo::SpcSpOpusInfo(const SpcSpOpusInfo&) = default;
 SpcSpOpusInfo& SpcSpOpusInfo::operator=(const SpcSpOpusInfo&) = default;
 
-std::unique_ptr<Attribute> SpcSpOpusInfo::clone(void) const {
+std::unique_ptr<Attribute> SpcSpOpusInfo::clone() const {
   return std::unique_ptr<Attribute>(new SpcSpOpusInfo{*this});
 }
 
@@ -40,14 +40,14 @@ void SpcSpOpusInfo::accept(Visitor& visitor) const {
 
 std::string SpcSpOpusInfo::print() const {
   std::string out;
-  if (not this->program_name().empty()) {
-    out = this->program_name();
+  if (!program_name().empty()) {
+    out = program_name();
   }
-  if (not this->more_info().empty()) {
-    if (not out.empty()) {
+  if (!more_info().empty()) {
+    if (!out.empty()) {
       out += " - ";
     }
-    out += this->more_info();
+    out += more_info();
   }
   return out;
 }

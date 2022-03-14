@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,31 +26,37 @@
 namespace LIEF {
 namespace MachO {
 
+namespace details {
 struct uuid_command;
+}
 
 using uuid_t = std::array<uint8_t, 16>;
 
+//! Class that represents the UUID command
 class LIEF_API UUIDCommand : public LoadCommand {
   public:
-  UUIDCommand(void);
-  UUIDCommand(const uuid_command *uuidCmd);
+  UUIDCommand();
+  UUIDCommand(const details::uuid_command& cmd);
 
   UUIDCommand& operator=(const UUIDCommand& copy);
   UUIDCommand(const UUIDCommand& copy);
 
-  virtual UUIDCommand* clone(void) const override;
+  UUIDCommand* clone() const override;
 
-  virtual ~UUIDCommand(void);
+  virtual ~UUIDCommand();
 
-  uuid_t uuid(void) const;
+  //! The UUID as a 16-bytes array
+  uuid_t uuid() const;
   void   uuid(const uuid_t& uuid);
 
   bool operator==(const UUIDCommand& rhs) const;
   bool operator!=(const UUIDCommand& rhs) const;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual std::ostream& print(std::ostream& os) const override;
+  std::ostream& print(std::ostream& os) const override;
+
+  static bool classof(const LoadCommand* cmd);
 
   private:
   uuid_t uuid_;

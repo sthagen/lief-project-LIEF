@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ namespace PE {
 class Builder;
 class Parser;
 
+//! Class which represents a PE Export entry (cf. PE::Export)
 class LIEF_API ExportEntry : public LIEF::Symbol {
 
   friend class Builder;
@@ -45,18 +46,20 @@ class LIEF_API ExportEntry : public LIEF::Symbol {
   };
 
   public:
-  ExportEntry(void);
+  ExportEntry();
+  ExportEntry(uint32_t address, bool is_extern,
+              uint16_t ordinal, uint32_t function_rva);
   ExportEntry(const ExportEntry&);
   ExportEntry& operator=(const ExportEntry&);
-  virtual ~ExportEntry(void);
+  virtual ~ExportEntry();
 
-  uint16_t           ordinal(void) const;
-  uint32_t           address(void) const;
-  bool               is_extern(void) const;
-  bool               is_forwarded(void) const;
-  forward_information_t forward_information(void) const;
+  uint16_t           ordinal() const;
+  uint32_t           address() const;
+  bool               is_extern() const;
+  bool               is_forwarded() const;
+  forward_information_t forward_information() const;
 
-  uint32_t function_rva(void) const;
+  uint32_t function_rva() const;
 
   void ordinal(uint16_t ordinal);
   void address(uint32_t address);
@@ -65,11 +68,17 @@ class LIEF_API ExportEntry : public LIEF::Symbol {
   inline uint64_t value() const override {
     return address();
   }
+
   inline void value(uint64_t value) override {
     address(value);
   }
 
-  virtual void accept(Visitor& visitor) const override;
+  inline void set_forward_info(std::string lib, std::string function)  {
+    forward_info_.library =  std::move(lib);
+    forward_info_.function = std::move(function);
+  }
+
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const ExportEntry& rhs) const;
   bool operator!=(const ExportEntry& rhs) const;
@@ -77,10 +86,10 @@ class LIEF_API ExportEntry : public LIEF::Symbol {
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const ExportEntry& exportEntry);
 
   private:
-  uint32_t    function_rva_ = 0;
-  uint16_t    ordinal_ = 0;
-  uint32_t    address_ = 0;
-  bool        is_extern_ = false;
+  uint32_t function_rva_ = 0;
+  uint16_t ordinal_ = 0;
+  uint32_t address_ = 0;
+  bool     is_extern_ = false;
 
   forward_information_t forward_info_;
 

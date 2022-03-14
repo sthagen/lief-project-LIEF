@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #include <sstream>
 #include <iomanip>
 
+#include "logging.hpp"
 #include "LIEF/PE/hash.hpp"
 
 #include "LIEF/utils.hpp"
@@ -27,92 +28,95 @@
 namespace LIEF {
 namespace PE {
 
-ResourceNode::ResourceNode(void) :
-  id_{0},
-  name_{},
-  childs_{},
-  depth_{0}
-{}
+ResourceNode::ResourceNode() = default;
+ResourceNode::~ResourceNode() = default;
 
-
-//ResourceNode& ResourceNode::operator=(ResourceNode other) {
-//  this->swap(other);
-//  return *this;
-//}
+ResourceNode::ResourceNode(ResourceNode&& other) = default;
+ResourceNode& ResourceNode::operator=(ResourceNode&& other) = default;
 
 ResourceNode::ResourceNode(const ResourceNode& other) :
   Object{other},
+  type_{other.type_},
   id_{other.id_},
   name_{other.name_},
   depth_{other.depth_}
 {
-  this->childs_.reserve(other.childs_.size());
-  for (const ResourceNode* node : other.childs_) {
-    this->childs_.push_back(node->clone());
+  childs_.reserve(other.childs_.size());
+  for (const std::unique_ptr<ResourceNode>& node : other.childs_) {
+    childs_.emplace_back(node->clone());
   }
 }
 
+ResourceNode& ResourceNode::operator=(const ResourceNode& other) {
+  if (this == &other) {
+    return *this;
+  }
+  type_   = other.type_;
+  id_     = other.id_;
+  name_   = other.name_;
+  depth_  = other.depth_;
+
+  childs_.reserve(other.childs_.size());
+  for (const std::unique_ptr<ResourceNode>& node : other.childs_) {
+    childs_.emplace_back(node->clone());
+  }
+  return *this;
+}
 
 void ResourceNode::swap(ResourceNode& other) {
-  std::swap(this->id_,     other.id_);
-  std::swap(this->name_,   other.name_);
-  std::swap(this->childs_, other.childs_);
-  std::swap(this->depth_,  other.depth_);
+  std::swap(type_,   other.type_);
+  std::swap(id_,     other.id_);
+  std::swap(name_,   other.name_);
+  std::swap(childs_, other.childs_);
+  std::swap(depth_,  other.depth_);
 }
 
-ResourceNode::~ResourceNode(void) {
-  for (ResourceNode* node : this->childs_) {
-    delete node;
-  }
-}
-
-
-uint32_t ResourceNode::id(void) const {
-  return this->id_;
+uint32_t ResourceNode::id() const {
+  return id_;
 }
 
 
-it_childs ResourceNode::childs(void) {
-  return {this->childs_};
+ResourceNode::it_childs ResourceNode::childs() {
+  return childs_;
 }
 
 
-it_const_childs ResourceNode::childs(void) const {
-  return {this->childs_};
+ResourceNode::it_const_childs ResourceNode::childs() const {
+  return childs_;
 }
 
 
-const std::u16string& ResourceNode::name(void) const {
-  return this->name_;
+const std::u16string& ResourceNode::name() const {
+  return name_;
 }
 
 
-bool ResourceNode::is_directory(void) const {
-  return typeid(*this) == typeid(ResourceDirectory);
+bool ResourceNode::is_directory() const {
+  return type_ == TYPE::DIRECTORY;
 }
 
-bool ResourceNode::is_data(void) const {
-  return not this->is_directory();
+bool ResourceNode::is_data() const {
+  return type_ == TYPE::DATA;
 }
 
 
-bool ResourceNode::has_name(void) const {
-  return static_cast<bool>(this->id() & 0x80000000);
+bool ResourceNode::has_name() const {
+  return static_cast<bool>(id() & 0x80000000);
 }
 
-uint32_t ResourceNode::depth(void) const {
-  return this->depth_;
+uint32_t ResourceNode::depth() const {
+  return depth_;
 }
 
 
 ResourceNode& ResourceNode::add_child(const ResourceDirectory& child) {
 
-  ResourceDirectory* new_node = new ResourceDirectory{child};
-  new_node->depth_ = this->depth_ + 1;
+  auto new_node = std::make_unique<ResourceDirectory>(child);
+  new_node->depth_ = depth_ + 1;
 
-  this->childs_.push_back(new_node);
+  if (is_directory()) {
+    auto* dir = reinterpret_cast<ResourceDirectory*>(this);
 
-  if (ResourceDirectory* dir = dynamic_cast<ResourceDirectory*>(this)) {
     if (child.has_name()) {
       dir->numberof_name_entries(dir->numberof_name_entries() + 1);
     } else {
@@ -120,71 +124,71 @@ ResourceNode& ResourceNode::add_child(const ResourceDirectory& child) {
     }
   }
 
-  return *this->childs_.back();
+  childs_.push_back(std::move(new_node));
+  return *childs_.back();
 }
 
 ResourceNode& ResourceNode::add_child(const ResourceData& child) {
-  ResourceData* new_node = new ResourceData{child};
-  new_node->depth_ = this->depth_ + 1;
+  auto new_node = std::make_unique<ResourceData>(child);
+  new_node->depth_ = depth_ + 1;
 
-  this->childs_.push_back(new_node);
 
-  if (ResourceDirectory* dir = dynamic_cast<ResourceDirectory*>(this)) {
+  if (is_directory()) {
+    auto* dir = reinterpret_cast<ResourceDirectory*>(this);
+
     if (child.has_name()) {
       dir->numberof_name_entries(dir->numberof_name_entries() + 1);
     } else {
       dir->numberof_id_entries(dir->numberof_id_entries() + 1);
     }
+
   }
-  return *this->childs_.back();
+  childs_.push_back(std::move(new_node));
+  return *childs_.back();
 }
 
 void ResourceNode::delete_child(uint32_t id) {
 
-  auto&& it_node = std::find_if(
-      std::begin(this->childs_),
-      std::end(this->childs_),
-      [id] (const ResourceNode* node) {
+  const auto it_node = std::find_if(std::begin(childs_), std::end(childs_),
+      [id] (const std::unique_ptr<ResourceNode>& node) {
         return node->id() == id;
       });
 
-  if (it_node == std::end(this->childs_)) {
-    throw not_found("Unable to find the node with id " + std::to_string(id) + "!");
+  if (it_node == std::end(childs_)) {
+    LIEF_ERR("Unable to find the node with the id {:d}", id);
+    return;
   }
-  this->delete_child(**it_node);
 
+  delete_child(**it_node);
 }
 
 void ResourceNode::delete_child(const ResourceNode& node) {
-  auto&& it_node = std::find_if(
-      std::begin(this->childs_),
-      std::end(this->childs_),
-      [&node] (const ResourceNode* intree_node) {
+  const auto it_node = std::find_if(std::begin(childs_), std::end(childs_),
+      [&node] (const std::unique_ptr<ResourceNode>& intree_node) {
         return *intree_node == node;
       });
 
-  if (it_node == std::end(this->childs_)) {
-    std::stringstream ss;
-    ss << "Unable to find the node: " << node;
-    throw not_found(ss.str());
+  if (it_node == std::end(childs_)) {
+    LIEF_ERR("Unable to find the node {}", node);
+    return;
   }
 
-  if (this->is_directory()) {
-    ResourceDirectory* dir = dynamic_cast<ResourceDirectory*>(this);
-    if ((*it_node)->has_name()) {
+  std::unique_ptr<ResourceNode>& inode = *it_node;
+
+  if (is_directory()) {
+    auto* dir = reinterpret_cast<ResourceDirectory*>(this);
+    if (inode->has_name()) {
       dir->numberof_name_entries(dir->numberof_name_entries() - 1);
     } else {
       dir->numberof_id_entries(dir->numberof_id_entries() - 1);
     }
   }
 
-  delete *it_node;
-  this->childs_.erase(it_node);
-
+  childs_.erase(it_node);
 }
 
 void ResourceNode::id(uint32_t id) {
-  this->id_ = id;
+  id_ = id;
 }
 
 void ResourceNode::name(const std::string& name) {
@@ -192,15 +196,13 @@ void ResourceNode::name(const std::string& name) {
 }
 
 void ResourceNode::name(const std::u16string& name) {
-  this->name_ = name;
+  name_ = name;
 }
 
 
-void ResourceNode::sort_by_id(void) {
-  std::sort(
-      std::begin(this->childs_),
-      std::end(this->childs_),
-      [] (const ResourceNode* lhs, const ResourceNode* rhs) {
+void ResourceNode::sort_by_id() {
+  std::sort(std::begin(childs_), std::end(childs_),
+      [] (const std::unique_ptr<ResourceNode>& lhs, const std::unique_ptr<ResourceNode>& rhs) {
         return lhs->id() < rhs->id();
       });
 }
@@ -210,13 +212,16 @@ void ResourceNode::accept(Visitor& visitor) const {
 }
 
 bool ResourceNode::operator==(const ResourceNode& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool ResourceNode::operator!=(const ResourceNode& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const ResourceNode& node) {

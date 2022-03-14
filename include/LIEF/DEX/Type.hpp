@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ namespace LIEF {
 namespace DEX {
 class Parser;
 
+//! Class which represents a DEX type as described in the
+//! format specifications: https://source.android.com/devices/tech/dalvik/dex-format#typedescriptor
 class LIEF_API Type : public Object {
   friend class Parser;
 
@@ -52,35 +54,45 @@ class LIEF_API Type : public Object {
   static std::string pretty_name(PRIMITIVES p);
 
   public:
-  Type(void);
+  Type();
   Type(const std::string& mangled);
   Type(const Type& other);
 
-  TYPES type(void) const;
+  //! Whether it is a primitive type, a class, ...
+  TYPES type() const;
 
-  const Class& cls(void) const;
-  const array_t& array(void) const;
-  const PRIMITIVES& primitive(void) const;
+  const Class& cls() const;
+  const array_t& array() const;
+  const PRIMITIVES& primitive() const;
 
-  Class& cls(void);
-  array_t& array(void);
-  PRIMITIVES& primitive(void);
+  //! **IF** the current type is a TYPES::CLASS, return the
+  //! associated DEX::CLASS. Otherwise the returned value is **undefined**.
+  Class& cls();
 
-  //! Return the array dimension if the current is
+  //! **IF** the current type is a TYPES::ARRAY, return the
+  //! associated array. Otherwise the returned value is **undefined**.
+  array_t& array();
+
+  //! **IF** the current type is a TYPES::PRIMITIVE, return the
+  //! associated PRIMITIVES. Otherwise the returned value is **undefined**.
+  PRIMITIVES& primitive();
+
+  //! Return the array dimension if the current type is
   //! an array. Otherwise it returns 0
-  size_t dim(void) const;
+  size_t dim() const;
 
-  const Type& underlying_array_type(void) const;
-  Type& underlying_array_type(void);
+  //! In the case of a TYPES::ARRAY, return the array's type
+  const Type& underlying_array_type() const;
+  Type& underlying_array_type();
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const Type& rhs) const;
   bool operator!=(const Type& rhs) const;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const Type& type);
 
-  virtual ~Type(void);
+  virtual ~Type();
 
   private:
   void parse(const std::string& type);
@@ -91,10 +103,6 @@ class LIEF_API Type : public Object {
     array_t* array_;
     PRIMITIVES* basic_;
   };
-
-
-
-
 };
 
 } // Namespace DEX

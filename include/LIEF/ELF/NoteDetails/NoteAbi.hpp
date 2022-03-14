@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,31 +53,31 @@ class LIEF_API NoteAbi : public NoteDetails {
 
   static NoteAbi make(Note& note);
 
-  virtual NoteAbi* clone(void) const override;
+  NoteAbi* clone() const override;
 
   public:
   using NoteDetails::NoteDetails;
   using description_t = typename Note::description_t;
 
   //! @brief Return the target version as ``<Major, Minor, Patch>``.
-  version_t version(void) const;
+  version_t version() const;
 
   //! @brief Return the target ABI. Require a NT_GNU_ABI_TAG type
-  NOTE_ABIS abi(void) const;
+  NOTE_ABIS abi() const;
 
   bool operator==(const NoteAbi& rhs) const;
   bool operator!=(const NoteAbi& rhs) const;
 
-  virtual void dump(std::ostream& os) const override;
+  void dump(std::ostream& os) const override;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual ~NoteAbi(void);
+  virtual ~NoteAbi();
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const NoteAbi& note);
 
   protected:
-  virtual void parse(void) override;
+  void parse() override;
 
   private:
   NoteAbi(Note& note);

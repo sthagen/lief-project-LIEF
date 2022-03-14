@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,16 @@
 #include "LIEF/PE/hash.hpp"
 
 #include "LIEF/PE/DosHeader.hpp"
-#include "LIEF/PE/Structures.hpp"
+#include "PE/Structures.hpp"
 
 namespace LIEF {
 namespace PE {
 
-DosHeader::~DosHeader(void) = default;
+DosHeader::~DosHeader() = default;
 DosHeader::DosHeader(const DosHeader&) = default;
 DosHeader& DosHeader::operator=(const DosHeader&) = default;
 
-DosHeader::DosHeader(void) :
+DosHeader::DosHeader() :
   magic_{0x5a4d},
   usedBytesInTheLastPage_{144},
   fileSizeInPages_{3},
@@ -49,224 +49,224 @@ DosHeader::DosHeader(void) :
   addressOfNewExeHeader_{0xF0} // or 0xE8
 {}
 
-DosHeader::DosHeader(const pe_dos_header *header) :
-  magic_{header->Magic},
-  usedBytesInTheLastPage_{header->UsedBytesInTheLastPage},
-  fileSizeInPages_{header->FileSizeInPages},
-  numberOfRelocation_{header->NumberOfRelocationItems},
-  headerSizeInParagraphs_{header->HeaderSizeInParagraphs},
-  minimumExtraParagraphs_{header->MinimumExtraParagraphs},
-  maximumExtraParagraphs_{header->MaximumExtraParagraphs},
-  initialRelativeSS_{header->InitialRelativeSS},
-  initialSP_{header->InitialSP},
-  checksum_{header->Checksum},
-  initialIP_{header->InitialIP},
-  initialRelativeCS_{header->InitialRelativeCS},
-  addressOfRelocationTable_{header->AddressOfRelocationTable},
-  overlayNumber_{header->OverlayNumber},
-  oEMid_{header->OEMid},
-  oEMinfo_{header->OEMinfo},
-  addressOfNewExeHeader_{header->AddressOfNewExeHeader}
+DosHeader::DosHeader(const details::pe_dos_header& header) :
+  magic_{header.Magic},
+  usedBytesInTheLastPage_{header.UsedBytesInTheLastPage},
+  fileSizeInPages_{header.FileSizeInPages},
+  numberOfRelocation_{header.NumberOfRelocationItems},
+  headerSizeInParagraphs_{header.HeaderSizeInParagraphs},
+  minimumExtraParagraphs_{header.MinimumExtraParagraphs},
+  maximumExtraParagraphs_{header.MaximumExtraParagraphs},
+  initialRelativeSS_{header.InitialRelativeSS},
+  initialSP_{header.InitialSP},
+  checksum_{header.Checksum},
+  initialIP_{header.InitialIP},
+  initialRelativeCS_{header.InitialRelativeCS},
+  addressOfRelocationTable_{header.AddressOfRelocationTable},
+  overlayNumber_{header.OverlayNumber},
+  oEMid_{header.OEMid},
+  oEMinfo_{header.OEMinfo},
+  addressOfNewExeHeader_{header.AddressOfNewExeHeader}
 {
   std::copy(
-      reinterpret_cast<const uint16_t*>(header->Reserved),
-      reinterpret_cast<const uint16_t*>(header->Reserved)  + 4,
-      std::begin(this->reserved_));
+      reinterpret_cast<const uint16_t*>(header.Reserved),
+      reinterpret_cast<const uint16_t*>(header.Reserved)  + 4,
+      std::begin(reserved_));
   std::copy(
-      reinterpret_cast<const uint16_t*>(header->Reserved2),
-      reinterpret_cast<const uint16_t*>(header->Reserved2) + 10,
-      std::begin(this->reserved2_));
+      reinterpret_cast<const uint16_t*>(header.Reserved2),
+      reinterpret_cast<const uint16_t*>(header.Reserved2) + 10,
+      std::begin(reserved2_));
 }
 
 
-uint16_t DosHeader::magic(void) const {
-  return this->magic_;
+uint16_t DosHeader::magic() const {
+  return magic_;
 }
 
 
-uint16_t DosHeader::used_bytes_in_the_last_page(void) const {
-  return this->usedBytesInTheLastPage_;
+uint16_t DosHeader::used_bytes_in_the_last_page() const {
+  return usedBytesInTheLastPage_;
 }
 
 
-uint16_t DosHeader::file_size_in_pages(void) const {
-  return this->fileSizeInPages_;
+uint16_t DosHeader::file_size_in_pages() const {
+  return fileSizeInPages_;
 }
 
 
-uint16_t DosHeader::numberof_relocation(void) const {
-  return this->numberOfRelocation_;
+uint16_t DosHeader::numberof_relocation() const {
+  return numberOfRelocation_;
 }
 
 
-uint16_t DosHeader::header_size_in_paragraphs(void) const {
-  return this->headerSizeInParagraphs_;
+uint16_t DosHeader::header_size_in_paragraphs() const {
+  return headerSizeInParagraphs_;
 }
 
 
-uint16_t DosHeader::minimum_extra_paragraphs(void) const {
-  return this->minimumExtraParagraphs_;
+uint16_t DosHeader::minimum_extra_paragraphs() const {
+  return minimumExtraParagraphs_;
 }
 
 
-uint16_t DosHeader::maximum_extra_paragraphs(void) const {
-  return this->maximumExtraParagraphs_;
+uint16_t DosHeader::maximum_extra_paragraphs() const {
+  return maximumExtraParagraphs_;
 }
 
 
-uint16_t DosHeader::initial_relative_ss(void) const {
-  return this->initialRelativeSS_;
+uint16_t DosHeader::initial_relative_ss() const {
+  return initialRelativeSS_;
 }
 
 
-uint16_t DosHeader::initial_sp(void) const {
-  return this->initialSP_;
+uint16_t DosHeader::initial_sp() const {
+  return initialSP_;
 }
 
 
-uint16_t DosHeader::checksum(void) const {
-  return this->checksum_;
+uint16_t DosHeader::checksum() const {
+  return checksum_;
 }
 
 
-uint16_t DosHeader::initial_ip(void) const {
-  return this->initialIP_;
+uint16_t DosHeader::initial_ip() const {
+  return initialIP_;
 }
 
 
-uint16_t DosHeader::initial_relative_cs(void) const {
-  return this->initialRelativeCS_;
+uint16_t DosHeader::initial_relative_cs() const {
+  return initialRelativeCS_;
 }
 
 
-uint16_t DosHeader::addressof_relocation_table(void) const {
-  return this->addressOfRelocationTable_;
+uint16_t DosHeader::addressof_relocation_table() const {
+  return addressOfRelocationTable_;
 }
 
 
-uint16_t DosHeader::overlay_number(void) const {
-  return this->overlayNumber_;
+uint16_t DosHeader::overlay_number() const {
+  return overlayNumber_;
 }
 
 
-std::array<uint16_t, 4> DosHeader::reserved(void) const {
-  return this->reserved_;
+std::array<uint16_t, 4> DosHeader::reserved() const {
+  return reserved_;
 }
 
 
-uint16_t DosHeader::oem_id(void) const {
-  return this->oEMid_;
+uint16_t DosHeader::oem_id() const {
+  return oEMid_;
 }
 
 
-uint16_t DosHeader::oem_info(void) const {
-  return this->oEMinfo_;
+uint16_t DosHeader::oem_info() const {
+  return oEMinfo_;
 }
 
 
-std::array<uint16_t, 10> DosHeader::reserved2(void) const {
-  return this->reserved2_;
+std::array<uint16_t, 10> DosHeader::reserved2() const {
+  return reserved2_;
 }
 
 
-uint32_t DosHeader::addressof_new_exeheader(void) const {
-  return this->addressOfNewExeHeader_;
+uint32_t DosHeader::addressof_new_exeheader() const {
+  return addressOfNewExeHeader_;
 }
 
 
 
 void DosHeader::magic(uint16_t magic) {
-  this->magic_ = magic;
+  magic_ = magic;
 }
 
 
 void DosHeader::used_bytes_in_the_last_page(uint16_t usedBytesInTheLastPage) {
-  this->usedBytesInTheLastPage_ = usedBytesInTheLastPage;
+  usedBytesInTheLastPage_ = usedBytesInTheLastPage;
 }
 
 
 void DosHeader::file_size_in_pages(uint16_t fileSizeInPages) {
-  this->fileSizeInPages_ = fileSizeInPages;
+  fileSizeInPages_ = fileSizeInPages;
 }
 
 
 void DosHeader::numberof_relocation(uint16_t numberOfRelocation) {
-  this->numberOfRelocation_ = numberOfRelocation;
+  numberOfRelocation_ = numberOfRelocation;
 }
 
 
 void DosHeader::header_size_in_paragraphs(uint16_t headerSizeInParagraphs) {
-  this->headerSizeInParagraphs_ = headerSizeInParagraphs;
+  headerSizeInParagraphs_ = headerSizeInParagraphs;
 }
 
 
 void DosHeader::minimum_extra_paragraphs(uint16_t minimumExtraParagraphs) {
-  this->minimumExtraParagraphs_ = minimumExtraParagraphs;
+  minimumExtraParagraphs_ = minimumExtraParagraphs;
 }
 
 
 void DosHeader::maximum_extra_paragraphs(uint16_t maximumExtraParagraphs) {
-  this->maximumExtraParagraphs_ = maximumExtraParagraphs;
+  maximumExtraParagraphs_ = maximumExtraParagraphs;
 }
 
 
 void DosHeader::initial_relative_ss(uint16_t initialRelativeSS) {
-  this->initialRelativeSS_ = initialRelativeSS;
+  initialRelativeSS_ = initialRelativeSS;
 }
 
 
 void DosHeader::initial_sp(uint16_t initialSP) {
-  this->initialSP_ = initialSP;
+  initialSP_ = initialSP;
 }
 
 
 void DosHeader::checksum(uint16_t checksum) {
-  this->checksum_ = checksum;
+  checksum_ = checksum;
 }
 
 
 void DosHeader::initial_ip(uint16_t initialIP) {
-  this->initialIP_ = initialIP;
+  initialIP_ = initialIP;
 }
 
 
 void DosHeader::initial_relative_cs(uint16_t initialRelativeCS) {
-  this->initialRelativeCS_ = initialRelativeCS;
+  initialRelativeCS_ = initialRelativeCS;
 }
 
 
 void DosHeader::addressof_relocation_table(uint16_t addressOfRelocationTable) {
-  this->addressOfRelocationTable_ = addressOfRelocationTable;
+  addressOfRelocationTable_ = addressOfRelocationTable;
 }
 
 
 void DosHeader::overlay_number(uint16_t overlayNumber) {
-  this->overlayNumber_ = overlayNumber;
+  overlayNumber_ = overlayNumber;
 }
 
 
 void DosHeader::reserved(const std::array<uint16_t, 4>& reserved) {
-  this->reserved_ = reserved;
+  reserved_ = reserved;
 }
 
 
 void DosHeader::oem_id(uint16_t oEMid) {
-  this->oEMid_ = oEMid;
+  oEMid_ = oEMid;
 }
 
 
 void DosHeader::oem_info(uint16_t oEMinfo) {
-  this->oEMinfo_ = oEMinfo;
+  oEMinfo_ = oEMinfo;
 }
 
 
 void DosHeader::reserved2(const std::array<uint16_t, 10>& reserved2) {
-  this->reserved2_ = reserved2;
+  reserved2_ = reserved2;
 }
 
 
 void DosHeader::addressof_new_exeheader(uint32_t addressOfNewExeHeader) {
-  this->addressOfNewExeHeader_ = addressOfNewExeHeader;
+  addressOfNewExeHeader_ = addressOfNewExeHeader;
 }
 
 void DosHeader::accept(LIEF::Visitor& visitor) const {
@@ -274,13 +274,16 @@ void DosHeader::accept(LIEF::Visitor& visitor) const {
 }
 
 bool DosHeader::operator==(const DosHeader& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool DosHeader::operator!=(const DosHeader& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 

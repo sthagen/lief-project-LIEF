@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include <istream>
 #include <utility>
 #include <memory>
+#include <algorithm>
 
 #include "LIEF/BinaryStream/Convert.hpp"
 #include "LIEF/errors.hpp"
@@ -30,204 +31,327 @@ struct mbedtls_x509_crt;
 struct mbedtls_x509_time;
 
 namespace LIEF {
+
+
+//! Class that is used to a read stream of data from different sources
 class BinaryStream {
   public:
   enum class STREAM_TYPE {
     UNKNOWN = 0,
-    FILE,
+    VECTOR,
     MEMORY,
+    SPAN,
+    FILE,
+
+    ELF_DATA_HANDLER,
   };
 
-  BinaryStream(void);
+  BinaryStream();
   virtual ~BinaryStream();
-  virtual uint64_t size(void) const = 0;
+  virtual uint64_t size() const = 0;
 
-  virtual STREAM_TYPE type() const = 0;
+  inline STREAM_TYPE type() const {
+    return stype_;
+  }
 
-  uint64_t read_uleb128(void) const;
-  uint64_t read_sleb128(void) const;
+  result<uint64_t> read_uleb128() const;
+  result<uint64_t> read_sleb128() const;
 
-  int64_t read_dwarf_encoded(uint8_t encoding);
+  result<int64_t> read_dwarf_encoded(uint8_t encoding) const;
 
-  std::string read_string(size_t maxsize = ~static_cast<size_t>(0)) const;
-  std::string peek_string(size_t maxsize = ~static_cast<size_t>(0)) const;
-  std::string peek_string_at(size_t offset, size_t maxsize = ~static_cast<size_t>(0)) const;
+  result<std::string> read_string(size_t maxsize = ~static_cast<size_t>(0)) const;
+  result<std::string> peek_string(size_t maxsize = ~static_cast<size_t>(0)) const;
+  result<std::string> peek_string_at(size_t offset, size_t maxsize = ~static_cast<size_t>(0)) const;
 
-  std::u16string read_u16string(void) const;
-  std::u16string peek_u16string(void) const;
+  result<std::u16string> read_u16string() const;
+  result<std::u16string> peek_u16string() const;
 
-  std::string read_mutf8(size_t maxsize = ~static_cast<size_t>(0)) const;
+  result<std::string> read_mutf8(size_t maxsize = ~static_cast<size_t>(0)) const;
 
-  std::u16string read_u16string(size_t length) const;
-  std::u16string peek_u16string(size_t length) const;
-  std::u16string peek_u16string_at(size_t offset, size_t length) const;
+  result<std::u16string> read_u16string(size_t length) const;
+  result<std::u16string> peek_u16string(size_t length) const;
+  result<std::u16string> peek_u16string_at(size_t offset, size_t length) const;
+
+
+  virtual inline ok_error_t peek_data(std::vector<uint8_t>& container,
+                                      uint64_t offset, uint64_t size)
+  {
+
+    if (size == 0) {
+      return ok();
+    }
+    // Even though offset + size < ... => offset < ...
+    // the addition could overflow so it's worth checking both
+    const bool read_ok = offset <= this->size() && (offset + size) <= this->size();
+    if (!read_ok) {
+      return make_error_code(lief_errors::read_error);
+    }
+    container.resize(size);
+    if (peek_in(container.data(), offset, size)) {
+      return ok();
+    }
+    return make_error_code(lief_errors::read_error);
+  }
+
+  virtual inline ok_error_t read_data(std::vector<uint8_t>& container, uint64_t size) {
+    if (!peek_data(container, pos(), size)) {
+      return make_error_code(lief_errors::read_error);
+    }
+
+    increment_pos(size);
+    return ok();
+  }
 
   void setpos(size_t pos) const;
   void increment_pos(size_t value) const;
-  size_t pos(void) const;
+  void decrement_pos(size_t value) const;
+  size_t pos() const;
 
   operator bool() const;
 
   template<class T>
-  const T* read_array(size_t size, bool check = true) const;
+  const T* read_array(size_t size) const;
 
   template<class T>
-  const T& peek(void) const;
+  result<T> peek() const;
 
   template<class T>
-  const T& peek(size_t offset) const;
+  result<T> peek(size_t offset) const;
 
   template<class T>
-  const T* peek_array(size_t size, bool check = true) const;
+  const T* peek_array(size_t size) const;
 
   template<class T>
-  const T* peek_array(size_t offset, size_t size, bool check = true) const;
+  const T* peek_array(size_t offset, size_t size) const;
 
   template<class T>
-  const T& read(void) const;
+  result<T> read() const;
 
   template<typename T>
-  static T swap_endian(T u);
-
-  template<typename T>
-  bool can_read(void) const;
+  bool can_read() const;
 
   template<typename T>
   bool can_read(size_t offset) const;
 
   size_t align(size_t align_on) const;
 
-  /* Read an integer value and adjust endianness as needed */
-  template<typename T>
-  T read_conv() const;
+  /* Functions that are endianness aware */
+  template<class T>
+  typename std::enable_if<std::is_integral<T>::value, result<T>>::type peek_conv() const;
+
+  template<class T>
+  typename std::enable_if<!std::is_integral<T>::value, result<T>>::type peek_conv() const;
+
+  template<class T>
+  result<T> peek_conv(size_t offset) const;
+
+  template<class T>
+  result<T> read_conv() const;
 
   /* Read an array of values and adjust endianness as needed */
   template<typename T>
-  std::unique_ptr<T[]> read_conv_array(size_t size, bool check = true) const;
+  std::unique_ptr<T[]> read_conv_array(size_t size) const;
 
   template<typename T>
-  T peek_conv(size_t offset) const;
+  std::unique_ptr<T[]> peek_conv_array(size_t offset, size_t size) const;
 
   template<typename T>
-  std::unique_ptr<T[]> peek_conv_array(size_t offset, size_t size, bool check = true) const;
+  static T swap_endian(T u);
 
   void set_endian_swap(bool swap);
 
-  // ASN1 related functions
-  virtual result<size_t> asn1_read_tag(int tag) = 0;
-  virtual result<size_t> asn1_read_len() = 0;
-  virtual result<std::string> asn1_read_alg() = 0;
-  virtual result<std::string> asn1_read_oid() = 0;
-  virtual result<int32_t> asn1_read_int() = 0;
-  virtual result<std::vector<uint8_t>> asn1_read_bitstring() = 0;
-  virtual result<std::vector<uint8_t>> asn1_read_octet_string() = 0;
-  virtual result<std::unique_ptr<mbedtls_x509_crt>> asn1_read_cert() = 0;
-  virtual result<std::string> x509_read_names() = 0;
-  virtual result<std::vector<uint8_t>> x509_read_serial() = 0;
-  virtual result<std::unique_ptr<mbedtls_x509_time>> x509_read_time() = 0;
+  /* ASN.1 & X509 parsing functions */
+  virtual result<size_t>                             asn1_read_tag(int tag);
+  virtual result<size_t>                             asn1_read_len();
+  virtual result<std::string>                        asn1_read_alg();
+  virtual result<std::string>                        asn1_read_oid();
+  virtual result<int32_t>                            asn1_read_int();
+  virtual result<std::vector<uint8_t>>               asn1_read_bitstring();
+  virtual result<std::vector<uint8_t>>               asn1_read_octet_string();
+  virtual result<std::unique_ptr<mbedtls_x509_crt>>  asn1_read_cert();
+  virtual result<std::string>                        x509_read_names();
+  virtual result<std::vector<uint8_t>>               x509_read_serial();
+  virtual result<std::unique_ptr<mbedtls_x509_time>> x509_read_time();
+
+
+  template<class T>
+  static bool is_all_zero(const T& buffer) {
+    const auto* ptr = reinterpret_cast<const uint8_t *const>(&buffer);
+    return std::all_of(ptr, ptr + sizeof(T),
+                       [] (uint8_t x) { return x == 0; });
+  }
+
+  inline bool should_swap() const {
+    return endian_swap_;
+  }
 
   protected:
-  virtual const void* read_at(uint64_t offset, uint64_t size, bool throw_error = true) const = 0;
-  mutable size_t pos_{0};
-  bool endian_swap_{false};
+  virtual result<const void*> read_at(uint64_t offset, uint64_t size) const = 0;
+  inline virtual ok_error_t peek_in(void* dst, uint64_t offset, uint64_t size) const {
+    if (auto raw = read_at(offset, size)) {
+      if (dst == nullptr) {
+        return make_error_code(lief_errors::read_error);
+      }
+      const void* ptr = *raw;
+      memcpy(dst, ptr, size);
+      return ok();
+    }
+    return make_error_code(lief_errors::read_error);
+  }
+  mutable size_t pos_ = 0;
+  bool endian_swap_ = false;
+  STREAM_TYPE stype_ = STREAM_TYPE::UNKNOWN;
+};
+
+class ScopedStream {
+  public:
+  ScopedStream(const ScopedStream&) = delete;
+  ScopedStream& operator=(const ScopedStream&) = delete;
+
+  ScopedStream(const ScopedStream&&) = delete;
+  ScopedStream& operator=(ScopedStream&&) = delete;
+
+  explicit ScopedStream(BinaryStream& stream, uint64_t pos) :
+    pos_{stream.pos()},
+    stream_{stream}
+  {
+    stream_.setpos(pos);
+  }
+
+  inline ~ScopedStream() {
+    stream_.setpos(pos_);
+  }
+
+  private:
+  uint64_t pos_ = 0;
+  BinaryStream& stream_;
 };
 
 
-template<typename T>
-T BinaryStream::swap_endian(T u) {
-  // From http://stackoverflow.com/a/4956493
-  static_assert(CHAR_BIT == 8, "CHAR_BIT != 8");
-  static_assert(std::is_integral<T>::value, "Integer required");
-  union {
-    T u;
-    unsigned char u8[sizeof(T)];
-  } source, dest;
-
-  source.u = u;
-
-  for (size_t k = 0; k < sizeof(T); k++) {
-    dest.u8[k] = source.u8[sizeof(T) - k - 1];
-  }
-
-  return dest.u;
-}
-
-
 template<class T>
-const T& BinaryStream::read(void) const {
-  const T& tmp = this->peek<T>();
+result<T> BinaryStream::read() const {
+  result<T> tmp = this->peek<T>();
+  if (!tmp) {
+    return tmp.error();
+  }
   this->increment_pos(sizeof(T));
   return tmp;
 }
 
 template<class T>
-const T& BinaryStream::peek(void) const {
-  const void* raw = this->read_at(this->pos(), sizeof(T), /* throw error*/ true);
-  return *reinterpret_cast<const T*>(raw);
+result<T> BinaryStream::peek() const {
+  const auto current_p = pos();
+  T ret;
+  if (auto res = peek_in(&ret, pos(), sizeof(T))) {
+    setpos(current_p);
+    return ret;
+  }
+
+  setpos(current_p);
+  return make_error_code(lief_errors::read_error);
 }
 
-
 template<class T>
-const T& BinaryStream::peek(size_t offset) const {
+result<T> BinaryStream::peek(size_t offset) const {
   size_t saved_offset = this->pos();
   this->setpos(offset);
-  const T& r = this->peek<T>();
+  result<T> r = this->peek<T>();
   this->setpos(saved_offset);
   return r;
 }
 
 
 template<class T>
-const T* BinaryStream::peek_array(size_t size, bool check) const {
-  const void* raw = this->read_at(this->pos(), sizeof(T) * size, /* throw error*/ check);
-  return reinterpret_cast<const T*>(raw);
+const T* BinaryStream::peek_array(size_t size) const {
+  result<const void*> raw = this->read_at(this->pos(), sizeof(T) * size);
+  if (!raw) {
+    return nullptr;
+  }
+  return reinterpret_cast<const T*>(raw.value());
 }
 
 template<class T>
-const T* BinaryStream::peek_array(size_t offset, size_t size, bool check) const {
+const T* BinaryStream::peek_array(size_t offset, size_t size) const {
   size_t saved_offset = this->pos();
   this->setpos(offset);
-  const T* r = this->peek_array<T>(size, check);
+  const T* r = this->peek_array<T>(size);
   this->setpos(saved_offset);
   return r;
 }
 
 
 template<typename T>
-bool BinaryStream::can_read(void) const {
-  const void* raw = this->read_at(this->pos_, sizeof(T), /* throw error*/ false);
-  return raw != nullptr;
+bool BinaryStream::can_read() const {
+  // Even though pos_ + sizeof(T) < ... => pos_ < ...
+  // the addition could overflow so it's worth checking both
+  return pos_ < size() && (pos_ + sizeof(T)) < size();
 }
 
 
 template<typename T>
 bool BinaryStream::can_read(size_t offset) const {
-  const void* raw = this->read_at(offset, sizeof(T), /* throw error*/ false);
-  return raw != nullptr;
+  // Even though offset + sizeof(T) < ... => offset < ...
+  // the addition could overflow so it's worth checking both
+  return offset < size() && (offset + sizeof(T)) < size();
 }
 
 
 template<class T>
-const T* BinaryStream::read_array(size_t size, bool check) const {
-  const T* tmp = this->peek_array<T>(size, check);
+const T* BinaryStream::read_array(size_t size) const {
+  const T* tmp = this->peek_array<T>(size);
   this->increment_pos(sizeof(T) * size);
   return tmp;
 }
 
 
-template<typename T>
-T BinaryStream::read_conv(void) const {
-  T t = this->read<T>();
-  if (this->endian_swap_) {
-    LIEF::Convert::swap_endian<T>(& t);
+template<class T>
+result<T> BinaryStream::read_conv() const {
+  result<T> tmp = this->peek_conv<T>();
+  if (!tmp) {
+    return tmp.error();
   }
-  return t;
+  this->increment_pos(sizeof(T));
+  return tmp;
+}
+
+template<class T>
+typename std::enable_if<std::is_integral<T>::value, result<T>>::type BinaryStream::peek_conv() const {
+  T ret;
+  if (auto res = peek_in(&ret, pos(), sizeof(T))) {
+    if (endian_swap_) {
+      return swap_endian<T>(ret);
+    }
+    return ret;
+  }
+  return make_error_code(lief_errors::read_error);
+}
+
+template<class T>
+typename std::enable_if<!std::is_integral<T>::value, result<T>>::type BinaryStream::peek_conv() const {
+  T ret;
+  if (auto res = peek_in(&ret, pos(), sizeof(T))) {
+    if (endian_swap_) {
+      LIEF::Convert::swap_endian<T>(&ret);
+    }
+    return ret;
+  }
+  return make_error_code(lief_errors::read_error);
+}
+
+
+template<class T>
+result<T> BinaryStream::peek_conv(size_t offset) const {
+  size_t saved_offset = this->pos();
+  this->setpos(offset);
+  result<T> r = this->peek_conv<T>();
+  this->setpos(saved_offset);
+  return r;
 }
 
 
 template<typename T>
-std::unique_ptr<T[]> BinaryStream::read_conv_array(size_t size, bool check) const {
-  const T *t = this->read_array<T>(size, check);
+std::unique_ptr<T[]> BinaryStream::read_conv_array(size_t size) const {
+  const T *t = this->read_array<T>(size);
 
   if (t == nullptr) {
     return nullptr;
@@ -238,25 +362,16 @@ std::unique_ptr<T[]> BinaryStream::read_conv_array(size_t size, bool check) cons
   for (size_t i = 0; i < size; i++) {
     uptr[i] = t[i];
     if (this->endian_swap_) {
-        LIEF::Convert::swap_endian<T>(& uptr[i]);
+      LIEF::Convert::swap_endian<T>(& uptr[i]);
     } /* else no conversion, just provide the copied data */
   }
   return uptr;
 }
 
-template<class T>
-T BinaryStream::peek_conv(size_t offset) const {
-  T t = this->peek<T>(offset);
-
-  if (this->endian_swap_) {
-    LIEF::Convert::swap_endian(&t);
-  }
-  return t;
-}
 
 template<typename T>
-std::unique_ptr<T[]> BinaryStream::peek_conv_array(size_t offset, size_t size, bool check) const {
-  const T *t = this->peek_array<T>(offset, size, check);
+std::unique_ptr<T[]> BinaryStream::peek_conv_array(size_t offset, size_t size) const {
+  const T *t = this->peek_array<T>(offset, size);
 
   if (t == nullptr) {
     return nullptr;

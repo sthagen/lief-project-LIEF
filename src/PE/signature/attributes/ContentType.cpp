@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ ContentType::ContentType() :
 ContentType::ContentType(const ContentType&) = default;
 ContentType& ContentType::operator=(const ContentType&) = default;
 
-std::unique_ptr<Attribute> ContentType::clone(void) const {
+std::unique_ptr<Attribute> ContentType::clone() const {
   return std::unique_ptr<Attribute>(new ContentType{*this});
 }
 
@@ -40,7 +40,7 @@ void ContentType::accept(Visitor& visitor) const {
 }
 
 std::string ContentType::print() const {
-  return this->oid() + " (" + oid_to_string(this->oid()) + ")";
+  return oid() + " (" + oid_to_string(oid()) + ")";
 }
 
 

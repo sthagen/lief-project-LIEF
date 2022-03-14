@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include "pyPE.hpp"
+#include "pyIterators.hpp"
 
 #include "LIEF/PE/hash.hpp"
 #include "LIEF/PE/ResourceDirectory.hpp"
@@ -40,7 +41,7 @@ void create<ResourceDirectory>(py::module& m) {
     .def_property("characteristics",
         static_cast<getter_t<uint32_t>>(&ResourceDirectory::characteristics),
         static_cast<setter_t<uint32_t>>(&ResourceDirectory::characteristics),
-        "Resource flags. This field is reserved for future use. "
+        "Resource characteristics. This field is reserved for future use. "
         "It is currently set to zero.")
 
     .def_property("time_date_stamp",

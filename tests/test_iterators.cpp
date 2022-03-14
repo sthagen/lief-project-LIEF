@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ struct Foo {
   }
 
   it_filter_ref get_bar_filter(void) {
-    return {this->bar, [] (const std::string& v) { return v == "6" or v == "1" or v == "foo"; }};
+    return {this->bar, [] (const std::string& v) { return v == "6" || v == "1" || v == "foo"; }};
   }
 
 
@@ -93,7 +93,7 @@ struct Foo {
 
 
   it_filter_const_ref get_bar_filter(void) const {
-    return {this->bar, [] (const std::string& v) { return v == "6" or v == "1" or v == "foo"; }};
+    return {this->bar, [] (const std::string& v) { return v == "6" || v == "1" || v == "foo"; }};
   }
 
 
@@ -396,7 +396,7 @@ TEST_CASE("Test ref iterators", "[lief][iterators][ref]") {
 
     *foo.get_bar() = "123456";
     CHECK(*foo.get_bar() == "123456");
-    auto&& dummies = foo.get_dummies();
+    auto dummies = foo.get_dummies();
     Dummy& d = dummies[0];
     d.s_ = "zigzag";
 

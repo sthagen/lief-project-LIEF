@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,8 @@ using setter_t = void (UUIDCommand::*)(T);
 template<>
 void create<UUIDCommand>(py::module& m) {
 
-  py::class_<UUIDCommand, LoadCommand>(m, "UUIDCommand")
+  py::class_<UUIDCommand, LoadCommand>(m, "UUIDCommand",
+      "Class that represents the UUID command")
 
     .def_property("uuid",
         static_cast<getter_t<LIEF::MachO::uuid_t>>(&UUIDCommand::uuid),

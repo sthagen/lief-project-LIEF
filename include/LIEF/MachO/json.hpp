@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,100 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIEF_MACHO_VISITOR_JSONS_H_
-#define LIEF_MACHO_VISITOR_JSONS_H_
-
-#include "LIEF/config.h"
-
-#ifdef LIEF_JSON_SUPPORT
-
+#ifndef LIEF_MACHO_PUBLIC_JSON_H_
+#define LIEF_MACHO_PUBLIC_JSON_H_
 #include "LIEF/visibility.h"
-#include "LIEF/visitors/json.hpp"
-#include "LIEF/MachO.hpp"
+#include <string>
 
 namespace LIEF {
+class Object;
+
 namespace MachO {
 
-
-class Binary;
-class Header;
-class LoadCommand;
-class UUIDCommand;
-class SymbolCommand;
-class SegmentCommand;
-class Section;
-class MainCommand;
-class DynamicSymbolCommand;
-class DylinkerCommand;
-class DylibCommand;
-class ThreadCommand;
-class RPathCommand;
-class Symbol;
-class Relocation;
-class RelocationObject;
-class RelocationDyld;
-class BindingInfo;
-class ExportInfo;
-class FunctionStarts;
-class CodeSignature;
-class DataInCode;
-class DataCodeEntry;
-class VersionMin;
-class SourceVersion;
-class SegmentSplitInfo;
-class SubFramework;
-class DyldEnvironment;
-class EncryptionInfo;
-class BuildVersion;
-class BuildToolVersion;
-class FilesetCommand;
-
-
-LIEF_API json to_json(const Object& v);
-LIEF_API std::string to_json_str(const Object& v);
-
-class LIEF_API JsonVisitor : public LIEF::JsonVisitor {
-  public:
-  using LIEF::JsonVisitor::JsonVisitor;
-
-  public:
-  virtual void visit(const Binary& binary)                        override;
-  virtual void visit(const Header& header)                        override;
-  virtual void visit(const LoadCommand& cmd)                      override;
-  virtual void visit(const UUIDCommand& uuid)                     override;
-  virtual void visit(const SymbolCommand& symbol)                 override;
-  virtual void visit(const SegmentCommand& segment)               override;
-  virtual void visit(const Section& section)                      override;
-  virtual void visit(const MainCommand& maincmd)                  override;
-  virtual void visit(const DynamicSymbolCommand& dynamic_symbol)  override;
-  virtual void visit(const DylinkerCommand& dylinker)             override;
-  virtual void visit(const DylibCommand& dylib)                   override;
-  virtual void visit(const ThreadCommand& threadcmd)              override;
-  virtual void visit(const RPathCommand& rpath)                   override;
-  virtual void visit(const Symbol& symbol)                        override;
-  virtual void visit(const Relocation& relocation)                override;
-  virtual void visit(const RelocationObject& robject)             override;
-  virtual void visit(const RelocationDyld& rdyld)                 override;
-  virtual void visit(const BindingInfo& binding)                  override;
-  virtual void visit(const ExportInfo& einfo)                     override;
-  virtual void visit(const FunctionStarts& fs)                    override;
-  virtual void visit(const CodeSignature& cs)                     override;
-  virtual void visit(const DataInCode& dic)                       override;
-  virtual void visit(const DataCodeEntry& dce)                    override;
-  virtual void visit(const SourceVersion& sv)                     override;
-  virtual void visit(const VersionMin& vmin)                      override;
-  virtual void visit(const SegmentSplitInfo& ssi)                 override;
-  virtual void visit(const SubFramework& sf)                      override;
-  virtual void visit(const DyldEnvironment& sf)                   override;
-  virtual void visit(const EncryptionInfo& e)                     override;
-  virtual void visit(const BuildVersion& e)                       override;
-  virtual void visit(const BuildToolVersion& e)                   override;
-  virtual void visit(const FilesetCommand& e)                     override;
-};
+LIEF_API std::string to_json(const Object& v);
 
 }
 }
-
-#endif // LIEF_JSON_SUPPORT
 
 #endif

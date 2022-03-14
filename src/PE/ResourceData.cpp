@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <iomanip>
+#include <utility>
 
 #include "LIEF/PE/hash.hpp"
 
@@ -21,9 +22,9 @@
 
 namespace LIEF {
 namespace PE {
-ResourceData::~ResourceData(void) = default;
+ResourceData::~ResourceData() = default;
 ResourceData& ResourceData::operator=(ResourceData other) {
-  this->swap(other);
+  swap(other);
   return *this;
 }
 
@@ -34,65 +35,64 @@ ResourceData::ResourceData(const ResourceData& other) :
   reserved_{other.reserved_}
 {}
 
-ResourceData* ResourceData::clone(void) const {
+ResourceData* ResourceData::clone() const {
   return new ResourceData{*this};
 }
 
 void ResourceData::swap(ResourceData& other) {
   ResourceNode::swap(other);
 
-  std::swap(this->content_,    other.content_);
-  std::swap(this->code_page_,  other.code_page_);
-  std::swap(this->reserved_,   other.reserved_);
+  std::swap(content_,    other.content_);
+  std::swap(code_page_,  other.code_page_);
+  std::swap(reserved_,   other.reserved_);
 }
 
 
-ResourceData::ResourceData(void) :
-  content_{},
-  code_page_{0},
-  reserved_{0}
-{}
-
-
-ResourceData::ResourceData(const std::vector<uint8_t>& content, uint32_t code_page) :
-  content_{content},
-  code_page_{code_page},
-  reserved_{0}
-{}
-
-
-
-uint32_t ResourceData::code_page(void) const {
-  return this->code_page_;
+ResourceData::ResourceData() {
+  type_ = ResourceNode::TYPE::DATA;
 }
 
 
-const std::vector<uint8_t>& ResourceData::content(void) const {
-  return this->content_;
+ResourceData::ResourceData(std::vector<uint8_t> content, uint32_t code_page) :
+  content_{std::move(content)},
+  code_page_{code_page}
+{
+  type_ = ResourceNode::TYPE::DATA;
 }
 
 
-uint32_t ResourceData::reserved(void) const {
-  return this->reserved_;
+
+uint32_t ResourceData::code_page() const {
+  return code_page_;
 }
 
-uint32_t ResourceData::offset(void) const {
-  return this->offset_;
+
+const std::vector<uint8_t>& ResourceData::content() const {
+  return content_;
+}
+
+
+uint32_t ResourceData::reserved() const {
+  return reserved_;
+}
+
+uint32_t ResourceData::offset() const {
+  return offset_;
 }
 
 
 void ResourceData::code_page(uint32_t code_page) {
-  this->code_page_ = code_page;
+  code_page_ = code_page;
 }
 
 
 void ResourceData::content(const std::vector<uint8_t>& content) {
-  this->content_ = content;
+  content_ = content;
 }
 
 
 void ResourceData::reserved(uint32_t value) {
-  this->reserved_ = value;
+  reserved_ = value;
 }
 
 void ResourceData::accept(Visitor& visitor) const {
@@ -100,13 +100,16 @@ void ResourceData::accept(Visitor& visitor) const {
 }
 
 bool ResourceData::operator==(const ResourceData& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool ResourceData::operator!=(const ResourceData& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 

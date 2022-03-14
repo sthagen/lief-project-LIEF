@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,9 +27,9 @@ namespace PE {
 
 CodeView::CodeView(const CodeView&) = default;
 CodeView& CodeView::operator=(const CodeView&) = default;
-CodeView::~CodeView(void) = default;
+CodeView::~CodeView() = default;
 
-CodeView::CodeView(void) :
+CodeView::CodeView() :
   cv_signature_{CODE_VIEW_SIGNATURES::CVS_UNKNOWN}
 {}
 
@@ -40,8 +40,8 @@ CodeView::CodeView(CODE_VIEW_SIGNATURES cv_signature) :
 
 
 
-CODE_VIEW_SIGNATURES CodeView::cv_signature(void) const {
-  return this->cv_signature_;
+CODE_VIEW_SIGNATURES CodeView::cv_signature() const {
+  return cv_signature_;
 }
 
 
@@ -50,13 +50,16 @@ void CodeView::accept(LIEF::Visitor& visitor) const {
 }
 
 bool CodeView::operator==(const CodeView& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool CodeView::operator!=(const CodeView& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 

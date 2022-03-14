@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,59 +15,59 @@
  */
 #include "LIEF/MachO/hash.hpp"
 
-#include "LIEF/MachO/Structures.hpp"
 #include "LIEF/MachO/SymbolCommand.hpp"
+#include "MachO/Structures.hpp"
 
 namespace LIEF {
 namespace MachO {
 
-SymbolCommand::SymbolCommand(void) = default;
+SymbolCommand::SymbolCommand() = default;
 SymbolCommand& SymbolCommand::operator=(const SymbolCommand&) = default;
 SymbolCommand::SymbolCommand(const SymbolCommand&) = default;
-SymbolCommand::~SymbolCommand(void) = default;
+SymbolCommand::~SymbolCommand() = default;
 
-SymbolCommand::SymbolCommand(const symtab_command *cmd) :
-  LoadCommand::LoadCommand{static_cast<LOAD_COMMAND_TYPES>(cmd->cmd), cmd->cmdsize},
-  symbolOffset_{cmd->symoff},
-  numberOfSymbols_{cmd->nsyms},
-  stringsOffset_{cmd->stroff},
-  stringsSize_{cmd->strsize}
+SymbolCommand::SymbolCommand(const details::symtab_command& cmd) :
+  LoadCommand::LoadCommand{static_cast<LOAD_COMMAND_TYPES>(cmd.cmd), cmd.cmdsize},
+  symbolOffset_{cmd.symoff},
+  numberOfSymbols_{cmd.nsyms},
+  stringsOffset_{cmd.stroff},
+  stringsSize_{cmd.strsize}
 {}
 
-SymbolCommand* SymbolCommand::clone(void) const {
+SymbolCommand* SymbolCommand::clone() const {
   return new SymbolCommand(*this);
 }
 
-uint32_t SymbolCommand::symbol_offset(void) const {
-  return this->symbolOffset_;
+uint32_t SymbolCommand::symbol_offset() const {
+  return symbolOffset_;
 }
 
-uint32_t SymbolCommand::numberof_symbols(void) const {
-  return this->numberOfSymbols_;
+uint32_t SymbolCommand::numberof_symbols() const {
+  return numberOfSymbols_;
 }
 
-uint32_t SymbolCommand::strings_offset(void) const {
-  return this->stringsOffset_;
+uint32_t SymbolCommand::strings_offset() const {
+  return stringsOffset_;
 }
 
-uint32_t SymbolCommand::strings_size(void) const {
-  return this->stringsSize_;
+uint32_t SymbolCommand::strings_size() const {
+  return stringsSize_;
 }
 
 void SymbolCommand::symbol_offset(uint32_t offset) {
-  this->symbolOffset_ = offset;
+  symbolOffset_ = offset;
 }
 
 void SymbolCommand::numberof_symbols(uint32_t nb) {
-  this->numberOfSymbols_ = nb;
+  numberOfSymbols_ = nb;
 }
 
 void SymbolCommand::strings_offset(uint32_t offset) {
-  this->stringsOffset_ = offset;
+  stringsOffset_ = offset;
 }
 
 void SymbolCommand::strings_size(uint32_t size) {
-  this->stringsSize_ = size;
+  stringsSize_ = size;
 }
 
 void SymbolCommand::accept(Visitor& visitor) const {
@@ -76,13 +76,22 @@ void SymbolCommand::accept(Visitor& visitor) const {
 
 
 bool SymbolCommand::operator==(const SymbolCommand& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool SymbolCommand::operator!=(const SymbolCommand& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
+}
+
+bool SymbolCommand::classof(const LoadCommand* cmd) {
+  // This must be sync with BinaryParser.tcc
+  const LOAD_COMMAND_TYPES type = cmd->command();
+  return type == LOAD_COMMAND_TYPES::LC_SYMTAB;
 }
 
 std::ostream& SymbolCommand::print(std::ostream& os) const {

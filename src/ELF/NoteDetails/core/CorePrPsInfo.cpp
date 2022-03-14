@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@
 #include "LIEF/ELF/EnumToString.hpp"
 #include "LIEF/ELF/Note.hpp"
 
+#include "ELF/Structures.hpp"
+
 #include "CorePrPsInfo.tcc"
 
 namespace LIEF {
@@ -28,7 +30,6 @@ namespace ELF {
 
 CorePrPsInfo::CorePrPsInfo(Note& note):
   NoteDetails::NoteDetails{note},
-  file_name_(""),
   flags_(0),
   uid_(0),
   gid_(0),
@@ -44,80 +45,80 @@ CorePrPsInfo CorePrPsInfo::make(Note& note) {
   return pinfo;
 }
 
-CorePrPsInfo* CorePrPsInfo::clone(void) const {
+CorePrPsInfo* CorePrPsInfo::clone() const {
   return new CorePrPsInfo(*this);
 }
 
-std::string CorePrPsInfo::file_name(void) const {
-  return this->file_name_;
+std::string CorePrPsInfo::file_name() const {
+  return file_name_;
 }
 
-uint64_t CorePrPsInfo::flags(void) const {
-  return this->flags_;
+uint64_t CorePrPsInfo::flags() const {
+  return flags_;
 }
 
-uint32_t CorePrPsInfo::uid(void) const {
-  return this->uid_;
+uint32_t CorePrPsInfo::uid() const {
+  return uid_;
 }
 
-uint32_t CorePrPsInfo::gid(void) const {
-  return this->gid_;
+uint32_t CorePrPsInfo::gid() const {
+  return gid_;
 }
 
-int32_t CorePrPsInfo::pid(void) const {
-  return this->pid_;
+int32_t CorePrPsInfo::pid() const {
+  return pid_;
 }
 
-int32_t CorePrPsInfo::ppid(void) const {
-  return this->ppid_;
+int32_t CorePrPsInfo::ppid() const {
+  return ppid_;
 }
 
-int32_t CorePrPsInfo::pgrp(void) const {
-  return this->pgrp_;
+int32_t CorePrPsInfo::pgrp() const {
+  return pgrp_;
 }
 
-int32_t CorePrPsInfo::sid(void) const {
-  return this->sid_;
+int32_t CorePrPsInfo::sid() const {
+  return sid_;
 }
 
 void CorePrPsInfo::file_name(const std::string& file_name) {
-  this->file_name_ = file_name;
-  this->build();
+  file_name_ = file_name;
+  build();
 }
 
 void CorePrPsInfo::flags(uint64_t flags) {
-  this->flags_ = flags;
-  this->build();
+  flags_ = flags;
+  build();
 }
 
 void CorePrPsInfo::uid(uint32_t uid) {
-  this->uid_ = uid;
-  this->build();
+  uid_ = uid;
+  build();
 }
 
 void CorePrPsInfo::gid(uint32_t gid) {
-  this->gid_ = gid;
-  this->build();
+  gid_ = gid;
+  build();
 }
 
 void CorePrPsInfo::pid(int32_t pid) {
-  this->pid_ = pid;
-  this->build();
+  pid_ = pid;
+  build();
 }
 
 void CorePrPsInfo::ppid(int32_t ppid) {
-  this->ppid_ = ppid;
-  this->build();
+  ppid_ = ppid;
+  build();
 }
 
 void CorePrPsInfo::pgrp(int32_t pgrp) {
-  this->pgrp_ = pgrp;
-  this->build();
+  pgrp_ = pgrp;
+  build();
 }
 
 void CorePrPsInfo::sid(int32_t sid) {
-  this->sid_ = sid;
-  this->build();
+  sid_ = sid;
+  build();
 }
 
 void CorePrPsInfo::accept(Visitor& visitor) const {
@@ -125,39 +126,42 @@ void CorePrPsInfo::accept(Visitor& visitor) const {
 }
 
 bool CorePrPsInfo::operator==(const CorePrPsInfo& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool CorePrPsInfo::operator!=(const CorePrPsInfo& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 void CorePrPsInfo::dump(std::ostream& os) const {
   os << std::left;
-  os << std::setw(12) << std::setfill(' ') << "File name: " << std::dec << this->file_name() << std::endl;
-  os << std::setw(12) << std::setfill(' ') << "UID: " << std::dec << this->uid() << std::endl;
-  os << std::setw(12) << std::setfill(' ') << "GID: " << std::dec << this->gid() << std::endl;
-  os << std::setw(12) << std::setfill(' ') << "PID: " << std::dec << this->pid() << std::endl;
-  os << std::setw(12) << std::setfill(' ') << "PPID: " << std::dec << this->ppid() << std::endl;
-  os << std::setw(12) << std::setfill(' ') << "PGRP: " << std::dec << this->pgrp() << std::endl;
-  os << std::setw(12) << std::setfill(' ') << "SID: " << std::dec << this->sid() << std::endl;
+  os << std::setw(12) << std::setfill(' ') << "File name: " << std::dec << file_name() << std::endl;
+  os << std::setw(12) << std::setfill(' ') << "UID: " << std::dec << uid() << std::endl;
+  os << std::setw(12) << std::setfill(' ') << "GID: " << std::dec << gid() << std::endl;
+  os << std::setw(12) << std::setfill(' ') << "PID: " << std::dec << pid() << std::endl;
+  os << std::setw(12) << std::setfill(' ') << "PPID: " << std::dec << ppid() << std::endl;
+  os << std::setw(12) << std::setfill(' ') << "PGRP: " << std::dec << pgrp() << std::endl;
+  os << std::setw(12) << std::setfill(' ') << "SID: " << std::dec << sid() << std::endl;
 }
 
-void CorePrPsInfo::parse(void) {
-  if (this->binary()->type() == ELF_CLASS::ELFCLASS64) {
-    this->parse_<ELF64>();
-  } else if (this->binary()->type() == ELF_CLASS::ELFCLASS32) {
-    this->parse_<ELF32>();
+void CorePrPsInfo::parse() {
+  if (binary()->type() == ELF_CLASS::ELFCLASS64) {
+    parse_<details::ELF64>();
+  } else if (binary()->type() == ELF_CLASS::ELFCLASS32) {
+    parse_<details::ELF32>();
   }
 }
 
-void CorePrPsInfo::build(void) {
-  if (this->binary()->type() == ELF_CLASS::ELFCLASS64) {
-    this->build_<ELF64>();
-  } else if (this->binary()->type() == ELF_CLASS::ELFCLASS32) {
-    this->build_<ELF32>();
+void CorePrPsInfo::build() {
+  if (binary()->type() == ELF_CLASS::ELFCLASS64) {
+    build_<details::ELF64>();
+  } else if (binary()->type() == ELF_CLASS::ELFCLASS32) {
+    build_<details::ELF32>();
   }
 }
 
@@ -166,7 +170,7 @@ std::ostream& operator<<(std::ostream& os, const CorePrPsInfo& note) {
   return os;
 }
 
-CorePrPsInfo::~CorePrPsInfo(void) = default;
+CorePrPsInfo::~CorePrPsInfo() = default;
 
 } // namespace ELF
 } // namespace LIEF

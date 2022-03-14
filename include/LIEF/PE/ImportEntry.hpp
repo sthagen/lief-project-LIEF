@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,48 +29,48 @@ namespace PE {
 class Parser;
 class Builder;
 
+//! Class that represents an entry (i.e. an import) in the import table (Import).
+//!
+//! It extends the LIEF::Symbol generic class that exposes the LIEF::Symbol::name and
+//! LIEF::Symbol::value API
 class LIEF_API ImportEntry : public LIEF::Symbol {
   friend class Parser;
   friend class Builder;
 
   public:
-  ImportEntry(void);
+  ImportEntry();
   ImportEntry(uint64_t data, const std::string& name = "");
   ImportEntry(const std::string& name);
   ImportEntry(const ImportEntry&);
   ImportEntry& operator=(const ImportEntry&);
-  virtual ~ImportEntry(void);
+  virtual ~ImportEntry();
 
-  //! @brief ``True`` if ordinal is used
-  bool is_ordinal(void) const;
+  //!``True`` if it is an import by ordinal
+  bool is_ordinal() const;
 
-  //! @brief ordinal value
-  uint16_t ordinal(void) const;
+  //! The ordinal value
+  uint16_t ordinal() const;
 
   //! @see ImportEntry::data
-  uint64_t hint_name_rva(void) const;
+  uint64_t hint_name_rva() const;
 
-  //! @brief Index into the Export::entries
-  uint16_t hint(void) const;
+  //! Index into the Export::entries that is used to speed-up
+  //! the symbol resolution.
+  uint16_t hint() const;
 
-  //! @brief Value of the current entry in the Import Address Table.
+  //! Value of the current entry in the Import Address Table.
   //! It should match the lookup table value
-  uint64_t iat_value(void) const;
+  uint64_t iat_value() const;
 
-  //! @brief Import name if not ordinal
-  //const std::string& name(void) const;
+  //! Raw value
+  uint64_t data() const;
 
-  //! @brief Raw value
-  uint64_t data(void) const;
+  //! **Original** address of the entry in the Import Address Table
+  uint64_t iat_address() const;
 
-  //! @brief **Original** address of the entry in the Import Address Table
-  uint64_t iat_address(void) const;
-
-
-  //void name(const std::string& name);
   void data(uint64_t data);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const ImportEntry& rhs) const;
   bool operator!=(const ImportEntry& rhs) const;
@@ -78,11 +78,11 @@ class LIEF_API ImportEntry : public LIEF::Symbol {
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const ImportEntry& entry);
 
   private:
-  uint64_t    data_ = 0;
-  uint16_t    hint_ = 0;
-  uint64_t    iat_value_ = 0;
-  uint64_t    rva_ = 0;
-  PE_TYPE     type_ = PE_TYPE::PE32_PLUS;
+  uint64_t data_ = 0;
+  uint16_t hint_ = 0;
+  uint64_t iat_value_ = 0;
+  uint64_t rva_ = 0;
+  PE_TYPE  type_ = PE_TYPE::PE32_PLUS;
 };
 
 }

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,90 +25,90 @@ namespace ART {
 Header::Header(const Header&) = default;
 Header& Header::operator=(const Header&) = default;
 
-Header::Header(void) = default;
+Header::Header() = default;
 
-Header::magic_t Header::magic(void) const {
-  return this->magic_;
+Header::magic_t Header::magic() const {
+  return magic_;
 }
 
-art_version_t Header::version(void) const {
-  return this->version_;
+art_version_t Header::version() const {
+  return version_;
 }
 
-uint32_t Header::image_begin(void) const {
-  return this->image_begin_;
+uint32_t Header::image_begin() const {
+  return image_begin_;
 }
 
-uint32_t Header::image_size(void) const {
-  return this->image_size_;
+uint32_t Header::image_size() const {
+  return image_size_;
 }
 
-uint32_t Header::oat_checksum(void) const {
-  return this->oat_checksum_;
+uint32_t Header::oat_checksum() const {
+  return oat_checksum_;
 }
 
-uint32_t Header::oat_file_begin(void) const {
-  return this->oat_file_begin_;
+uint32_t Header::oat_file_begin() const {
+  return oat_file_begin_;
 }
 
-uint32_t Header::oat_file_end(void) const {
-  return this->oat_file_end_;
+uint32_t Header::oat_file_end() const {
+  return oat_file_end_;
 }
 
-uint32_t Header::oat_data_begin(void) const {
-  return this->oat_data_begin_;
+uint32_t Header::oat_data_begin() const {
+  return oat_data_begin_;
 }
 
-uint32_t Header::oat_data_end(void) const {
-  return this->oat_data_end_;
+uint32_t Header::oat_data_end() const {
+  return oat_data_end_;
 }
 
-int32_t Header::patch_delta(void) const {
-  return this->patch_delta_;
+int32_t Header::patch_delta() const {
+  return patch_delta_;
 }
 
-uint32_t Header::image_roots(void) const {
-  return this->image_roots_;
+uint32_t Header::image_roots() const {
+  return image_roots_;
 }
 
-uint32_t Header::pointer_size(void) const {
-  return this->pointer_size_;
+uint32_t Header::pointer_size() const {
+  return pointer_size_;
 }
 
-bool Header::compile_pic(void) const {
-  return this->compile_pic_;
+bool Header::compile_pic() const {
+  return compile_pic_;
 }
 
-uint32_t Header::nb_sections(void) const {
-  return this->nb_sections_;
+uint32_t Header::nb_sections() const {
+  return nb_sections_;
 }
 
-uint32_t Header::nb_methods(void) const {
-  return this->nb_methods_;
+uint32_t Header::nb_methods() const {
+  return nb_methods_;
 }
 
-uint32_t Header::boot_image_begin(void) const {
-  return this->boot_image_begin_;
+uint32_t Header::boot_image_begin() const {
+  return boot_image_begin_;
 }
 
-uint32_t Header::boot_image_size(void) const {
-  return this->boot_image_size_;
+uint32_t Header::boot_image_size() const {
+  return boot_image_size_;
 }
 
-uint32_t Header::boot_oat_begin(void) const {
-  return this->boot_oat_begin_;
+uint32_t Header::boot_oat_begin() const {
+  return boot_oat_begin_;
 }
 
-uint32_t Header::boot_oat_size(void) const {
-  return this->boot_oat_size_;
+uint32_t Header::boot_oat_size() const {
+  return boot_oat_size_;
 }
 
-STORAGE_MODES Header::storage_mode(void) const {
-  return this->storage_mode_;
+STORAGE_MODES Header::storage_mode() const {
+  return storage_mode_;
 }
 
-uint32_t Header::data_size(void) const {
-  return this->data_size_;
+uint32_t Header::data_size() const {
+  return data_size_;
 }
 
 
@@ -118,13 +118,16 @@ void Header::accept(Visitor& visitor) const {
 
 
 bool Header::operator==(const Header& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool Header::operator!=(const Header& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const Header& hdr) {
@@ -167,7 +170,7 @@ std::ostream& operator<<(std::ostream& os, const Header& hdr) {
   return os;
 }
 
-Header::~Header(void) = default;
+Header::~Header() = default;
 
 } // Namespace ART
 } // Namespace LIEF

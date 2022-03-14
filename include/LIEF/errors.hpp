@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 #ifndef LIEF_ERROR_H_
 #define LIEF_ERROR_H_
 #include <system_error>
-#include <LIEF/third-party/boost/leaf/all.hpp>
+#include <LIEF/third-party/leaf.hpp>
 
 //! LIEF error codes definition
 enum class lief_errors {
@@ -31,6 +31,17 @@ enum class lief_errors {
   read_out_of_bound,
   asn1_bad_tag,
   file_error,
+
+  file_format_error,
+  parsing_error,
+  build_error,
+
+  data_too_large,
+  /*
+   * When adding a new error, do not forget
+   * to update the Python bindings as well (pyErr.cpp)
+   *
+   */
 };
 
 const std::error_category& error_category();
@@ -51,13 +62,12 @@ inline std::error_code make_error_code(lief_errors e) {
 
 
 namespace LIEF {
-
-
-//! Wrapper that contains an Object or an error
+//! Wrapper that contains an Object (``T``) or an error
 //!
 //! The LEAF implementation exposes the method ``value()`` to access the underlying object (if no error)
 //!
 //! Typical usage is:
+//!
 //! \code{.cpp}
 //! result<int> intval = my_function();
 //! if (intval) {
@@ -86,6 +96,34 @@ template<class T>
 std::error_code get_error(result<T>& err) {
   return make_error_code(lief_errors(boost::leaf::error_id(err.error()).value()));
 }
+
+//! Return the lief_errors when the provided ``result<T>`` is an error
+template<class T>
+lief_errors as_lief_err(result<T>& err) {
+  return lief_errors(boost::leaf::error_id(err.error()).value());
+}
+
+//! Opaque structure used by ok_error_t
+struct ok_t {};
+
+//! Return success for function with return type ok_error_t.
+inline ok_t ok() {
+  return ok_t{};
+}
+
+//! Opaque structure that is used by LIEF to avoid
+//! writing ``result<void> f(...)``. Instead, it makes the output
+//! explicit such as:
+//!
+//! \code{.cpp}
+//! ok_error_t process() {
+//!   if (fail) {
+//!     return make_error_code(...);
+//!   }
+//!   return ok();
+//! }
+//! \endcode
+using ok_error_t = result<ok_t>;
 
 }
 

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,10 @@ using setter_t = void (Function::*)(T);
 template<>
 void create<Function>(py::module& m) {
 
-  py::class_<Function, Symbol> pyfunction(m, "Function");
+  py::class_<Function, Symbol> pyfunction(m, "Function",
+      R"delim(
+      Class which represents a Function in an executable file format.
+      )delim");
 
   py::enum_<Function::FLAGS>(pyfunction, "FLAGS")
     .value(PY_ENUM(Function::FLAGS::IMPORTED))
@@ -47,16 +50,22 @@ void create<Function>(py::module& m) {
     .def(py::init<uint64_t>())
     .def(py::init<const std::string&, uint64_t>())
 
+    .def("add",
+        &Function::add,
+        "Add the given " RST_CLASS_REF(lief.Function.FLAGS) "",
+        "flag"_a)
+
+    .def_property_readonly("flags",
+        &Function::flags,
+        "Function flags as a list of " RST_CLASS_REF(lief.Function.FLAGS) "")
 
     .def_property("address",
         static_cast<getter_t<uint64_t>>(&Function::address),
         static_cast<setter_t<uint64_t>>(&Function::address),
         "Function's address")
 
-
     .def("__str__",
-        [] (const Function& f)
-        {
+        [] (const Function& f) {
           std::ostringstream stream;
           stream << f;
           std::string str = stream.str();

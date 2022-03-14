@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,33 +22,36 @@
 
 namespace LIEF {
 namespace PE {
+namespace details {
 struct pe_code_integrity;
+}
+
 class LIEF_API CodeIntegrity : public Object {
   public:
   static constexpr size_t PRINT_WIDTH = 20;
-  CodeIntegrity(void);
-  CodeIntegrity(const pe_code_integrity *header);
-  virtual ~CodeIntegrity(void);
+  CodeIntegrity();
+  CodeIntegrity(const details::pe_code_integrity& header);
+  virtual ~CodeIntegrity();
 
   CodeIntegrity& operator=(const CodeIntegrity&);
   CodeIntegrity(const CodeIntegrity&);
 
-  //! @brief Flags to indicate if CI information is available, etc.
-  uint16_t flags(void) const;
+  //! Flags to indicate if CI information is available, etc.
+  uint16_t flags() const;
 
-  //! @brief 0xFFFF means not available
-  uint16_t catalog(void) const;
-  uint32_t catalog_offset(void) const;
+  //! 0xFFFF means not available
+  uint16_t catalog() const;
+  uint32_t catalog_offset() const;
 
-  //! @brief Additional bitmask to be defined later
-  uint32_t reserved(void) const;
+  //! Additional bitmask to be defined later
+  uint32_t reserved() const;
 
   void flags(uint16_t flags);
   void catalog(uint16_t catalog);
   void catalog_offset(uint32_t catalog_offset);
   void reserved(uint32_t reserved);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const CodeIntegrity& rhs) const;
   bool operator!=(const CodeIntegrity& rhs) const;

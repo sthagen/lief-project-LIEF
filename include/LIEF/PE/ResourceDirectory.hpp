@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,10 @@ namespace PE {
 
 class Parser;
 class Builder;
+
+namespace details {
 struct pe_resource_directory_table;
+}
 
 class LIEF_API ResourceDirectory : public ResourceNode {
 
@@ -37,42 +40,42 @@ class LIEF_API ResourceDirectory : public ResourceNode {
   friend class Builder;
 
   public:
-  ResourceDirectory(void);
-  ResourceDirectory(const pe_resource_directory_table* header);
+  ResourceDirectory();
+  ResourceDirectory(const details::pe_resource_directory_table& header);
 
   ResourceDirectory(const ResourceDirectory& other);
   ResourceDirectory& operator=(ResourceDirectory other);
 
   void swap(ResourceDirectory& other);
 
-  virtual ~ResourceDirectory(void);
+  virtual ~ResourceDirectory();
 
-  virtual ResourceDirectory* clone(void) const override;
+  ResourceDirectory* clone() const override;
 
-  //! @brief Resource flags. This field is reserved for future use.
+  //! Resource characteristics. This field is reserved for future use.
   //! It is currently set to zero.
-  uint32_t characteristics(void) const;
+  uint32_t characteristics() const;
 
-  //! @brief The time that the resource data was created by the
+  //! The time that the resource data was created by the
   //! resource compiler.
-  uint32_t time_date_stamp(void) const;
+  uint32_t time_date_stamp() const;
 
-  //! @brief The major version number, set by the user.
-  uint16_t major_version(void) const;
+  //! The major version number, set by the user.
+  uint16_t major_version() const;
 
-  //! @brief The minor version number, set by the user.
-  uint16_t minor_version(void) const;
+  //! The minor version number, set by the user.
+  uint16_t minor_version() const;
 
-  //! @brief The number of directory entries immediately
+  //! The number of directory entries immediately
   //! following the table that use strings to identify Type,
   //! Name, or Language entries (depending on the level
   //! of the table).
-  uint16_t numberof_name_entries(void) const;
+  uint16_t numberof_name_entries() const;
 
-  //! @brief The number of directory entries immediately
+  //! The number of directory entries immediately
   //! following the Name entries that use numeric IDs for
   //! Type, Name, or Language entries.
-  uint16_t numberof_id_entries(void) const;
+  uint16_t numberof_id_entries() const;
 
   void characteristics(uint32_t characteristics);
   void time_date_stamp(uint32_t time_date_stamp);
@@ -81,7 +84,7 @@ class LIEF_API ResourceDirectory : public ResourceNode {
   void numberof_name_entries(uint16_t numberof_name_entries);
   void numberof_id_entries(uint16_t numberof_id_entries);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const ResourceDirectory& rhs) const;
   bool operator!=(const ResourceDirectory& rhs) const;
@@ -89,12 +92,12 @@ class LIEF_API ResourceDirectory : public ResourceNode {
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const ResourceDirectory& directory);
 
   private:
-  uint32_t characteristics_;
-  uint32_t timeDateStamp_;
-  uint16_t majorVersion_;
-  uint16_t minorVersion_;
-  uint16_t numberOfNameEntries_;
-  uint16_t numberOfIDEntries_;
+  uint32_t characteristics_ = 0;
+  uint32_t timeDateStamp_ = 0;
+  uint16_t majorVersion_ = 0;
+  uint16_t minorVersion_ = 0;
+  uint16_t numberOfNameEntries_ = 0;
+  uint16_t numberOfIDEntries_ = 0;
 
 };
 }

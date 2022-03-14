@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <utility>
+
 #include "LIEF/ELF/hash.hpp"
 
 #include "LIEF/ELF/SymbolVersionAux.hpp"
@@ -20,24 +22,22 @@
 namespace LIEF {
 namespace ELF {
 
-SymbolVersionAux::~SymbolVersionAux(void) = default;
+SymbolVersionAux::~SymbolVersionAux() = default;
 SymbolVersionAux& SymbolVersionAux::operator=(const SymbolVersionAux&) = default;
 SymbolVersionAux::SymbolVersionAux(const SymbolVersionAux&) = default;
 
-SymbolVersionAux::SymbolVersionAux(void) :
-  name_{""}
+SymbolVersionAux::SymbolVersionAux() = default;
+
+SymbolVersionAux::SymbolVersionAux(std::string  name) :
+  name_{std::move(name)}
 {}
 
-SymbolVersionAux::SymbolVersionAux(const std::string& name) :
-  name_{name}
-{}
-
-const std::string& SymbolVersionAux::name(void) const {
-  return this->name_;
+const std::string& SymbolVersionAux::name() const {
+  return name_;
 }
 
 void SymbolVersionAux::name(const std::string& name) {
-  this->name_ = name;
+  name_ = name;
 }
 
 void SymbolVersionAux::accept(Visitor& visitor) const {
@@ -45,13 +45,16 @@ void SymbolVersionAux::accept(Visitor& visitor) const {
 }
 
 bool SymbolVersionAux::operator==(const SymbolVersionAux& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool SymbolVersionAux::operator!=(const SymbolVersionAux& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 

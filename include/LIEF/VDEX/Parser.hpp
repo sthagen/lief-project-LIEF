@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,40 +35,40 @@ class LIEF_API Parser {
   public:
   friend struct ::Profiler;
 
-    static std::unique_ptr<File> parse(const std::string& file);
-    static std::unique_ptr<File> parse(const std::vector<uint8_t>& data, const std::string& name = "");
+  static std::unique_ptr<File> parse(const std::string& file);
+  static std::unique_ptr<File> parse(const std::vector<uint8_t>& data, const std::string& name = "");
 
-    Parser& operator=(const Parser& copy) = delete;
-    Parser(const Parser& copy)            = delete;
+  Parser& operator=(const Parser& copy) = delete;
+  Parser(const Parser& copy)            = delete;
 
   private:
-    Parser(void);
-    Parser(const std::string& file);
-    Parser(const std::vector<uint8_t>& data, const std::string& name);
-    virtual ~Parser(void);
+  Parser();
+  Parser(const std::string& file);
+  Parser(const std::vector<uint8_t>& data, const std::string& name);
+  virtual ~Parser();
 
-    void init(const std::string& name, vdex_version_t version);
+  void init(const std::string& name, vdex_version_t version);
 
-    template<typename VDEX_T>
-    void parse_file(void);
+  template<typename VDEX_T>
+  void parse_file();
 
-    template<typename VDEX_T>
-    void parse_header(void);
+  template<typename VDEX_T>
+  void parse_header();
 
-    template<typename VDEX_T>
-    void parse_checksums(void);
+  template<typename VDEX_T>
+  void parse_checksums();
 
-    template<typename VDEX_T>
-    void parse_dex_files(void);
+  template<typename VDEX_T>
+  void parse_dex_files();
 
-    template<typename VDEX_T>
-    void parse_verifier_deps(void);
+  template<typename VDEX_T>
+  void parse_verifier_deps();
 
-    template<typename VDEX_T>
-    void parse_quickening_info(void);
+  template<typename VDEX_T>
+  void parse_quickening_info();
 
-    LIEF::VDEX::File* file_;
-    std::unique_ptr<VectorStream> stream_;
+  LIEF::VDEX::File* file_ = nullptr;
+  std::unique_ptr<VectorStream> stream_;
 };
 
 

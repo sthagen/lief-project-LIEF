@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,16 @@
  */
 #include <string>
 
+#include "logging.hpp"
+#include "LIEF/ART/Header.hpp"
 #include "LIEF/ART/EnumToString.hpp"
+#include "ART/Structures.hpp"
 
 namespace LIEF {
 namespace ART {
 
 template<>
-Header::Header(const ART_17::header* header) :
+Header::Header(const details::ART_17::header* header) :
   magic_{{'a', 'r', 't', '\n'}},
   version_{0},
   image_begin_{header->image_begin},
@@ -49,14 +52,14 @@ Header::Header(const ART_17::header* header) :
   std::copy(
       std::begin(header->magic),
       std::end(header->magic),
-      std::begin(this->magic_)
+      std::begin(magic_)
   );
   if (std::all_of(
         header->version,
         header->version + sizeof(header->version) - 1,
         ::isdigit))
   {
-    this->version_ = static_cast<uint32_t>(
+    version_ = static_cast<uint32_t>(
         std::stoi(std::string{reinterpret_cast<const char*>(header->version), sizeof(header->version)}));
   }
 
@@ -90,18 +93,18 @@ Header::Header(const T* header) :
   std::copy(
       std::begin(header->magic),
       std::end(header->magic),
-      std::begin(this->magic_)
+      std::begin(magic_)
   );
   if (std::all_of(
         header->version,
         header->version + sizeof(header->version) - 1,
         ::isdigit))
   {
-    this->version_ = static_cast<uint32_t>(
+    version_ = static_cast<uint32_t>(
         std::stoi(std::string{reinterpret_cast<const char*>(header->version), sizeof(header->version)}));
   }
 
-  LIEF_DEBUG("{}", to_string(this->storage_mode_));
+  LIEF_DEBUG("{}", to_string(storage_mode_));
 
 }
 

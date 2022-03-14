@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,17 @@
 
 #include "LIEF/PE/hash.hpp"
 
-#include "LIEF/PE/Structures.hpp"
 #include "LIEF/PE/ResourceDirectory.hpp"
+#include "PE/Structures.hpp"
 
 namespace LIEF {
 namespace PE {
 
 
-ResourceDirectory::~ResourceDirectory(void) = default;
+ResourceDirectory::~ResourceDirectory() = default;
 
 ResourceDirectory& ResourceDirectory::operator=(ResourceDirectory other) {
-  this->swap(other);
+  swap(other);
   return *this;
 
 }
@@ -46,91 +46,86 @@ ResourceDirectory::ResourceDirectory(const ResourceDirectory& other) :
 
 void ResourceDirectory::swap(ResourceDirectory& other) {
   ResourceNode::swap(other);
-  std::swap(this->characteristics_,     other.characteristics_);
-  std::swap(this->timeDateStamp_,       other.timeDateStamp_);
-  std::swap(this->majorVersion_,        other.majorVersion_);
-  std::swap(this->minorVersion_,        other.minorVersion_);
-  std::swap(this->numberOfNameEntries_, other.numberOfNameEntries_);
-  std::swap(this->numberOfIDEntries_,   other.numberOfIDEntries_);
+  std::swap(characteristics_,     other.characteristics_);
+  std::swap(timeDateStamp_,       other.timeDateStamp_);
+  std::swap(majorVersion_,        other.majorVersion_);
+  std::swap(minorVersion_,        other.minorVersion_);
+  std::swap(numberOfNameEntries_, other.numberOfNameEntries_);
+  std::swap(numberOfIDEntries_,   other.numberOfIDEntries_);
 }
 
-ResourceDirectory::ResourceDirectory(void) :
-  ResourceNode{},
-  characteristics_{0},
-  timeDateStamp_{0},
-  majorVersion_{0},
-  minorVersion_{0},
-  numberOfNameEntries_{0},
-  numberOfIDEntries_{0}
-{}
+ResourceDirectory::ResourceDirectory() {
+  type_ = ResourceNode::TYPE::DIRECTORY;
+}
 
-ResourceDirectory::ResourceDirectory(const pe_resource_directory_table* header) :
-  ResourceNode{},
-  characteristics_(header->Characteristics),
-  timeDateStamp_(header->TimeDateStamp),
-  majorVersion_(header->MajorVersion),
-  minorVersion_(header->MajorVersion),
-  numberOfNameEntries_(header->NumberOfNameEntries),
-  numberOfIDEntries_(header->NumberOfIDEntries)
-{}
+ResourceDirectory::ResourceDirectory(const details::pe_resource_directory_table& header) :
+  characteristics_(header.Characteristics),
+  timeDateStamp_(header.TimeDateStamp),
+  majorVersion_(header.MajorVersion),
+  minorVersion_(header.MajorVersion),
+  numberOfNameEntries_(header.NumberOfNameEntries),
+  numberOfIDEntries_(header.NumberOfIDEntries)
+{
+  type_ = ResourceNode::TYPE::DIRECTORY;
+}
 
-ResourceDirectory* ResourceDirectory::clone(void) const {
+ResourceDirectory* ResourceDirectory::clone() const {
   return new ResourceDirectory{*this};
 }
 
 
-uint32_t ResourceDirectory::characteristics(void) const {
-  return this->characteristics_;
+uint32_t ResourceDirectory::characteristics() const {
+  return characteristics_;
 }
 
 
-uint32_t ResourceDirectory::time_date_stamp(void) const {
-  return this->timeDateStamp_;
+uint32_t ResourceDirectory::time_date_stamp() const {
+  return timeDateStamp_;
 }
 
 
-uint16_t ResourceDirectory::major_version(void) const {
-  return this->majorVersion_;
+uint16_t ResourceDirectory::major_version() const {
+  return majorVersion_;
 }
 
 
-uint16_t ResourceDirectory::minor_version(void) const {
-  return this->minorVersion_;
+uint16_t ResourceDirectory::minor_version() const {
+  return minorVersion_;
 }
 
 
-uint16_t ResourceDirectory::numberof_name_entries(void) const {
-  return this->numberOfNameEntries_;
+uint16_t ResourceDirectory::numberof_name_entries() const {
+  return numberOfNameEntries_;
 }
 
 
-uint16_t ResourceDirectory::numberof_id_entries(void) const {
-  return this->numberOfIDEntries_;
+uint16_t ResourceDirectory::numberof_id_entries() const {
+  return numberOfIDEntries_;
 }
 
 
 void ResourceDirectory::characteristics(uint32_t characteristics) {
-  this->characteristics_ = characteristics;
+  characteristics_ = characteristics;
 }
 
 void ResourceDirectory::time_date_stamp(uint32_t time_date_stamp) {
-  this->timeDateStamp_ = time_date_stamp;
+  timeDateStamp_ = time_date_stamp;
 }
 
 void ResourceDirectory::major_version(uint16_t major_version) {
-  this->majorVersion_ = major_version;
+  majorVersion_ = major_version;
 }
 
 void ResourceDirectory::minor_version(uint16_t minor_version) {
-  this->minorVersion_ = minor_version;
+  minorVersion_ = minor_version;
 }
 
 void ResourceDirectory::numberof_name_entries(uint16_t numberof_name_entries) {
-  this->numberOfNameEntries_ = numberof_name_entries;
+  numberOfNameEntries_ = numberof_name_entries;
 }
 
 void ResourceDirectory::numberof_id_entries(uint16_t numberof_id_entries) {
-  this->numberOfIDEntries_ = numberof_id_entries;
+  numberOfIDEntries_ = numberof_id_entries;
 }
 
 void ResourceDirectory::accept(Visitor& visitor) const {
@@ -138,13 +133,16 @@ void ResourceDirectory::accept(Visitor& visitor) const {
 }
 
 bool ResourceDirectory::operator==(const ResourceDirectory& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool ResourceDirectory::operator!=(const ResourceDirectory& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 

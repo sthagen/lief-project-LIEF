@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,61 +16,67 @@
 #ifndef LIEF_ELF_SYMBOL_VERSION_DEFINITION_H_
 #define LIEF_ELF_SYMBOL_VERSION_DEFINITION_H_
 #include <iostream>
+#include <memory>
 
 #include "LIEF/Object.hpp"
 #include "LIEF/visibility.h"
+#include "LIEF/iterators.hpp"
 
-#include "LIEF/ELF/type_traits.hpp"
 #include "LIEF/ELF/enums.hpp"
 
 namespace LIEF {
 namespace ELF {
 
 class Parser;
+
+namespace details {
 struct Elf64_Verdef;
 struct Elf32_Verdef;
+}
 
-//! @brief Class which modelization of an entry defined in ``DT_VERDEF``
-//! (or ``.gnu.version_d``)
+//! Class which represents an entry defined in ``DT_VERDEF`` or ``.gnu.version_d``
 class LIEF_API SymbolVersionDefinition : public Object {
   friend class Parser;
   public:
-  SymbolVersionDefinition(void);
-  SymbolVersionDefinition(const Elf64_Verdef *header);
-  SymbolVersionDefinition(const Elf32_Verdef *header);
-  virtual ~SymbolVersionDefinition(void);
+  using version_aux_t        = std::vector<std::unique_ptr<SymbolVersionAux>>;
+  using it_version_aux       = ref_iterator<version_aux_t&, SymbolVersionAux*>;
+  using it_const_version_aux = const_ref_iterator<const version_aux_t&, const SymbolVersionAux*>;
+
+  SymbolVersionDefinition();
+  SymbolVersionDefinition(const details::Elf64_Verdef& header);
+  SymbolVersionDefinition(const details::Elf32_Verdef& header);
+  virtual ~SymbolVersionDefinition();
 
   SymbolVersionDefinition& operator=(SymbolVersionDefinition other);
   SymbolVersionDefinition(const SymbolVersionDefinition& other);
   void swap(SymbolVersionDefinition& other);
 
-
-  //! @brief Version revision
+  //! Version revision
   //!
   //! This field should always have the value ``1``. It will be changed
   //! if the versioning implementation has to be changed in an incompatible way.
-  uint16_t version(void) const;
+  uint16_t version() const;
 
-  //! @brief Version information
-  uint16_t flags(void) const;
+  //! Version information
+  uint16_t flags() const;
 
-  //! @brief Version index
+  //! Version index
   //!
   //! Numeric value used as an index in the LIEF::ELF::SymbolVersion table
-  uint16_t ndx(void) const;
+  uint16_t ndx() const;
 
-  //! @brief Hash value of the symbol's name (using ELF hash function)
-  uint32_t hash(void) const;
+  //! Hash value of the symbol's name (using ELF hash function)
+  uint32_t hash() const;
 
-  //! @brief SymbolVersionAux entries
-  it_symbols_version_aux       symbols_aux(void);
-  it_const_symbols_version_aux symbols_aux(void) const;
+  //! SymbolVersionAux entries
+  it_version_aux       symbols_aux();
+  it_const_version_aux symbols_aux() const;
 
   void version(uint16_t version);
   void flags(uint16_t flags);
   void hash(uint32_t hash);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const SymbolVersionDefinition& rhs) const;
   bool operator!=(const SymbolVersionDefinition& rhs) const;
@@ -78,11 +84,11 @@ class LIEF_API SymbolVersionDefinition : public Object {
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const SymbolVersionDefinition& sym);
 
   private:
-  uint16_t version_;
-  uint16_t flags_;
-  uint16_t ndx_;
-  uint32_t hash_;
-  symbols_version_aux_t symbol_version_aux_;
+  uint16_t version_ = 1;
+  uint16_t flags_ = 0;
+  uint16_t ndx_  = 0;
+  uint32_t hash_ = 0;
+  version_aux_t symbol_version_aux_;
 };
 }
 }

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,13 @@
 #include <LIEF/ELF.hpp>
 
 int main(int argc, char **argv) {
-  std::cout << "ELF Strip" << std::endl;
+  std::cout << "ELF Strip" << '\n';
   if (argc != 3) {
-    std::cerr << "Usage: " << argv[0] << " <Input Binary> <Output Binary>" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " <Input Binary> <Output Binary>" << '\n';
     return -1;
   }
 
-  std::unique_ptr<LIEF::ELF::Binary> binary{LIEF::ELF::Parser::parse(argv[1])};
+  std::unique_ptr<LIEF::ELF::Binary> binary = LIEF::ELF::Parser::parse(argv[1]);
   binary->strip();
   binary->write(argv[2]);
 

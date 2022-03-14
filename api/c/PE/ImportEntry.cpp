@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ namespace PE {
 
 void init_c_import_entries(Pe_Import_t* c_import, Import& imp) {
 
-  it_import_entries entries = imp.entries();
+  Import::it_entries entries = imp.entries();
 
   c_import->entries = static_cast<Pe_ImportEntry_t**>(
       malloc((entries.size() + 1) * sizeof(Pe_ImportEntry_t**)));

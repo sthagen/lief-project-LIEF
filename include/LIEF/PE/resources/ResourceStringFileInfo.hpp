@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,6 @@
 #include "LIEF/visibility.h"
 
 #include "LIEF/Object.hpp"
-
-#include "LIEF/PE/Structures.hpp"
-
 #include "LIEF/PE/resources/LangCodeItem.hpp"
 
 namespace LIEF {
@@ -31,8 +28,9 @@ namespace PE {
 
 class ResourcesManager;
 class ResourceVersion;
+struct ResourcesParser;
 
-//! Modelization of the ``StringFileInfo`` structure
+//! Representation of the ``StringFileInfo`` structure
 //!
 //! It contains version information that can be displayed for a particular language and code page.
 //!
@@ -41,28 +39,31 @@ class LIEF_API ResourceStringFileInfo : public Object {
 
   friend class ResourcesManager;
   friend class ResourceVersion;
+  friend struct ResourcesParser;
 
   public:
+  ResourceStringFileInfo();
+  ResourceStringFileInfo(uint16_t type, std::u16string key);
   ResourceStringFileInfo(const ResourceStringFileInfo&);
   ResourceStringFileInfo& operator=(const ResourceStringFileInfo&);
-  virtual ~ResourceStringFileInfo(void);
+  virtual ~ResourceStringFileInfo();
 
   //! The type of data in the version resource
   //! * ``1`` if it contains text data
   //! * ``0`` if it contains binary data
-  uint16_t type(void) const;
+  uint16_t type() const;
 
   //! Signature of the structure:
   //! Must be the unicode string "StringFileInfo"
-  const std::u16string& key(void) const;
+  const std::u16string& key() const;
 
   //! List of the LangCodeItem items.
   //!
   //! Each LangCodeItem::key indicates the appropriate
   //! language and code page for displaying the ``key: value`` of
   //! LangCodeItem::items
-  const std::vector<LangCodeItem>& langcode_items(void) const;
-  std::vector<LangCodeItem>&       langcode_items(void);
+  const std::vector<LangCodeItem>& langcode_items() const;
+  std::vector<LangCodeItem>&       langcode_items();
 
   void type(uint16_t type);
 
@@ -70,8 +71,7 @@ class LIEF_API ResourceStringFileInfo : public Object {
   void key(const std::string& key);
   void langcode_items(const std::vector<LangCodeItem>& items);
 
-
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const ResourceStringFileInfo& rhs) const;
   bool operator!=(const ResourceStringFileInfo& rhs) const;
@@ -79,10 +79,8 @@ class LIEF_API ResourceStringFileInfo : public Object {
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const ResourceStringFileInfo& string_file_info);
 
   private:
-  ResourceStringFileInfo(void);
-
-  uint16_t                  type_;
-  std::u16string            key_;
+  uint16_t       type_ = 0;
+  std::u16string key_;
   std::vector<LangCodeItem> childs_;
 
 

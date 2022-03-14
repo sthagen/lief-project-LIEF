@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +34,10 @@ using setter_t = void (LoadConfiguration::*)(T);
 template<>
 void create<LoadConfiguration>(py::module& m) {
   py::class_<LoadConfiguration, LIEF::Object>(m, "LoadConfiguration",
-    "Class modeling the default PE's ``LoadConfiguration``\n\n"
-    "It's the base class for any future version of the structure"
-    )
+    R"delim(
+    Class that represents the default PE's ``LoadConfiguration``
+    It's the base class for any future versions of the structure
+    )delim")
     .def(py::init<>())
 
     .def_property_readonly("version",
@@ -47,6 +48,10 @@ void create<LoadConfiguration>(py::module& m) {
         static_cast<getter_t<uint32_t>>(&LoadConfiguration::characteristics),
         static_cast<setter_t<uint32_t>>(&LoadConfiguration::characteristics),
         "Characteristics of the structure.")
+
+    .def_property_readonly("size",
+        static_cast<getter_t<uint32_t>>(&LoadConfiguration::size),
+        "Size of the structure which is an alias for " RST_ATTR_REF(lief.PE.LoadConfiguration.characteristics) "")
 
     .def_property("timedatestamp",
         static_cast<getter_t<uint32_t>>(&LoadConfiguration::timedatestamp),
@@ -113,9 +118,10 @@ void create<LoadConfiguration>(py::module& m) {
     .def_property("process_heap_flags",
         static_cast<getter_t<uint32_t>>(&LoadConfiguration::process_heap_flags),
         static_cast<setter_t<uint32_t>>(&LoadConfiguration::process_heap_flags),
-        "Process heap flags that correspond to the first argument of the "
-        "``HeapCreate`` function. These flags apply to the process heap that is "
-        "created during process startup.")
+        R"delim(
+        Process heap flags that correspond to the first argument of the ``HeapCreate``
+        function. These flags apply to the process heap that is created during process startup.
+        )delim")
 
     .def_property("csd_version",
         static_cast<getter_t<uint16_t>>(&LoadConfiguration::csd_version),
@@ -126,6 +132,12 @@ void create<LoadConfiguration>(py::module& m) {
         static_cast<getter_t<uint16_t>>(&LoadConfiguration::reserved1),
         static_cast<setter_t<uint16_t>>(&LoadConfiguration::reserved1),
         "Must be zero.")
+
+    .def_property("dependent_load_flags",
+        static_cast<getter_t<uint16_t>>(&LoadConfiguration::dependent_load_flags),
+        static_cast<setter_t<uint16_t>>(&LoadConfiguration::dependent_load_flags),
+        "On recent the version of the structure, Microsoft renamed reserved1 to DependentLoadFlags. "
+        "This is an alias for " RST_ATTR_REF(lief.PE.LoadConfiguration.reserved1) "")
 
     .def_property("editlist",
         static_cast<getter_t<uint32_t>>(&LoadConfiguration::editlist),

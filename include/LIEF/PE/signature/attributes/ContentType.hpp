@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,15 +50,15 @@ class LIEF_API ContentType : public Attribute {
 
   //! OID as described in RFC #2985
   inline const oid_t& oid() const {
-    return this->oid_;
+    return oid_;
   }
 
   //! Print information about the attribute
-  virtual std::string print() const override;
+  std::string print() const override;
 
-  virtual std::unique_ptr<Attribute> clone(void) const override;
+  std::unique_ptr<Attribute> clone() const override;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
   virtual ~ContentType();
 
   private:

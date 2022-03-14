@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,10 @@ using setter_t = void (ExportEntry::*)(T);
 
 template<>
 void create<ExportEntry>(py::module& m) {
-  py::class_<ExportEntry, LIEF::Symbol> export_entry(m, "ExportEntry");
+  py::class_<ExportEntry, LIEF::Symbol> export_entry(m, "ExportEntry",
+      R"delim(
+      Class which represents a PE Export entry (cf. :class:`lief.PE.Export`)
+      )delim");
 
   py::class_<ExportEntry::forward_information_t>(export_entry, "forward_information_t")
     .def_readwrite("library", &ExportEntry::forward_information_t::library)

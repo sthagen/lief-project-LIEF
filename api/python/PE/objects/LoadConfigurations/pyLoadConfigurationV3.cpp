@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +34,11 @@ using setter_t = void (LoadConfigurationV3::*)(T);
 template<>
 void create<LoadConfigurationV3>(py::module& m) {
   py::class_<LoadConfigurationV3, LoadConfigurationV2>(m, "LoadConfigurationV3",
-    "" RST_CLASS_REF(lief.PE.LoadConfigurationV2) " with Control Flow Guard improved. \n\n"
-    "It is associated with the " RST_CLASS_REF(lief.PE.WIN_VERSION) ": "
-    ":attr:`~lief.PE.WIN_VERSION.WIN10_0_14286`")
+      R"delim(
+      :class:`~lief.PE.LoadConfigurationV2` with Control Flow Guard improved.
+
+      It is associated with the :class:`~lief.PE.WIN_VERSION` set to :attr:`~lief.PE.WIN_VERSION.WIN10_0_14286`
+      )delim")
 
     .def(py::init<>())
 

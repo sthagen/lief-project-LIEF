@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 
 #include "LIEF/ELF/SymbolVersion.hpp"
 #include "LIEF/ELF/hash.hpp"
+#include "LIEF/ELF/SymbolVersionAux.hpp"
+#include "LIEF/ELF/SymbolVersionAuxRequirement.hpp"
 
 #include <string>
 #include <sstream>
@@ -53,20 +55,34 @@ void create<SymbolVersion>(py::module& m) {
     .def_property("value",
         static_cast<getter_t<uint16_t>>(&SymbolVersion::value),
         static_cast<setter_t<uint16_t>>(&SymbolVersion::value),
-        "- `0` : The symbol is local\n"
-        "- `1` : The symbol is global\n\n"
-        "All other values are used for versions in the own object or in any of\n"
-        "the dependencies.  This is the version the symbol is tight to.")
+        R"delim(
+        Value associated with the symbol.
+
+        If the given SymbolVersion hasn't Auxiliary version:
+
+        - `0` : The symbol is local
+        - `1` : The symbol is global
+
+        All other values are used for versions in the own object or in any of
+        the dependencies. This is the version the symbol is tight to.
+        )delim")
 
     .def_property_readonly("has_auxiliary_version",
         &SymbolVersion::has_auxiliary_version,
         "Check if this symbols has a " RST_CLASS_REF(lief.ELF.SymbolVersionAux) "")
 
-    .def_property_readonly(
+    .def_property(
         "symbol_version_auxiliary",
-        static_cast<SymbolVersionAux& (SymbolVersion::*)(void)>(
-          &SymbolVersion::symbol_version_auxiliary),
-        "Return the " RST_CLASS_REF(lief.ELF.SymbolVersionAux) " associated with this version",
+        static_cast<SymbolVersionAux* (SymbolVersion::*)(void)>(&SymbolVersion::symbol_version_auxiliary),
+        static_cast<void (SymbolVersion::*)(SymbolVersionAuxRequirement&)>(&SymbolVersion::symbol_version_auxiliary),
+        R"delim(
+        Return the :class:`~lief.ELF.SymbolVersionAux` associated with this version or None if not present.
+
+        The value can be changed by assigning a :class:`~lief.ELF.SymbolVersionAuxRequirement` which
+        must already exist in the :class:`~lief.ELF.SymbolVersionRequirement`. Once can use
+        :meth:`~lief.ELF.SymbolVersionAuxRequirement.add_aux_requirement` to add a new
+        :class:`~lief.ELF.SymbolVersionAuxRequirement`.
+        )delim",
         py::return_value_policy::reference_internal)
 
 

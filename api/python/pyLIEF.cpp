@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ PYBIND11_MODULE(lief, LIEF_module) {
 
   init_LIEF_Object_class(LIEF_module);
 
-  init_LIEF_iterators(LIEF_module);
+  init_LIEF_errors(LIEF_module);
 
   init_LIEF_Logger(LIEF_module);
 
@@ -117,8 +117,5 @@ PYBIND11_MODULE(lief, LIEF_module) {
   init_utils_functions(LIEF_module);
 
 
-#if defined(LIEF_JSON_SUPPORT)
   init_json_functions(LIEF_module);
-#endif
-
 }

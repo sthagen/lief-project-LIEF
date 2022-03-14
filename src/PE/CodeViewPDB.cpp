@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #include <iomanip>
 #include <sstream>
 #include <numeric>
+#include <utility>
 
 #include "LIEF/PE/hash.hpp"
 
@@ -27,10 +28,9 @@ namespace PE {
 
 CodeViewPDB::CodeViewPDB(const CodeViewPDB&) = default;
 CodeViewPDB& CodeViewPDB::operator=(const CodeViewPDB&) = default;
-CodeViewPDB::~CodeViewPDB(void) = default;
+CodeViewPDB::~CodeViewPDB() = default;
 
-CodeViewPDB::CodeViewPDB(void) :
-  CodeView{},
+CodeViewPDB::CodeViewPDB() :
   signature_{
     {
       0, 0, 0, 0,
@@ -39,16 +39,16 @@ CodeViewPDB::CodeViewPDB(void) :
       0, 0, 0, 0,
     }
   },
-  age_{0},
-  filename_{}
+  age_{0}
 {}
 
 
-CodeViewPDB::CodeViewPDB(CODE_VIEW_SIGNATURES cv_signature, signature_t sig, uint32_t age, const std::string& filename) :
+CodeViewPDB::CodeViewPDB(CODE_VIEW_SIGNATURES cv_signature, signature_t sig,
+                         uint32_t age, std::string filename) :
   CodeView(cv_signature),
   signature_(sig),
   age_(age),
-  filename_(filename)
+  filename_(std::move(filename))
 {}
 
 
@@ -67,22 +67,22 @@ CodeViewPDB CodeViewPDB::from_pdb20(uint32_t signature, uint32_t age, const std:
 }
 
 
-CodeViewPDB* CodeViewPDB::clone(void) const {
+CodeViewPDB* CodeViewPDB::clone() const {
   return new CodeViewPDB{*this};
 }
 
 
 
-CodeViewPDB::signature_t CodeViewPDB::signature(void) const {
-  return this->signature_;
+CodeViewPDB::signature_t CodeViewPDB::signature() const {
+  return signature_;
 }
 
-uint32_t CodeViewPDB::age(void) const {
-  return this->age_;
+uint32_t CodeViewPDB::age() const {
+  return age_;
 }
 
-const std::string& CodeViewPDB::filename(void) const {
-  return this->filename_;
+const std::string& CodeViewPDB::filename() const {
+  return filename_;
 }
 
 
@@ -98,15 +98,15 @@ void CodeViewPDB::signature(uint32_t signature) {
 }
 
 void CodeViewPDB::signature(CodeViewPDB::signature_t signature) {
-  this->signature_ = signature;
+  signature_ = signature;
 }
 
 void CodeViewPDB::age(uint32_t age) {
-  this->age_ = age;
+  age_ = age;
 }
 
 void CodeViewPDB::filename(const std::string& filename) {
-  this->filename_ = filename;
+  filename_ = filename;
 }
 
 
@@ -116,13 +116,16 @@ void CodeViewPDB::accept(LIEF::Visitor& visitor) const {
 }
 
 bool CodeViewPDB::operator==(const CodeViewPDB& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool CodeViewPDB::operator!=(const CodeViewPDB& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 

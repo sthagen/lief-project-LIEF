@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <iomanip>
+#include <memory>
 #include <type_traits>
 #include <numeric>
 #include <sstream>
@@ -30,8 +31,8 @@
 namespace LIEF {
 namespace PE {
 
-SignerInfo::SignerInfo(void) = default;
-SignerInfo::~SignerInfo(void) = default;
+SignerInfo::SignerInfo() = default;
+SignerInfo::~SignerInfo() = default;
 
 SignerInfo::SignerInfo(SignerInfo&&) = default;
 SignerInfo& SignerInfo::operator=(SignerInfo&&) = default;
@@ -47,77 +48,69 @@ SignerInfo::SignerInfo(const SignerInfo& other) :
   raw_auth_data_{other.raw_auth_data_}
 {
   for (const std::unique_ptr<Attribute>& attr : other.authenticated_attributes_) {
-    this->authenticated_attributes_.push_back(attr->clone());
+    authenticated_attributes_.push_back(attr->clone());
   }
 
   for (const std::unique_ptr<Attribute>& attr : other.unauthenticated_attributes_) {
-    this->unauthenticated_attributes_.push_back(attr->clone());
+    unauthenticated_attributes_.push_back(attr->clone());
   }
 
   if (other.cert_ != nullptr) {
-    this->cert_ = std::unique_ptr<x509>(new x509{*other.cert_});
+    cert_ = std::make_unique<x509>(*other.cert_);
   }
 }
 
 SignerInfo& SignerInfo::operator=(SignerInfo other) {
-  this->swap(other);
+  swap(other);
   return *this;
 }
 
 void SignerInfo::swap(SignerInfo& other) {
-  std::swap(this->version_,                    other.version_);
-  std::swap(this->issuer_,                     other.issuer_);
-  std::swap(this->serialno_,                   other.serialno_);
-  std::swap(this->digest_algorithm_,           other.digest_algorithm_);
-  std::swap(this->digest_enc_algorithm_,       other.digest_enc_algorithm_);
-  std::swap(this->encrypted_digest_,           other.encrypted_digest_);
-  std::swap(this->raw_auth_data_,              other.raw_auth_data_);
-  std::swap(this->authenticated_attributes_,   other.authenticated_attributes_);
-  std::swap(this->unauthenticated_attributes_, other.unauthenticated_attributes_);
-  std::swap(this->cert_,                       other.cert_);
+  std::swap(version_,                    other.version_);
+  std::swap(issuer_,                     other.issuer_);
+  std::swap(serialno_,                   other.serialno_);
+  std::swap(digest_algorithm_,           other.digest_algorithm_);
+  std::swap(digest_enc_algorithm_,       other.digest_enc_algorithm_);
+  std::swap(encrypted_digest_,           other.encrypted_digest_);
+  std::swap(raw_auth_data_,              other.raw_auth_data_);
+  std::swap(authenticated_attributes_,   other.authenticated_attributes_);
+  std::swap(unauthenticated_attributes_, other.unauthenticated_attributes_);
+  std::swap(cert_,                       other.cert_);
 }
 
 
-uint32_t SignerInfo::version(void) const {
-  return this->version_;
+uint32_t SignerInfo::version() const {
+  return version_;
 }
 
-ALGORITHMS SignerInfo::digest_algorithm(void) const {
-  return this->digest_algorithm_;
+ALGORITHMS SignerInfo::digest_algorithm() const {
+  return digest_algorithm_;
 }
 
-ALGORITHMS SignerInfo::encryption_algorithm(void) const {
-  return this->digest_enc_algorithm_;
+ALGORITHMS SignerInfo::encryption_algorithm() const {
+  return digest_enc_algorithm_;
 }
 
-const SignerInfo::encrypted_digest_t& SignerInfo::encrypted_digest(void) const {
-  return this->encrypted_digest_;
+const SignerInfo::encrypted_digest_t& SignerInfo::encrypted_digest() const {
+  return encrypted_digest_;
 }
 
-it_const_attributes_t SignerInfo::authenticated_attributes() const {
-  std::vector<Attribute*> attrs(this->authenticated_attributes_.size(), nullptr);
-  for (size_t i = 0; i < this->authenticated_attributes_.size(); ++i) {
-    attrs[i] = this->authenticated_attributes_[i].get();
-  }
-  return attrs;
+SignerInfo::it_const_attributes_t SignerInfo::authenticated_attributes() const {
+  return authenticated_attributes_;
 }
 
-it_const_attributes_t SignerInfo::unauthenticated_attributes() const {
-  std::vector<Attribute*> attrs(this->unauthenticated_attributes_.size(), nullptr);
-  for (size_t i = 0; i < this->unauthenticated_attributes_.size(); ++i) {
-    attrs[i] = this->unauthenticated_attributes_[i].get();
-  }
-  return attrs;
+SignerInfo::it_const_attributes_t SignerInfo::unauthenticated_attributes() const {
+  return unauthenticated_attributes_;
 }
 
 
 const Attribute* SignerInfo::get_attribute(PE::SIG_ATTRIBUTE_TYPES type) const {
-  const Attribute* attr = this->get_auth_attribute(type);
+  const Attribute* attr = get_auth_attribute(type);
   if (attr != nullptr) {
     return attr;
   }
 
-  attr = this->get_unauth_attribute(type);
+  attr = get_unauth_attribute(type);
 
   if (attr != nullptr) {
     return attr;
@@ -128,22 +121,22 @@ const Attribute* SignerInfo::get_attribute(PE::SIG_ATTRIBUTE_TYPES type) const {
 }
 
 const Attribute* SignerInfo::get_auth_attribute(PE::SIG_ATTRIBUTE_TYPES type) const {
-  auto it_auth = std::find_if(std::begin(this->authenticated_attributes_), std::end(this->authenticated_attributes_),
+  auto it_auth = std::find_if(std::begin(authenticated_attributes_), std::end(authenticated_attributes_),
       [type] (const std::unique_ptr<Attribute>& attr) {
         return attr->type() == type;
       });
-  if (it_auth != std::end(this->authenticated_attributes_)) {
+  if (it_auth != std::end(authenticated_attributes_)) {
     return it_auth->get();
   }
   return nullptr;
 }
 
 const Attribute* SignerInfo::get_unauth_attribute(PE::SIG_ATTRIBUTE_TYPES type) const {
-  auto it_uauth = std::find_if(std::begin(this->unauthenticated_attributes_), std::end(this->unauthenticated_attributes_),
+  auto it_uauth = std::find_if(std::begin(unauthenticated_attributes_), std::end(unauthenticated_attributes_),
       [type] (const std::unique_ptr<Attribute>& attr) {
         return attr->type() == type;
       });
-  if (it_uauth != std::end(this->unauthenticated_attributes_)) {
+  if (it_uauth != std::end(unauthenticated_attributes_)) {
     return it_uauth->get();
   }
   return nullptr;

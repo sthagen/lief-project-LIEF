@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,12 @@
 
 namespace LIEF {
 
+//! LIEF executable format
 enum EXE_FORMATS {
   FORMAT_UNKNOWN = 0,
-  FORMAT_ELF     = 1,
-  FORMAT_PE      = 2,
-  FORMAT_MACHO   = 3,
+  FORMAT_ELF     = 1, /// ELF. See: LIEF::ELF
+  FORMAT_PE      = 2, /// PE. See: LIEF::PE
+  FORMAT_MACHO   = 3, /// Mach-O. See: LIEF::MachO
 };
 
 enum OBJECT_TYPES {
@@ -46,6 +47,7 @@ enum ARCHITECTURES {
   ARCH_SYSZ  = 7,
   ARCH_XCORE = 8,
   ARCH_INTEL = 9,
+  ARCH_RISCV = 10,
 };
 
 enum MODES {

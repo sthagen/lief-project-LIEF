@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,84 +14,73 @@
  * limitations under the License.
  */
 
+#include <utility>
+
 #include "LIEF/OAT/Method.hpp"
 #include "LIEF/OAT/hash.hpp"
 
 namespace LIEF {
 namespace OAT {
 
+Method::Method() = default;
 Method::Method(const Method&) = default;
 Method& Method::operator=(const Method&) = default;
 
-Method::Method(DEX::Method* method, Class* oat_class, const std::vector<uint8_t>& quick_code) :
+Method::Method(DEX::Method* method, Class* oat_class, std::vector<uint8_t>  quick_code) :
   dex_method_{method},
   class_{oat_class},
-  quick_code_{quick_code}
+  quick_code_{std::move(quick_code)}
 {}
 
-
-Method::Method(void) :
-  dex_method_{nullptr},
-  class_{nullptr},
-  quick_code_{}
-{}
-
-
-const Class& Method::oat_class(void) const {
-  if (this->class_ == nullptr) {
-    throw integrity_error("No class found for method");
-  }
-  return *this->class_;
+const Class* Method::oat_class() const {
+  return class_;
 }
 
-Class& Method::oat_class(void) {
-  return const_cast<Class&>(static_cast<const Method*>(this)->oat_class());
+Class* Method::oat_class() {
+  return const_cast<Class*>(static_cast<const Method*>(this)->oat_class());
 }
 
 
-bool Method::has_dex_method(void) const {
-  return this->dex_method_ != nullptr;
+bool Method::has_dex_method() const {
+  return dex_method_ != nullptr;
 }
 
-const DEX::Method& Method::dex_method(void) const {
-  if (not this->has_dex_method()) {
-    throw integrity_error("No DEX Method found for the current OAT method");
-  }
-  return *this->dex_method_;
+const DEX::Method* Method::dex_method() const {
+  return dex_method_;
 }
 
-DEX::Method& Method::dex_method(void) {
-  return const_cast<DEX::Method&>(static_cast<const Method*>(this)->dex_method());
+DEX::Method* Method::dex_method() {
+  return const_cast<DEX::Method*>(static_cast<const Method*>(this)->dex_method());
 }
 
-bool Method::is_dex2dex_optimized(void) const {
-  return this->dex2dex_info().size() > 0;
+bool Method::is_dex2dex_optimized() const {
+  return !dex2dex_info().empty();
 }
 
-bool Method::is_compiled(void) const {
-  return this->quick_code_.size() > 0;
+bool Method::is_compiled() const {
+  return !quick_code_.empty();
 }
 
 
-std::string Method::name(void) const {
-  if (this->dex_method_ == nullptr) {
+std::string Method::name() const {
+  if (dex_method_ == nullptr) {
     return "";
   }
 
-  return this->dex_method_->name();
+  return dex_method_->name();
 }
 
-const DEX::dex2dex_method_info_t& Method::dex2dex_info(void) const {
-  return this->dex_method_->dex2dex_info();
+const DEX::dex2dex_method_info_t& Method::dex2dex_info() const {
+  return dex_method_->dex2dex_info();
 }
 
 
-const Method::quick_code_t& Method::quick_code(void) const {
-  return this->quick_code_;
+const Method::quick_code_t& Method::quick_code() const {
+  return quick_code_;
 }
 
 void Method::quick_code(const Method::quick_code_t& code) {
-  this->quick_code_ = code;
+  quick_code_ = code;
 }
 
 void Method::accept(Visitor& visitor) const {
@@ -99,17 +88,20 @@ void Method::accept(Visitor& visitor) const {
 }
 
 bool Method::operator==(const Method& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool Method::operator!=(const Method& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const Method& meth) {
-  std::string pretty_name = meth.oat_class().fullname();
+  std::string pretty_name = meth.oat_class()->fullname();
   pretty_name = pretty_name.substr(1, pretty_name.size() - 2);
 
   os << pretty_name << "." << meth.name();
@@ -124,7 +116,7 @@ std::ostream& operator<<(std::ostream& os, const Method& meth) {
   return os;
 }
 
-Method::~Method(void) = default;
+Method::~Method() = default;
 
 
 

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,11 @@ using setter_t = void (DylibCommand::*)(T);
 template<>
 void create<DylibCommand>(py::module& m) {
 
-  py::class_<DylibCommand, LoadCommand>(m, "DylibCommand")
+  py::class_<DylibCommand, LoadCommand>(m, "DylibCommand",
+      R"delim(
+      Class which represents a library dependency
+      )delim")
+
     .def_property("name",
         static_cast<getter_t<const std::string&>>(&DylibCommand::name),
         static_cast<setter_t<const std::string&>>(&DylibCommand::name),
@@ -64,7 +68,7 @@ void create<DylibCommand>(py::module& m) {
 
     .def_static("weak_lib",
         &DylibCommand::weak_dylib,
-        "Factory function to generate a " RST_CLASS_REF(lief.MachO.LOAD_COMMAND_TYPES.LC_LOAD_WEAK_DYLIB) " library",
+        "Factory function to generate a " RST_CLASS_REF(lief.MachO.LOAD_COMMAND_TYPES.LOAD_WEAK_DYLIB) " library",
         "name"_a, "timestamp"_a = 0, "current_version"_a = 0, "compat_version"_a = 0)
 
     .def_static("id_dylib",

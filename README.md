@@ -7,8 +7,8 @@
     <img src="https://img.shields.io/gitter/room/gitterHQ/gitter.svg?style=flat-square">
   </a>
   &nbsp;
-  <a href="https://travis-ci.com/lief-project/LIEF">
-    <img alt="Linux CI status" src="https://img.shields.io/travis/com/lief-project/LIEF/master?label=Linux%20x86-64&logo=travis">
+  <a href="https://github.com/lief-project/LIEF/actions?query=workflow%3A%22Linux+x86-64%22">
+    <img alt="Linux x86-64 CI status" src="https://img.shields.io/github/workflow/status/lief-project/LIEF/Linux%20x86-64/master?label=Linux%20x86-64&logo=github">
   </a>
   &nbsp;
   <a href="https://github.com/lief-project/LIEF/actions?query=workflow%3A%22Linux+AArch64%22">
@@ -38,12 +38,20 @@
   <a href="https://twitter.com/LIEF_project">
    <img alt="Twitter Follow" src="https://img.shields.io/twitter/follow/lief_project?color=1da1f2&label=Follow&logo=twitter&logoColor=white&style=flat-square">
   </a>
-
 </p>
+
+<br />
+<p align="center">
+  <a href="https://lief-project.github.io/blog/"><b>Blog</b></a> •
+  <a href="https://lief-project.github.io/doc/latest/index.html"><b>Documentation</b></a> •
+  <a href="#about-A"><b>About</b></a>
+</p>
+<br />
 
 # About
 
-The purpose of this project is to provide a cross platform library which can parse, modify and abstract ELF, PE and MachO formats.
+The purpose of this project is to provide a cross platform library which can parse,
+modify and abstract ELF, PE and MachO formats.
 
 Main features:
 
@@ -94,16 +102,16 @@ To install the latest **version** (release):
 pip install lief
 ```
 
-To install nightlty build:
+To install nightly build:
 
 ```console
-pip install [--user] --index-url https://lief.quarkslab.com/packages lief==0.12.0.dev0
+pip install [--user] --index-url https://lief-project.github.io/packages lief==0.12.0.dev0
 ```
 
 ### Packages
 
 * **Nightly**: https://github.com/lief-project/packages/tree/gh-pages
-* **v0.11.4**: https://github.com/lief-project/LIEF/releases/tag/0.11.4
+* **v0.11.5**: https://github.com/lief-project/LIEF/releases/tag/0.11.5
 
 Here are guides to install or integrate LIEF:
 
@@ -195,7 +203,7 @@ int main(int argc, char** argv) {
 
 ## Contact
 
-* **Mail**: lief at quarkslab com
+* **Mail**: contact at lief re
 * **Gitter**: [lief-project](https://gitter.im/lief-project)
 
 ## About

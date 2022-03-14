@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,9 @@ class Parser;
 class Builder;
 class Relocation;
 
+//! Class which represents an entry of the PE relocation table
+//!
+//! It extends the LIEF::Relocation object to provide an uniform API across the file formats
 class LIEF_API RelocationEntry : public LIEF::Relocation {
 
   friend class Parser;
@@ -40,40 +43,41 @@ class LIEF_API RelocationEntry : public LIEF::Relocation {
   friend class PE::Relocation;
 
   public:
-  RelocationEntry(void);
+  RelocationEntry();
   RelocationEntry(const RelocationEntry& other);
   RelocationEntry& operator=(RelocationEntry other);
   RelocationEntry(uint16_t data);
   RelocationEntry(uint16_t position, RELOCATIONS_BASE_TYPES type);
-  virtual ~RelocationEntry(void);
+  virtual ~RelocationEntry();
 
   void swap(RelocationEntry& other);
 
-  virtual uint64_t address(void) const override;
+  //! The address of the relocation
+  uint64_t address() const override;
 
-  virtual void address(uint64_t address) override;
+  void address(uint64_t address) override;
 
-  virtual size_t size(void) const override;
+  //! The size of the relocatable pointer
+  size_t size() const override;
 
-  virtual void size(size_t size) override;
+  void size(size_t size) override;
 
-  //! @brief Raw data of the relocation:
+  //! Raw data of the relocation:
   //! - The **high** 4 bits store the relocation type
   //! - The **low** 12 bits store the relocation offset
-  uint16_t data(void) const;
+  uint16_t data() const;
 
-  //! @brief Offset relative to Relocation::virtual_address
-  //! where the relocation must occur.
-  uint16_t position(void) const;
+  //! Offset relative to Relocation::virtual_address where the relocation occurs.
+  uint16_t position() const;
 
-  //! @brief Type of the relocation
-  RELOCATIONS_BASE_TYPES type(void) const;
+  //! Type of the relocation
+  RELOCATIONS_BASE_TYPES type() const;
 
   void data(uint16_t data);
   void position(uint16_t position);
   void type(RELOCATIONS_BASE_TYPES type);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const RelocationEntry& rhs) const;
   bool operator!=(const RelocationEntry& rhs) const;
@@ -83,7 +87,7 @@ class LIEF_API RelocationEntry : public LIEF::Relocation {
   private:
   uint16_t               position_;
   RELOCATIONS_BASE_TYPES type_;
-  PE::Relocation*        relocation_{nullptr}; // Used to compute some informations
+  PE::Relocation*        relocation_{nullptr}; // Used to compute some information
 };
 
 }

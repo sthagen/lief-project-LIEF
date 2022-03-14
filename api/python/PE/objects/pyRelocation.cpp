@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include "pyPE.hpp"
+#include "pyIterators.hpp"
 
 #include "LIEF/PE/hash.hpp"
 #include "LIEF/PE/Relocation.hpp"
@@ -35,16 +36,33 @@ using it_t = T (Relocation::*)(void);
 
 template<>
 void create<Relocation>(py::module& m) {
-  py::class_<Relocation, LIEF::Object>(m, "Relocation")
+  py::class_<Relocation, LIEF::Object> reloc(m, "Relocation",
+      R"delim(
+      Class which represents the *Base Relocation Block*
+      Usually, we find this structure in the ``.reloc`` section
+      )delim");
+
+  init_ref_iterator<Relocation::it_entries>(reloc, "it_entries");
+
+  reloc
     .def(py::init<>())
 
     .def_property("virtual_address",
         static_cast<getter_t<uint32_t>>(&Relocation::virtual_address),
-        static_cast<setter_t<uint32_t>>(&Relocation::virtual_address))
+        static_cast<setter_t<uint32_t>>(&Relocation::virtual_address),
+        "The RVA for which the offset of the relocation entries (RelocationEntry) is added")
+
+    .def_property("block_size",
+        static_cast<getter_t<uint32_t>>(&Relocation::block_size),
+        static_cast<setter_t<uint32_t>>(&Relocation::block_size),
+        R"delim(
+        The total number of bytes in the base relocation block.
+        ``block_size = sizeof(BaseRelocationBlock) + nb_of_relocs * sizeof(uint16_t = RelocationEntry)``
+        )delim")
 
     .def_property_readonly("entries",
-        static_cast<it_t<it_relocation_entries>>(&Relocation::entries),
-        py::return_value_policy::reference_internal)
+        static_cast<it_t<Relocation::it_entries>>(&Relocation::entries),
+        "Iterator over the " RST_CLASS_REF(lief.PE.RelocationEntry) "")
 
     .def("add_entry",
         &Relocation::add_entry,

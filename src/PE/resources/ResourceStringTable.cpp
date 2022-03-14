@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  * Copyright 2017 - 2021 K. Nakagawa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+#include <utility>
+
 #include "LIEF/utils.hpp"
 
 #include "LIEF/PE/hash.hpp"
@@ -27,24 +29,23 @@ namespace PE {
 
 ResourceStringTable::ResourceStringTable(const ResourceStringTable&) = default;
 ResourceStringTable& ResourceStringTable::operator=(const ResourceStringTable&) = default;
-ResourceStringTable::~ResourceStringTable(void) = default;
+ResourceStringTable::~ResourceStringTable() = default;
 
-ResourceStringTable::ResourceStringTable(void) :
-  name_{},
+ResourceStringTable::ResourceStringTable() :
   length_{0}
 {}
 
-ResourceStringTable::ResourceStringTable(int16_t length, const std::u16string& name) :
-  name_{name},
+ResourceStringTable::ResourceStringTable(int16_t length, std::u16string name) :
+  name_{std::move(name)},
   length_{length}
 {}
 
-int16_t ResourceStringTable::length(void) const {
-  return this->length_;
+int16_t ResourceStringTable::length() const {
+  return length_;
 }
 
-const std::u16string& ResourceStringTable::name(void) const {
-  return this->name_;
+const std::u16string& ResourceStringTable::name() const {
+  return name_;
 }
 
 void ResourceStringTable::accept(Visitor& visitor) const {
@@ -52,17 +53,19 @@ void ResourceStringTable::accept(Visitor& visitor) const {
 }
 
 bool ResourceStringTable::operator==(const ResourceStringTable& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   return Hash::hash(*this) == Hash::hash(rhs);
 }
 
 bool ResourceStringTable::operator!=(const ResourceStringTable& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 
 std::ostream& operator<<(std::ostream& os, const ResourceStringTable& string_table) {
-  os << std::dec << "Length: " << string_table.length() << std::endl;
-  os << "Name: \"" << u16tou8(string_table.name()) << "\"" << std::endl;
+  os << u16tou8(string_table.name()) << "\n";
   return os;
 }
 

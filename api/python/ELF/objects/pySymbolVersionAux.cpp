@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,16 +33,15 @@ using setter_t = void (SymbolVersionAux::*)(T);
 template<>
 void create<SymbolVersionAux>(py::module& m) {
 
-  // Symbol Version Auxiliary object
   py::class_<SymbolVersionAux, LIEF::Object>(m, "SymbolVersionAux",
-      "Class which modelize an Auxiliary Symbol version")
+      "Class which represents an Auxiliary Symbol version")
 
     .def_property("name",
         [] (const SymbolVersionAux& obj) {
           return safe_string_converter(obj.name());
         },
         static_cast<setter_t<const std::string&>>(&SymbolVersionAux::name),
-        "Symbol's name")
+        "Symbol's name (e.g. ``GLIBC_2.2.5``)")
 
     .def("__eq__", &SymbolVersionAux::operator==)
     .def("__ne__", &SymbolVersionAux::operator!=)

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,14 +20,14 @@ namespace ELF {
 
 void init_c_segments(Elf_Binary_t* c_binary, Binary* binary) {
 
-  it_segments segments = binary->segments();
+  Binary::it_segments segments = binary->segments();
   c_binary->segments = static_cast<Elf_Segment_t**>(
       malloc((segments.size() + 1) * sizeof(Elf_Segment_t**)));
   for (size_t i = 0; i < segments.size(); ++i) {
     Segment& segment = segments[i];
 
-    const std::vector<uint8_t>& segment_content = segment.content();
-    uint8_t* content = static_cast<uint8_t*>(malloc(segment_content.size() * sizeof(uint8_t)));
+    span<const uint8_t> segment_content = segment.content();
+    auto* content = static_cast<uint8_t*>(malloc(segment_content.size() * sizeof(uint8_t)));
     std::copy(
         std::begin(segment_content),
         std::end(segment_content),

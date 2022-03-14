@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,10 @@ template<>
 void create<DataCodeEntry>(py::module& m) {
 
 
-  py::class_<DataCodeEntry, LIEF::Object> cls(m, "DataCodeEntry");
+  py::class_<DataCodeEntry, LIEF::Object> cls(m, "DataCodeEntry",
+      R"delim(
+      Interface over an entry in the :class:`~lief.MachO.DataInCode` command
+      )delim");
 
   cls
     .def_property("offset",
@@ -58,7 +61,7 @@ void create<DataCodeEntry>(py::module& m) {
     .def_property("type",
         static_cast<getter_t<DataCodeEntry::TYPES>>(&DataCodeEntry::type),
         static_cast<setter_t<DataCodeEntry::TYPES>>(&DataCodeEntry::type),
-        "Type of the entry (" RST_CLASS_REF(lief.MachO.DataCodeEntry.TYPES) "")
+        "Type of the data (" RST_CLASS_REF(lief.MachO.DataCodeEntry.TYPES) "")
 
 
     .def("__eq__", &DataCodeEntry::operator==)

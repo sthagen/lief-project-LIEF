@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,21 +61,21 @@ struct dict_iterator_pair {
     value_{value}
   {}
 
-  add_const_t<key_ref_t> key(void) const {
-    return const_cast<add_const_t<key_ref_t>>(this->key_);
+  add_const_t<key_ref_t> key() const {
+    return const_cast<add_const_t<key_ref_t>>(key_);
   }
 
   typename std::enable_if<!std::is_const<key_ref_t>::value, remove_const_t<key_ref_t>>::type
-  key(void) const {
+  key() const {
     return const_cast<remove_const_t<key_ref_t>>(static_cast<const dict_iterator_pair*>(this)->key());
   }
 
-  add_const_t<value_ref_t> value(void) const {
-    return const_cast<add_const_t<value_ref_t>>(*this->value_);
+  add_const_t<value_ref_t> value() const {
+    return const_cast<add_const_t<value_ref_t>>(*value_);
   }
 
   typename std::enable_if<!std::is_const<value_ref_t>::value, remove_const_t<value_ref_t>>::type
-  value(void) const {
+  value() const {
     return const_cast<remove_const_t<value_ref_t>>(static_cast<const dict_iterator_pair*>(this)->value());
   }
 
@@ -122,7 +122,7 @@ class dict_iterator : public std::iterator<
     container_{std::forward<T>(container)},
     distance_{0}
   {
-    this->it_ = std::begin(container_);
+    it_ = std::begin(container_);
   }
 
   dict_iterator(const dict_iterator& copy) :
@@ -130,25 +130,25 @@ class dict_iterator : public std::iterator<
     it_{std::begin(container_)},
     distance_{copy.distance_}
   {
-    std::advance(this->it_, this->distance_);
+    std::advance(it_, distance_);
   }
 
 
   dict_iterator operator=(dict_iterator other) {
-    this->swap(other);
+    swap(other);
     return *this;
   }
 
   void swap(dict_iterator& other) {
-    std::swap(this->container_, other.container_);
-    std::swap(this->it_, other.it_);
-    std::swap(this->distance_, other.distance_);
+    std::swap(container_, other.container_);
+    std::swap(it_, other.it_);
+    std::swap(distance_, other.distance_);
   }
 
 
-  dict_iterator& operator++(void) {
-    this->it_ = std::next(this->it_);
-    this->distance_++;
+  dict_iterator& operator++() {
+    it_ = std::next(it_);
+    distance_++;
     return *this;
   }
 
@@ -158,10 +158,10 @@ class dict_iterator : public std::iterator<
     return retval;
   }
 
-  dict_iterator& operator--(void) {
-    if (this->it_ != std::begin(container_)) {
-      this->it_ = std::prev(this->it_);
-      this->distance_--;
+  dict_iterator& operator--() {
+    if (it_ != std::begin(container_)) {
+      it_ = std::prev(it_);
+      distance_--;
     }
     return *this;
   }
@@ -174,8 +174,8 @@ class dict_iterator : public std::iterator<
 
 
   dict_iterator& operator+=(const typename dict_iterator::difference_type& movement) {
-    std::advance(this->it_, movement);
-    this->distance_ += movement;
+    std::advance(it_, movement);
+    distance_ += movement;
     return *this;
   }
 
@@ -192,8 +192,8 @@ class dict_iterator : public std::iterator<
 
 
   //add_const_t<ref_t> operator[](size_t n) const {
-  //  assert(n < this->size() && "integrity_error: out of bound")
-  //  auto it = this->begin();
+  //  assert(n < size() && "integrity_error: out of bound")
+  //  auto it = begin();
   //  std::advance(it, n);
   //  return const_cast<add_const_t<ref_t>>(*it);
   //}
@@ -211,7 +211,7 @@ class dict_iterator : public std::iterator<
 
 
   typename dict_iterator::difference_type operator-(const dict_iterator& rhs) const {
-    return this->distance_ - rhs.distance_;
+    return distance_ - rhs.distance_;
   }
 
   bool operator<(const dict_iterator& rhs) const {
@@ -233,35 +233,35 @@ class dict_iterator : public std::iterator<
     return !(*this > rhs);
   }
 
-  dict_iterator begin(void) const {
-    return this->container_;
+  dict_iterator begin() const {
+    return container_;
   }
 
-  dict_iterator cbegin(void) const {
-    return this->begin();
+  dict_iterator cbegin() const {
+    return begin();
   }
 
-  dict_iterator end(void)  const {
-    dict_iterator it = dict_iterator{this->container_};
+  dict_iterator end()  const {
+    dict_iterator it = dict_iterator{container_};
     it.it_ = std::end(it.container_);
     it.distance_ = it.size();
     return it;
   }
 
-  dict_iterator cend(void) const {
-    return this->end();
+  dict_iterator cend() const {
+    return end();
   }
 
   bool operator==(const dict_iterator& other) const {
-    return (this->size() == other.size() and this->distance_ == other.distance_);
+    return (size() == other.size() && distance_ == other.distance_);
   }
 
   bool operator!=(const dict_iterator& other) const {
     return !(*this == other);
   }
 
-  size_t size(void) const {
-    return this->container_.size();
+  size_t size() const {
+    return container_.size();
   }
 
 
@@ -273,14 +273,14 @@ class dict_iterator : public std::iterator<
   template<typename U = typename DT::value_type>
   typename std::enable_if<std::is_pointer<U>::value, add_const_t<ref_t>>::type
   operator*() const {
-    assert(*this->it_ && "integrity error: nupptr");
+    assert(*it_ && "integrity error: nupptr");
     return const_cast<add_const_t<ref_t>>(**it_);
   }
 
   template<typename U = typename DT::value_type>
   typename std::enable_if<!std::is_pointer<U>::value, add_const_t<ref_t>>::type
   operator*() const {
-    return const_cast<add_const_t<ref_t>>(*(this->it_));
+    return const_cast<add_const_t<ref_t>>(*(it_));
   }
 
 
@@ -290,7 +290,7 @@ class dict_iterator : public std::iterator<
   }
 
   add_const_t<pointer_t> operator->() const {
-    return const_cast<add_const_t<pointer_t>>(&(this->operator*()));
+    return const_cast<add_const_t<pointer_t>>(&(operator*()));
   }
 
   protected:

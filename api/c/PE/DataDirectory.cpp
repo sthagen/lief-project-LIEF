@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ namespace LIEF {
 namespace PE {
 void init_c_data_directories(Pe_Binary_t* c_binary, Binary* binary) {
 
-  it_data_directories data_directories = binary->data_directories();
+  Binary::it_data_directories data_directories = binary->data_directories();
 
   c_binary->data_directories = static_cast<Pe_DataDirectory_t**>(
       malloc((data_directories.size() + 1) * sizeof(Pe_DataDirectory_t**)));

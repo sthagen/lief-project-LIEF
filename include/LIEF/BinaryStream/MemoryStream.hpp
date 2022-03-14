@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,16 +29,18 @@ class MemoryStream : public BinaryStream {
   MemoryStream(uintptr_t base_address);
   MemoryStream(uintptr_t base_address, uint64_t size);
 
+  MemoryStream(const MemoryStream&) = delete;
+  MemoryStream& operator=(const MemoryStream&) = delete;
+
+  MemoryStream(MemoryStream&&);
+  MemoryStream& operator=(MemoryStream&&);
+
   inline uintptr_t base_address() const {
     return this->baseaddr_;
   }
 
   inline uint64_t end() const {
     return this->baseaddr_ + this->size_;
-  }
-
-  inline STREAM_TYPE type() const override {
-    return STREAM_TYPE::MEMORY;
   }
 
   inline void binary(Binary& bin) {
@@ -49,26 +51,13 @@ class MemoryStream : public BinaryStream {
     return this->binary_;
   }
 
-  virtual uint64_t size(void) const override;
+  uint64_t size() const override;
+  ~MemoryStream() override;
 
-  virtual result<size_t> asn1_read_tag(int tag) override;
-  virtual result<size_t> asn1_read_len() override;
-  result<size_t> asn1_peek_len();
-  virtual result<std::string> asn1_read_alg() override;
-  virtual result<std::string> asn1_read_oid() override;
-  virtual result<int32_t> asn1_read_int() override;
-  virtual result<std::vector<uint8_t>> asn1_read_bitstring() override;
-  virtual result<std::vector<uint8_t>> asn1_read_octet_string() override;
-  virtual result<std::unique_ptr<mbedtls_x509_crt>> asn1_read_cert() override;
-  virtual result<std::string> x509_read_names() override;
-  virtual result<std::vector<uint8_t>> x509_read_serial() override;
-  virtual result<std::unique_ptr<mbedtls_x509_time>> x509_read_time() override;
-
-  virtual ~MemoryStream();
-
+  static bool classof(const BinaryStream& stream);
 
   protected:
-  virtual const void* read_at(uint64_t offset, uint64_t size, bool throw_error = true) const override;
+  result<const void*> read_at(uint64_t offset, uint64_t size) const override;
   uintptr_t baseaddr_ = 0;
   uint64_t size_ = 0;
   Binary* binary_ = nullptr;

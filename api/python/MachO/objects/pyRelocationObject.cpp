@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,19 +36,24 @@ using setter_t = void (RelocationObject::*)(T);
 template<>
 void create<RelocationObject>(py::module& m) {
 
-  py::class_<RelocationObject, Relocation>(m, "RelocationObject")
+  py::class_<RelocationObject, Relocation>(m, "RelocationObject",
+      R"delim(
+      Class that represents a relocation presents in the MachO object
+      file (``.o``). Usually, this kind of relocation is found in the :class:`lief.MachO.Section`.
+      )delim")
 
     .def_property("value",
         static_cast<getter_t<int32_t>>(&RelocationObject::value),
         static_cast<setter_t<int32_t>>(&RelocationObject::value),
-        "For **scattered** relocations, the address of the relocatable expression "
-        "for the item in the file that needs to be updated if the address is changed.\n\n"
+        R"delim(
+        For **scattered** relocations, the address of the relocatable expression
+        for the item in the file that needs to be updated if the address is changed.
 
-        "For relocatable expressions with the difference of two section addresses, "
-        "the address from which to subtract (in mathematical terms, the minuend) "
-        "is contained in the first relocation entry and the address to subtract (the subtrahend) "
-        "is contained in the second relocation entry.",
-        py::return_value_policy::reference_internal)
+        For relocatable expressions with the difference of two section addresses,
+        the address from which to subtract (in mathematical terms, the minuend)
+        is contained in the first relocation entry and the address to subtract (the subtrahend)
+        is contained in the second relocation entry.",
+        )delim")
 
 
     .def_property_readonly("is_scattered",

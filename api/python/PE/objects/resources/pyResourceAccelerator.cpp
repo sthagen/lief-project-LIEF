@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  * Copyright 2017 - 2021 K. Nakagawa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +35,7 @@ void create<ResourceAccelerator>(py::module& m) {
 
     .def_property_readonly("flags",
       static_cast<getter_t<int16_t>>(&ResourceAccelerator::flags),
-      "Describes keyboard accelerator characteristics. ")
+      "Describe the keyboard accelerator characteristics.")
 
     .def_property_readonly("ansi",
       static_cast<getter_t<int16_t>>(&ResourceAccelerator::ansi),

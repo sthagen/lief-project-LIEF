@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,11 +59,11 @@ void create<Header>(py::module& m) {
 
     .def_property_readonly("is_32",
         &Header::is_32,
-        "``True`` if the binary target a ``32-bits`` architecture")
+        "``True`` if the binary targets a ``32-bits`` architecture")
 
     .def_property_readonly("is_64",
         &Header::is_64,
-        "``True`` if the binary target a ``64-bits`` architecture")
+        "``True`` if the binary targets a ``64-bits`` architecture")
 
 
     .def("__str__",

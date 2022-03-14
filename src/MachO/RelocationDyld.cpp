@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,40 +23,38 @@
 namespace LIEF {
 namespace MachO {
 
-RelocationDyld::~RelocationDyld(void) = default;
+RelocationDyld::~RelocationDyld() = default;
 
-RelocationDyld::RelocationDyld(void) = default;
+RelocationDyld::RelocationDyld() = default;
 RelocationDyld& RelocationDyld::operator=(const RelocationDyld&) = default;
 RelocationDyld::RelocationDyld(const RelocationDyld&) = default;
 
-bool RelocationDyld::is_pc_relative(void) const {
-  return static_cast<REBASE_TYPES>(this->type()) == REBASE_TYPES::REBASE_TYPE_TEXT_PCREL32;
+bool RelocationDyld::is_pc_relative() const {
+  return static_cast<REBASE_TYPES>(type()) == REBASE_TYPES::REBASE_TYPE_TEXT_PCREL32;
 }
 
 
-Relocation* RelocationDyld::clone(void) const {
+Relocation* RelocationDyld::clone() const {
   return new RelocationDyld(*this);
 }
 
 
-RELOCATION_ORIGINS RelocationDyld::origin(void) const {
+RELOCATION_ORIGINS RelocationDyld::origin() const {
   return RELOCATION_ORIGINS::ORIGIN_DYLDINFO;
 }
 
 void RelocationDyld::pc_relative(bool val) {
-  if (this->is_pc_relative() == val) {
+  if (is_pc_relative() == val) {
     return;
   }
 
-  if (val == true) {
-    this->type_ = static_cast<uint32_t>(REBASE_TYPES::REBASE_TYPE_TEXT_PCREL32);
-  }
-
-  if (val == false) {
-    if (this->size() == 32) {
-      this->type_ = static_cast<uint32_t>(REBASE_TYPES::REBASE_TYPE_TEXT_ABSOLUTE32);
+  if (val) {
+    type_ = static_cast<uint32_t>(REBASE_TYPES::REBASE_TYPE_TEXT_PCREL32);
+  } else {
+    if (size() == 32) {
+      type_ = static_cast<uint32_t>(REBASE_TYPES::REBASE_TYPE_TEXT_ABSOLUTE32);
     } else {
-      this->type_ = static_cast<uint32_t>(REBASE_TYPES::REBASE_TYPE_POINTER);
+      type_ = static_cast<uint32_t>(REBASE_TYPES::REBASE_TYPE_POINTER);
     }
   }
 }
@@ -67,36 +65,44 @@ void RelocationDyld::accept(Visitor& visitor) const {
 
 
 bool RelocationDyld::operator==(const RelocationDyld& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool RelocationDyld::operator!=(const RelocationDyld& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 bool RelocationDyld::operator<(const RelocationDyld& rhs) const {
   // From ld/OutputFile.h
-  if (this->type() != rhs.type()) {
-    return this->type() < rhs.type();
+  if (type() != rhs.type()) {
+    return type() < rhs.type();
   }
-  return this->address() < rhs.address();
+  return address() < rhs.address();
 }
 
 bool RelocationDyld::operator>=(const RelocationDyld& rhs) const {
-  return not (*this < rhs);
+  return !(*this < rhs);
 }
 
 bool RelocationDyld::operator>(const RelocationDyld& rhs) const {
-  if (this->type() != rhs.type()) {
-    return this->type() > rhs.type();
+  if (type() != rhs.type()) {
+    return type() > rhs.type();
   }
-  return this->address() > rhs.address();
+  return address() > rhs.address();
 }
 
 bool RelocationDyld::operator<=(const RelocationDyld& rhs) const {
-  return not (*this > rhs);
+  return !(*this > rhs);
+}
+
+
+bool RelocationDyld::classof(const Relocation& r) {
+  return r.origin() == RELOCATION_ORIGINS::ORIGIN_DYLDINFO;
 }
 
 

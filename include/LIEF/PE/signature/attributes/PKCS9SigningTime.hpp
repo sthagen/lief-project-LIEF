@@ -1,6 +1,6 @@
 
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,15 +60,15 @@ class LIEF_API PKCS9SigningTime : public Attribute {
 
   //! Time as an array [year, month, day, hour, min, sec]
   const time_t& time() const {
-    return this->time_;
+    return time_;
   }
 
   //! Print information about the attribute
-  virtual std::string print() const override;
+  std::string print() const override;
 
-  virtual std::unique_ptr<Attribute> clone(void) const override;
+  std::unique_ptr<Attribute> clone() const override;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
   virtual ~PKCS9SigningTime();
 
   private:

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ void create<DexFile>(py::module& m) {
         "Check if the " RST_CLASS_REF_FULL(lief.DEX.File) " is present")
 
     .def_property_readonly("dex_file",
-        static_cast<no_const_getter<LIEF::DEX::File&>>(&DexFile::dex_file),
+        static_cast<no_const_getter<LIEF::DEX::File*>>(&DexFile::dex_file),
         "Associated " RST_CLASS_REF_FULL(lief.DEX.File) "")
 
     .def("__eq__", &DexFile::operator==)

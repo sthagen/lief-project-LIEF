@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,25 +21,21 @@
 namespace LIEF {
 namespace PE {
 
-Attribute::Attribute(void) = default;
+Attribute::Attribute() = default;
+Attribute::Attribute(const Attribute& other) = default;
 
 Attribute::Attribute(SIG_ATTRIBUTE_TYPES type) :
   type_{type}
 {}
 
-Attribute::Attribute(const Attribute& other) :
-  Object{other},
-  type_{other.type_}
-{}
-
 Attribute& Attribute::operator=(const Attribute& other) {
   if (this != &other) {
-    this->type_ = other.type_;
+    type_ = other.type_;
   }
   return *this;
 }
 
-Attribute::~Attribute(void) = default;
+Attribute::~Attribute() = default;
 
 void Attribute::accept(Visitor& visitor) const {
   visitor.visit(*this);

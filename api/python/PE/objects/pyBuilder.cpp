@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,13 @@
 #include <string>
 #include <sstream>
 
+//template<typename Fn, typename... Args,
+//        std::enable_if_t<std::is_member_pointer<std::decay_t<Fn>>{}, int> = 0 >
+//constexpr decltype(auto) my_invoke(Fn&& f, Args&&... args)
+//    noexcept(noexcept(std::mem_fn(f)(std::forward<Args>(args)...)))
+//{
+//    return std::mem_fn(f)(std::forward<Args>(args)...);
+//}
 
 namespace LIEF {
 namespace PE {
@@ -27,18 +34,24 @@ namespace PE {
 template<>
 void create<Builder>(py::module& m) {
 
-  py::class_<Builder>(m, "Builder")
-    .def(py::init<Binary*>(),
+  py::class_<Builder>(m, "Builder",
+      R"delim(
+      Class that is used to rebuild a raw PE binary from a PE::Binary object
+      )delim")
+
+    .def(py::init<Binary&>(),
         "Constructor that takes a " RST_CLASS_REF(lief.PE.Binary) "",
         "pe_binary"_a)
 
     .def("build",
-        &Builder::build,
+        [] (Builder& self) -> py::object {
+          return error_or(static_cast<ok_error_t(Builder::*)()>(&Builder::build), self);
+        },
         "Perform the build process")
 
     .def("build_imports",
         &Builder::build_imports,
-        "Rebuild the import table in another section",
+        "Rebuild the import table into another section",
         py::arg("enable") = true,
         py::return_value_policy::reference)
 

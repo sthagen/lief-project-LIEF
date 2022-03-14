@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,73 +23,58 @@ namespace OAT {
 DexFile::DexFile(const DexFile&) = default;
 DexFile& DexFile::operator=(const DexFile&) = default;
 
-DexFile::DexFile(void) :
-  location_{},
-  checksum_{-1u},
-  dex_offset_{0},
-  dex_file_{nullptr},
-  classes_offsets_{},
-  lookup_table_offset_{0},
-  method_bss_mapping_offset_{0},
-  dex_sections_layout_offset_{0}
-{}
+DexFile::DexFile() = default;
 
-
-const std::string& DexFile::location(void) const {
-  return this->location_;
+const std::string& DexFile::location() const {
+  return location_;
 }
 
-uint32_t DexFile::checksum(void) const {
-  return this->checksum_;
+uint32_t DexFile::checksum() const {
+  return checksum_;
 }
 
-uint32_t DexFile::dex_offset(void) const {
-  return this->dex_offset_;
+uint32_t DexFile::dex_offset() const {
+  return dex_offset_;
 }
 
-bool DexFile::has_dex_file(void) const {
-  return this->dex_file_ != nullptr;
+bool DexFile::has_dex_file() const {
+  return dex_file_ != nullptr;
 }
 
-const DEX::File& DexFile::dex_file(void) const {
-  if (not this->has_dex_file()) {
-    throw not_found("Can't find the dex file associated with this OAT dex file");
-  }
-  return *this->dex_file_;
+const DEX::File* DexFile::dex_file() const {
+  return dex_file_;
 }
-
-
 
 void DexFile::location(const std::string& location) {
-  this->location_ = location;
+  location_ = location;
 }
 
 void DexFile::checksum(uint32_t checksum) {
-  this->checksum_ = checksum;
+  checksum_ = checksum;
 }
 
 void DexFile::dex_offset(uint32_t dex_offset) {
-  this->dex_offset_ = dex_offset;
+  dex_offset_ = dex_offset;
 }
 
-const std::vector<uint32_t>& DexFile::classes_offsets(void) const {
-  return this->classes_offsets_;
+const std::vector<uint32_t>& DexFile::classes_offsets() const {
+  return classes_offsets_;
 }
 
 
 // Android 7.X.X and Android 8.0.0
 // ===============================
-uint32_t DexFile::lookup_table_offset(void) const {
-  return this->lookup_table_offset_;
+uint32_t DexFile::lookup_table_offset() const {
+  return lookup_table_offset_;
 }
 
 void DexFile::lookup_table_offset(uint32_t offset) {
-  this->lookup_table_offset_ = offset;
+  lookup_table_offset_ = offset;
 }
 // ===============================
 
-DEX::File& DexFile::dex_file(void) {
-  return const_cast<DEX::File&>(static_cast<const DexFile*>(this)->dex_file());
+DEX::File* DexFile::dex_file() {
+  return const_cast<DEX::File*>(static_cast<const DexFile*>(this)->dex_file());
 }
 
 void DexFile::accept(Visitor& visitor) const {
@@ -97,13 +82,16 @@ void DexFile::accept(Visitor& visitor) const {
 }
 
 bool DexFile::operator==(const DexFile& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool DexFile::operator!=(const DexFile& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const DexFile& dex_file) {
@@ -111,7 +99,7 @@ std::ostream& operator<<(std::ostream& os, const DexFile& dex_file) {
   return os;
 }
 
-DexFile::~DexFile(void) = default;
+DexFile::~DexFile() = default;
 
 
 

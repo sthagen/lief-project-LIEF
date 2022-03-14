@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,12 @@
 #include <sstream>
 #include <vector>
 
+
 #include "LIEF/ELF/hash.hpp"
 #include "LIEF/ELF/Segment.hpp"
+#include "LIEF/ELF/Section.hpp"
 
+#include "pyIterators.hpp"
 #include "pyELF.hpp"
 
 namespace LIEF {
@@ -37,62 +40,90 @@ using no_const_getter = T (Segment::*)(void);
 
 template<>
 void create<Segment>(py::module& m) {
-  py::class_<Segment, LIEF::Object>(m, "Segment")
+  py::class_<Segment, LIEF::Object> seg(m, "Segment",
+      R"delim(
+      Class which represents the ELF segments
+      )delim");
 
+  init_ref_iterator<Segment::it_sections>(seg, "it_sections");
+
+  seg
     .def(py::init<>())
-    .def(py::init<const std::vector<uint8_t>&>())
-    .def(py::init<const std::vector<uint8_t>&, ELF_CLASS>())
+    .def_static("from_raw",
+        [] (py::bytes raw) -> py::object {
+          const std::string& bytes_as_str = raw;
+          std::vector<uint8_t> cpp_raw = {std::begin(bytes_as_str), std::end(bytes_as_str)};
+          auto* f_ptr = static_cast<result<Segment>(*)(const std::vector<uint8_t>&)>(&Segment::from_raw);
+          return error_or(f_ptr, std::move(cpp_raw));
+        })
 
     .def_property("type",
         static_cast<getter_t<SEGMENT_TYPES>>(&Segment::type),
         static_cast<setter_t<SEGMENT_TYPES>>(&Segment::type),
-        "Segment's " RST_CLASS_REF(lief.ELF.SEGMENT_TYPES) "")
+        "Segment's type: " RST_CLASS_REF(lief.ELF.SEGMENT_TYPES) "")
 
     .def_property("flags",
         static_cast<getter_t<ELF_SEGMENT_FLAGS>>(&Segment::flags),
         static_cast<setter_t<ELF_SEGMENT_FLAGS>>(&Segment::flags),
-        "Segment's flags")
+        "The flag permissions associated with this segment")
 
     .def_property("file_offset",
         static_cast<getter_t<uint64_t>>(&Segment::file_offset),
         static_cast<setter_t<uint64_t>>(&Segment::file_offset),
-        "Data offset in the binary")
+        "The file offset of the data associated with this segment")
 
     .def_property("virtual_address",
         static_cast<getter_t<uint64_t>>(&Segment::virtual_address),
         static_cast<setter_t<uint64_t>>(&Segment::virtual_address),
-        "Address where the segment will be mapped\n\n"
-        ".. warning:: We must have\n\n"
-        "\t.. math::\n\n"
-        "\t\t\\text{virtual address} \\equiv \\text{file offset} \\pmod{\\text{page size}}\n\n"
-        "\t\t\\text{virtual address} \\equiv \\text{file offset} \\pmod{\\text{alignment}}"
-        )
+        R"delim(
+        The virtual address of the segment.
+
+        .. warning::
+            The ELF format specifications require the following relationship:
+
+            .. math::
+                \text{virtual address} \equiv \text{file offset} \pmod{\text{page size}}
+                \text{virtual address} \equiv \text{file offset} \pmod{\text{alignment}}
+        )delim")
 
     .def_property("physical_address",
         static_cast<getter_t<uint64_t>>(&Segment::physical_address),
         static_cast<setter_t<uint64_t>>(&Segment::physical_address),
-        "Physical address of beginning of segment (OS-specific)")
+        R"delim(
+        The physical address of the segment.
+        This value is not really relevant on systems like Linux or Android. On the other hand,
+        Qualcomm trustlets might use this value.
+
+        Usually this value matches :attr:`~lief.ELF.Segment.virtual_address`
+        )delim")
 
     .def_property("physical_size",
         static_cast<getter_t<uint64_t>>(&Segment::physical_size),
         static_cast<setter_t<uint64_t>>(&Segment::physical_size),
-        "Size of data in the binary")
+        "The **file** size of the data associated with this segment")
 
     .def_property("virtual_size",
         static_cast<getter_t<uint64_t>>(&Segment::virtual_size),
         static_cast<setter_t<uint64_t>>(&Segment::virtual_size),
-        "Size of this segment in memory")
+        R"delim(
+        The in-memory size of this segment.
+
+        Usually, if the ``.bss`` segment is wrapped by this segment
+        then, virtual_size is larger than physical_size
+        )delim")
 
     .def_property("alignment",
         static_cast<getter_t<uint64_t>>(&Segment::alignment),
         static_cast<setter_t<uint64_t>>(&Segment::alignment),
-        "This member gives the value to which the segments are aligned in memory and in the file.\n"
-        "Values 0 and 1 mean no alignment is required.")
+        "The offset alignment of the segment")
 
     .def_property("content",
-        static_cast<getter_t<std::vector<uint8_t>>>(&Segment::content),
-        static_cast<setter_t<const std::vector<uint8_t>&>>(&Segment::content),
-        "Segment's raw data")
+        [] (const Segment& self) {
+          span<const uint8_t> content = self.content();
+          return py::memoryview::from_memory(content.data(), content.size());
+        },
+        static_cast<setter_t<std::vector<uint8_t>>>(&Segment::content),
+        "The raw data associated with this segment.")
 
     .def("add",
         &Segment::add,
@@ -105,7 +136,6 @@ void create<Segment>(py::module& m) {
         "Remove the given " RST_CLASS_REF(lief.ELF.SEGMENT_FLAGS) " from the list of "
         ":attr:`~lief.ELF.Segment.flags`",
         "flag"_a)
-
 
     .def("has",
         static_cast<bool (Segment::*)(ELF_SEGMENT_FLAGS) const>(&Segment::has),
@@ -125,8 +155,8 @@ void create<Segment>(py::module& m) {
         "section_name"_a)
 
     .def_property_readonly("sections",
-      static_cast<no_const_getter<it_sections>>(&Segment::sections),
-      "" RST_CLASS_REF(lief.ELF.Section) " (s) inside this segment",
+      static_cast<no_const_getter<Segment::it_sections>>(&Segment::sections),
+      "Iterator over the " RST_CLASS_REF(lief.ELF.Section) " wrapped by this segment",
       py::return_value_policy::reference_internal)
 
     .def("__eq__", &Segment::operator==)

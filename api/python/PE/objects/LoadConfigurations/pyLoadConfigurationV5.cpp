@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +34,11 @@ using setter_t = void (LoadConfigurationV5::*)(T);
 template<>
 void create<LoadConfigurationV5>(py::module& m) {
   py::class_<LoadConfigurationV5, LoadConfigurationV4>(m, "LoadConfigurationV5",
-    "" RST_CLASS_REF(lief.PE.LoadConfigurationV4) " enhanced with Return Flow Guard. \n\n"
-    "It is associated with the " RST_CLASS_REF(lief.PE.WIN_VERSION) ": "
-    ":attr:`~lief.PE.WIN_VERSION.WIN10_0_14901`")
+      R"delim(
+      :class:`~lief.PE.LoadConfigurationV4` enhanced nhanced with Return Flow Guard.
+
+      It is associated with the :class:`~lief.PE.WIN_VERSION` set to :attr:`~lief.PE.WIN_VERSION.WIN10_0_14901`
+      )delim")
 
     .def(py::init<>())
 

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ enum SWITCH_ARRAY_IDENT : uint16_t {
   IDENT_FILL_ARRAY    = 0x0300,
 };
 
+//! The Dalvik Opcodes
 enum OPCODES : uint8_t {
   OP_NOP                    = 0x00,
   OP_MOVE                   = 0x01,
@@ -338,7 +339,7 @@ struct fill_array_data {
 };
 
 
-//! @brief Return the INST_FORMATS format from the opcode
+//! Return the INST_FORMATS format associated with the given opcode
 LIEF_API INST_FORMATS inst_format_from_opcode(OPCODES op);
 
 LIEF_API size_t inst_size_from_format(INST_FORMATS fmt);

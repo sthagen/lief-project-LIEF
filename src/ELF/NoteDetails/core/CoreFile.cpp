@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 
 #include "LIEF/ELF/Note.hpp"
 #include "LIEF/ELF/Binary.hpp"
+#include "ELF/Structures.hpp"
 
 #include "CoreFile.tcc"
 
@@ -29,8 +30,7 @@ namespace LIEF {
 namespace ELF {
 
 CoreFile::CoreFile(Note& note):
-  NoteDetails::NoteDetails{note},
-  files_{}
+  NoteDetails::NoteDetails{note}
 {}
 
 CoreFile CoreFile::make(Note& note) {
@@ -39,39 +39,39 @@ CoreFile CoreFile::make(Note& note) {
   return file;
 }
 
-CoreFile* CoreFile::clone(void) const {
+CoreFile* CoreFile::clone() const {
   return new CoreFile(*this);
 }
 
 
-uint64_t CoreFile::count(void) const {
-  return this->files_.size();
+uint64_t CoreFile::count() const {
+  return files_.size();
 }
 
-const CoreFile::files_t& CoreFile::files(void) const {
-  return this->files_;
+const CoreFile::files_t& CoreFile::files() const {
+  return files_;
 }
 
 
-CoreFile::iterator CoreFile::begin(void) {
-  return std::begin(this->files_);
+CoreFile::iterator CoreFile::begin() {
+  return std::begin(files_);
 }
 
-CoreFile::iterator CoreFile::end(void) {
-  return std::end(this->files_);
+CoreFile::iterator CoreFile::end() {
+  return std::end(files_);
 }
 
-CoreFile::const_iterator CoreFile::begin(void) const {
-  return std::begin(this->files_);
+CoreFile::const_iterator CoreFile::begin() const {
+  return std::begin(files_);
 }
 
-CoreFile::const_iterator CoreFile::end(void) const {
-  return std::end(this->files_);
+CoreFile::const_iterator CoreFile::end() const {
+  return std::end(files_);
 }
 
 void CoreFile::files(const CoreFile::files_t& files) {
-  this->files_ = files;
-  this->build();
+  files_ = files;
+  build();
 }
 
 
@@ -80,13 +80,16 @@ void CoreFile::accept(Visitor& visitor) const {
 }
 
 bool CoreFile::operator==(const CoreFile& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool CoreFile::operator!=(const CoreFile& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 void CoreFile::dump(std::ostream& os) const {
@@ -94,7 +97,7 @@ void CoreFile::dump(std::ostream& os) const {
   os << std::left;
 
   os << std::setw(WIDTH) << std::setfill(' ') << "Files: "<< std::dec << std::endl;
-  for (const CoreFileEntry& file : this->files()) {
+  for (const CoreFileEntry& file : files()) {
     os << " - ";
     os << file.path << " ";
     os << "[" << std::hex << std::showbase << file.start << ", " << file.end << "] ";
@@ -104,19 +107,19 @@ void CoreFile::dump(std::ostream& os) const {
   os << std::endl;
 }
 
-void CoreFile::parse(void) {
-  if (this->binary()->type() == ELF_CLASS::ELFCLASS64) {
-    this->parse_<ELF64>();
-  } else if (this->binary()->type() == ELF_CLASS::ELFCLASS32) {
-    this->parse_<ELF32>();
+void CoreFile::parse() {
+  if (binary()->type() == ELF_CLASS::ELFCLASS64) {
+    parse_<details::ELF64>();
+  } else if (binary()->type() == ELF_CLASS::ELFCLASS32) {
+    parse_<details::ELF32>();
   }
 }
 
-void CoreFile::build(void) {
-  if (this->binary()->type() == ELF_CLASS::ELFCLASS64) {
-    this->build_<ELF64>();
-  } else if (this->binary()->type() == ELF_CLASS::ELFCLASS32) {
-    this->build_<ELF32>();
+void CoreFile::build() {
+  if (binary()->type() == ELF_CLASS::ELFCLASS64) {
+    build_<details::ELF64>();
+  } else if (binary()->type() == ELF_CLASS::ELFCLASS32) {
+    build_<details::ELF32>();
   }
 }
 
@@ -125,7 +128,7 @@ std::ostream& operator<<(std::ostream& os, const CoreFile& note) {
   return os;
 }
 
-CoreFile::~CoreFile(void) = default;
+CoreFile::~CoreFile() = default;
 
 
 std::ostream& operator<<(std::ostream& os, const CoreFileEntry& entry) {

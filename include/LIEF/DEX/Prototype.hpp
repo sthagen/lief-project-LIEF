@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,14 @@
 
 #include "LIEF/visibility.h"
 #include "LIEF/Object.hpp"
-#include "LIEF/DEX/Type.hpp"
 #include "LIEF/iterators.hpp"
 
 namespace LIEF {
 namespace DEX {
 class Parser;
+class Type;
 
+//! Class which represents a DEX method prototype
 class LIEF_API Prototype : public Object {
   friend class Parser;
 
@@ -34,28 +35,28 @@ class LIEF_API Prototype : public Object {
   using it_const_params   = const_ref_iterator<const parameters_type_t>;
 
   public:
-  Prototype(void);
+  Prototype();
   Prototype(const Prototype& other);
 
-  //! Type returned
-  const Type& return_type(void) const;
-  Type& return_type(void);
+  //! Type returned or a nullptr if not resolved
+  const Type* return_type() const;
+  Type* return_type();
 
   //! Types of the parameters
-  it_const_params parameters_type(void) const;
-  it_params parameters_type(void);
+  it_const_params parameters_type() const;
+  it_params parameters_type();
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const Prototype& rhs) const;
   bool operator!=(const Prototype& rhs) const;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const Prototype& type);
 
-  virtual ~Prototype(void);
+  virtual ~Prototype();
 
   private:
-  Type* return_type_{nullptr};
+  Type* return_type_ = nullptr;
   parameters_type_t params_;
 
 };

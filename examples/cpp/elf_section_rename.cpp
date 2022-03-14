@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@
 //
 // $ readelf -S ./lsRename
 //
-//  En-têtes de section :
+//  En-têtes de section:
 //  [Nr] Nom               Type             Adresse           Décalage
 //       Taille            TaillEntrée      Fanion Lien  Info  Alignement
 //  [ 0] toto              NULL             0000000000000000  00000000
@@ -53,9 +53,9 @@
 //
 //
 int main(int argc, char **argv) {
-  std::cout << "ELF Section rename" << std::endl;
+  std::cout << "ELF Section rename" << '\n';
   if (argc != 3) {
-    std::cerr << "Usage: " << argv[0] << " <Original Binary> <Output Binary>" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " <Original Binary> <Output Binary>" << '\n';
     return -1;
   }
 

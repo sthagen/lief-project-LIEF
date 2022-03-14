@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,12 @@ class Builder;
 class Parser;
 class Binary;
 class Section;
-struct pe_data_directory;
 
+namespace details {
+struct pe_data_directory;
+}
+
+//! Class that represents a PE data directory entry
 class LIEF_API DataDirectory : public Object {
 
   friend class Builder;
@@ -39,26 +43,37 @@ class LIEF_API DataDirectory : public Object {
   friend class Binary;
 
   public:
-  DataDirectory(void);
+  DataDirectory();
   DataDirectory(DATA_DIRECTORY type);
-  DataDirectory(const pe_data_directory *header, DATA_DIRECTORY type);
+  DataDirectory(const details::pe_data_directory& header, DATA_DIRECTORY type);
 
   DataDirectory(const DataDirectory& other);
   DataDirectory& operator=(DataDirectory other);
   void swap(DataDirectory& other);
-  virtual ~DataDirectory(void);
+  virtual ~DataDirectory();
 
-  uint32_t       RVA(void) const;
-  uint32_t       size(void) const;
-  Section&       section(void);
-  const Section& section(void) const;
-  DATA_DIRECTORY type(void) const;
-  bool           has_section(void) const;
+  //! The relative virtual address of the content of this data
+  //! directory
+  uint32_t RVA() const;
+
+  //! The size of the content
+  uint32_t size() const;
+
+  //! Check if the content of this data directory is associated
+  //! with a PE Cection
+  bool has_section() const;
+
+  //! Section associated with the DataDirectory
+  Section* section();
+  const Section* section() const;
+
+  //! Type of the data directory
+  DATA_DIRECTORY type() const;
 
   void size(uint32_t size);
   void RVA(uint32_t rva);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const DataDirectory& rhs) const;
   bool operator!=(const DataDirectory& rhs) const;
@@ -66,10 +81,10 @@ class LIEF_API DataDirectory : public Object {
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const DataDirectory& entry);
 
   private:
-  uint32_t       rva_;
-  uint32_t       size_;
-  DATA_DIRECTORY type_;
-  Section*       section_{nullptr};
+  uint32_t       rva_ = 0;
+  uint32_t       size_ = 0;
+  DATA_DIRECTORY type_ = DATA_DIRECTORY::NUM_DATA_DIRECTORIES;
+  Section*       section_ = nullptr;
 };
 }
 }

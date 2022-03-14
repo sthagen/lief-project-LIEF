@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ GenericType::GenericType() :
 GenericType::GenericType(const GenericType&) = default;
 GenericType& GenericType::operator=(const GenericType&) = default;
 
-std::unique_ptr<Attribute> GenericType::clone(void) const {
+std::unique_ptr<Attribute> GenericType::clone() const {
   return std::unique_ptr<Attribute>(new GenericType{*this});
 }
 
@@ -39,7 +39,7 @@ void GenericType::accept(Visitor& visitor) const {
 }
 
 std::string GenericType::print() const {
-  return this->oid() + " (" + std::to_string(this->raw_content().size()) + " bytes)";
+  return oid() + " (" + std::to_string(raw_content().size()) + " bytes)";
 }
 
 

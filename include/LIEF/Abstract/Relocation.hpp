@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,46 +21,46 @@
 #include "LIEF/visibility.h"
 
 namespace LIEF {
+//! Class which represents an abstracted Relocation
 class LIEF_API Relocation : public Object {
 
   public:
-  //! @brief Default CTOR
-  Relocation(void);
+  Relocation();
 
-  //! @brief CTOR from relocation's address and size
+  //! Constructor from a relocation's address and size
   Relocation(uint64_t address, uint8_t size);
 
-  virtual ~Relocation(void);
+  virtual ~Relocation();
 
   Relocation& operator=(const Relocation&);
   Relocation(const Relocation&);
   void swap(Relocation& other);
 
-  //! @brief Relocation's Address
-  virtual uint64_t address(void) const;
+  //! Relocation's address
+  virtual uint64_t address() const;
 
-  //! @brief Relocation size in **bits**
-  virtual size_t size(void) const;
+  //! Relocation size in **bits**
+  virtual size_t size() const;
 
   virtual void address(uint64_t address);
   virtual void size(size_t size);
 
-  //! @brief Method so that the ``visitor`` can visit us
-  virtual void accept(Visitor& visitor) const override;
+  //! Method so that the ``visitor`` can visit us
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const Relocation& rhs) const;
   bool operator!=(const Relocation& rhs) const;
 
-  //! @brief Comparaison based on the Relocation's **address**
+  //! Comparaison based on the Relocation's **address**
   virtual bool operator<(const Relocation& rhs) const;
 
-  //! @brief Comparaison based on the Relocation's **address**
+  //! Comparaison based on the Relocation's **address**
   virtual bool operator<=(const Relocation& rhs) const;
 
-  //! @brief Comparaison based on the Relocation's **address**
+  //! Comparaison based on the Relocation's **address**
   virtual bool operator>(const Relocation& rhs) const;
 
-  //! @brief Comparaison based on the Relocation's **address**
+  //! Comparaison based on the Relocation's **address**
   virtual bool operator>=(const Relocation& rhs) const;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const Relocation& entry);
@@ -68,7 +68,6 @@ class LIEF_API Relocation : public Object {
   protected:
   uint64_t address_ = 0;
   uint8_t  size_ = 0;
-
 };
 
 

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,17 +53,17 @@ class LIEF_API PKCS9AtSequenceNumber : public Attribute {
   PKCS9AtSequenceNumber(const PKCS9AtSequenceNumber&);
   PKCS9AtSequenceNumber& operator=(const PKCS9AtSequenceNumber&);
 
-  virtual std::unique_ptr<Attribute> clone(void) const override;
+  std::unique_ptr<Attribute> clone() const override;
 
   //! Number as described in the RFC
   inline uint32_t number() const {
-    return this->number_;
+    return number_;
   }
 
   //! Print information about the attribute
-  virtual std::string print() const override;
+  std::string print() const override;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
   virtual ~PKCS9AtSequenceNumber();
 
   private:

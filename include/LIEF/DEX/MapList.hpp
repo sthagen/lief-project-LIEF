@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,15 +19,21 @@
 #include <vector>
 
 #include "LIEF/visibility.h"
+#include "LIEF/iterators.hpp"
 #include "LIEF/Object.hpp"
-#include "LIEF/DEX/MapItem.hpp"
 
+#include "LIEF/DEX/MapItem.hpp"
 
 namespace LIEF {
 namespace DEX {
 class Parser;
 class Class;
 
+//! Class which represents the ``map_list`` structure that
+//! follows the main DEX header.
+//!
+//! This MapList aims at referencing the location of other DEX structures as
+//! described in https://source.android.com/devices/tech/dalvik/dex-format#map-item
 class LIEF_API MapList : public Object {
   friend class Parser;
 
@@ -36,16 +42,15 @@ class LIEF_API MapList : public Object {
   using it_items_t        = ref_iterator<std::vector<MapItem*>>;
   using it_const_items_t  = const_ref_iterator<std::vector<MapItem*>>;
 
-
   public:
-  MapList(void);
+  MapList();
 
   MapList(const MapList&);
   MapList& operator=(const MapList&);
 
   //! Iterator over LIEF::DEX::MapItem
-  it_items_t items(void);
-  it_const_items_t items(void) const;
+  it_items_t items();
+  it_const_items_t items() const;
 
   //! Check if the given type exists
   bool has(MapItem::TYPES type) const;
@@ -62,14 +67,14 @@ class LIEF_API MapList : public Object {
   //! Return the LIEF::DEX::MapItem associated with the given type
   MapItem& operator[](MapItem::TYPES type);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const MapList& rhs) const;
   bool operator!=(const MapList& rhs) const;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const MapList& mtd);
 
-  virtual ~MapList(void);
+  ~MapList() override;
 
   private:
   items_t items_;

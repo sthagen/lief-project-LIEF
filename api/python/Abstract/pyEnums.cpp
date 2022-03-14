@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,8 @@ void init_enums(py::module& m) {
     .value(PY_ENUM(ARCHITECTURES::ARCH_SPARC))
     .value(PY_ENUM(ARCHITECTURES::ARCH_SYSZ))
     .value(PY_ENUM(ARCHITECTURES::ARCH_XCORE))
-    .value(PY_ENUM(ARCHITECTURES::ARCH_INTEL));
+    .value(PY_ENUM(ARCHITECTURES::ARCH_INTEL))
+    .value(PY_ENUM(ARCHITECTURES::ARCH_RISCV));
 
   py::enum_<MODES>(m, "MODES")
     .value(PY_ENUM(MODES::MODE_NONE))

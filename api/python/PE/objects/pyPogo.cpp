@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include "pyPE.hpp"
+#include "pyIterators.hpp"
 
 #include "LIEF/PE/hash.hpp"
 #include "LIEF/PE/Pogo.hpp"
@@ -35,11 +36,15 @@ using no_const_getter = T (Pogo::*)(void);
 
 template<>
 void create<Pogo>(py::module& m) {
-  py::class_<Pogo, LIEF::Object>(m, "Pogo")
+  py::class_<Pogo, LIEF::Object> pogo(m, "Pogo");
+
+  init_ref_iterator<Pogo::it_entries>(pogo, "it_entries");
+
+  pogo
     .def(py::init<>())
 
     .def_property_readonly("entries",
-        static_cast<no_const_getter<it_pogo_entries>>(&Pogo::entries),
+        static_cast<no_const_getter<Pogo::it_entries>>(&Pogo::entries),
         py::return_value_policy::reference_internal)
 
     .def_property_readonly("signature",

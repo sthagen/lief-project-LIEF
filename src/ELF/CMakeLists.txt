@@ -1,19 +1,3 @@
-
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/enums.inc"      LIEF_ELF_ENUMS)
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/structures.inc" LIEF_ELF_STRUCTURES)
-
-configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/enums.hpp.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/ELF/enums.hpp"
-  @ONLY
-)
-
-configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/Structures.hpp.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/ELF/Structures.hpp"
-  @ONLY
-)
-
 set(LIEF_ELF_SRC
   "${CMAKE_CURRENT_LIST_DIR}/Convert.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/DynamicEntryArray.cpp"
@@ -48,6 +32,7 @@ set(LIEF_ELF_SRC
   "${CMAKE_CURRENT_LIST_DIR}/hash.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/Note.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/NoteDetails.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/Layout.cpp"
 )
 
 set(LIEF_ELF_INC_FILES
@@ -74,45 +59,38 @@ set(LIEF_ELF_INC_FILES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/SymbolVersionAuxRequirement.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/SymbolVersionDefinition.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/SymbolVersionRequirement.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/type_traits.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/utils.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/hash.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/Note.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/NoteDetails.hpp"
-
-  "${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/ELF/Structures.hpp"
-  "${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/ELF/enums.hpp"
-
-  "${CMAKE_CURRENT_LIST_DIR}/RelocationSizes.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/enums.hpp"
   )
 
 set(LIEF_ELF_DATA_HANDLER_INCLUDE_FILES
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/DataHandler/Handler.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/DataHandler/Node.hpp")
-
-# JSON Part
-# =========
-set(LIEF_ELF_JSON_SRC "${CMAKE_CURRENT_LIST_DIR}/json.cpp")
-set(LIEF_ELF_JSON_HDR "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/json.hpp")
+  "${CMAKE_CURRENT_LIST_DIR}/DataHandler/Handler.hpp"
+  "${CMAKE_CURRENT_LIST_DIR}/DataHandler/Node.hpp")
 
 # Note Details Part
 # =================
 include("${CMAKE_CURRENT_LIST_DIR}/NoteDetails/CMakeLists.txt")
 
+# JSON Public API: Always present
+list(APPEND LIEF_ELF_SRC       "${CMAKE_CURRENT_LIST_DIR}/json_api.cpp")
+list(APPEND LIEF_ELF_INC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/LIEF/ELF/json.hpp")
+
+# JSON Impl
 if (LIEF_ENABLE_JSON)
-  list(APPEND LIEF_ELF_SRC       ${LIEF_ELF_JSON_SRC})
-  list(APPEND LIEF_ELF_INC_FILES ${LIEF_ELF_JSON_HDR})
+  list(APPEND LIEF_ELF_SRC       "${CMAKE_CURRENT_LIST_DIR}/json.cpp")
+  list(APPEND LIEF_ELF_INC_FILES "${CMAKE_CURRENT_LIST_DIR}/json_internal.hpp")
 endif()
 
 set(LIEF_ELF_INCLUDE_FILES
   ${LIEF_ELF_INC_FILES}
-#  ${LIEF_ELF_RELOC_INCLUDE_FILES}
   ${LIEF_ELF_DATA_HANDLER_INCLUDE_FILES})
 
 source_group("Source Files\\ELF" FILES ${LIEF_ELF_SRC})
 source_group("Header Files\\ELF" FILES ${LIEF_ELF_INC_FILES})
 source_group("Header Files\\ELF\\DataHandler" FILES ${LIEF_ELF_DATA_HANDLER_INCLUDE_FILES})
-#source_group("Header Files\\ELF\\Relocations" FILES ${LIEF_ELF_RELOC_INCLUDE_FILES})
 
 if (LIEF_ELF)
   target_sources(LIB_LIEF PRIVATE

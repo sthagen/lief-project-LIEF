@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,12 +36,12 @@ class LIEF_API PogoEntry : public Object {
 
   public:
 
-  PogoEntry(void);
+  PogoEntry();
   PogoEntry(const PogoEntry&);
-  PogoEntry(uint32_t start_rva, uint32_t size, const std::string& name);
+  PogoEntry(uint32_t start_rva, uint32_t size, std::string  name);
 
   PogoEntry& operator=(const PogoEntry&);
-  virtual ~PogoEntry(void);
+  virtual ~PogoEntry();
 
   uint32_t start_rva() const;
   uint32_t size() const;
@@ -51,7 +51,7 @@ class LIEF_API PogoEntry : public Object {
   void size(uint32_t size);
   void name(const std::string& name);
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
   bool operator==(const PogoEntry& rhs) const;
   bool operator!=(const PogoEntry& rhs) const;

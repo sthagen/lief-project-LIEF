@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,21 +19,33 @@
 #include <vector>
 #include <string>
 
+#include "LIEF/errors.hpp"
 #include "LIEF/BinaryStream/BinaryStream.hpp"
 namespace LIEF {
 class VectorStream : public BinaryStream {
   public:
-  //using BinaryStream::read_integer;
-  VectorStream(const std::string& filename);
-  VectorStream(const std::vector<uint8_t>& data);
+  static result<VectorStream> from_file(const std::string& file);
+  VectorStream(std::vector<uint8_t> data);
 
-  inline STREAM_TYPE type() const override {
-    return STREAM_TYPE::FILE;
+  VectorStream() = delete;
+
+  // VectorStream should not be copyable for performances reasons
+  VectorStream(const VectorStream&) = delete;
+  VectorStream& operator=(const VectorStream&) = delete;
+
+  VectorStream(VectorStream&& other);
+  VectorStream& operator=(VectorStream&& other);
+
+  inline uint64_t size() const override {
+    return size_;
   }
 
-  virtual uint64_t size(void) const override;
+  const std::vector<uint8_t>& content() const;
 
-  const std::vector<uint8_t>& content(void) const;
+  inline std::vector<uint8_t>&& move_content() {
+    size_ = 0;
+    return std::move(binary_);
+  }
 
   inline uint8_t* p() {
     return this->binary_.data() + this->pos();
@@ -42,7 +54,6 @@ class VectorStream : public BinaryStream {
   inline const uint8_t* p() const {
     return this->binary_.data() + this->pos();
   }
-
 
   inline uint8_t* start() {
     return this->binary_.data();
@@ -60,23 +71,24 @@ class VectorStream : public BinaryStream {
     return this->binary_.data() + this->binary_.size();
   }
 
-  virtual result<size_t> asn1_read_tag(int tag) override;
-  virtual result<size_t> asn1_read_len() override;
-  result<size_t> asn1_peek_len();
-  virtual result<std::string> asn1_read_alg() override;
-  virtual result<std::string> asn1_read_oid() override;
-  virtual result<int32_t> asn1_read_int() override;
-  virtual result<std::vector<uint8_t>> asn1_read_bitstring() override;
-  virtual result<std::vector<uint8_t>> asn1_read_octet_string() override;
-  virtual result<std::unique_ptr<mbedtls_x509_crt>> asn1_read_cert() override;
-  virtual result<std::string> x509_read_names() override;
-  virtual result<std::vector<uint8_t>> x509_read_serial() override;
-  virtual result<std::unique_ptr<mbedtls_x509_time>> x509_read_time() override;
+  result<size_t> asn1_read_tag(int tag) override;
+  result<size_t> asn1_read_len() override;
+  result<std::string> asn1_read_alg() override;
+  result<std::string> asn1_read_oid() override;
+  result<int32_t> asn1_read_int() override;
+  result<std::vector<uint8_t>> asn1_read_bitstring() override;
+  result<std::vector<uint8_t>> asn1_read_octet_string() override;
+  result<std::unique_ptr<mbedtls_x509_crt>> asn1_read_cert() override;
+  result<std::string> x509_read_names() override;
+  result<std::vector<uint8_t>> x509_read_serial() override;
+  result<std::unique_ptr<mbedtls_x509_time>> x509_read_time() override;
+
+  static bool classof(const BinaryStream& stream);
 
   protected:
-  virtual const void* read_at(uint64_t offset, uint64_t size, bool throw_error = true) const override;
+  result<const void*> read_at(uint64_t offset, uint64_t size) const override;
   std::vector<uint8_t> binary_;
-  uint64_t size_;
+  uint64_t size_ = 0; // Original size without alignment
 };
 }
 

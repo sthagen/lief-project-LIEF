@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ void create<CodeSignature>(py::module& m) {
     .def_property("data_offset",
         static_cast<getter_t<uint32_t>>(&CodeSignature::data_offset),
         static_cast<setter_t<uint32_t>>(&CodeSignature::data_offset),
-        "Offset in the binary where signature starts")
+        "Offset in the binary where the signature starts")
 
     .def_property("data_size",
         static_cast<getter_t<uint32_t>>(&CodeSignature::data_size),

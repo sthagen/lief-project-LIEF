@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 
 #include "LIEF/OAT.hpp"
 #include "pyLIEF.hpp"
-#include "pyOpaqueTypes.hpp"
 
 #include <pybind11/stl.h>
 #include <functional>
@@ -30,6 +29,8 @@
 #define CREATE(X,Y) create<X>(Y)
 
 
+PYBIND11_MAKE_OPAQUE(LIEF::OAT::Header::it_key_values_t::value_type); // std::pair<HEADER_KEYS, ref<std::string>>
+
 namespace LIEF {
 namespace OAT {
 
@@ -40,8 +41,6 @@ void init_python_module(py::module& m);
 
 void init_objects(py::module&);
 
-void init_iterators(py::module&);
-void init_opaque_types(py::module&);
 void init_enums(py::module&);
 void init_utils(py::module&);
 

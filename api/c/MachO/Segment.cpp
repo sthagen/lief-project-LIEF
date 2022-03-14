@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 namespace LIEF {
 namespace MachO {
 void init_c_segments(Macho_Binary_t* c_binary, Binary* binary) {
-  it_segments segments = binary->segments();
+  Binary::it_segments segments = binary->segments();
 
   c_binary->segments = static_cast<Macho_Segment_t**>(
       malloc((segments.size() + 1) * sizeof(Macho_Segment_t**)));
@@ -27,8 +27,8 @@ void init_c_segments(Macho_Binary_t* c_binary, Binary* binary) {
     SegmentCommand& segment = segments[i];
 
     c_binary->segments[i] = static_cast<Macho_Segment_t*>(malloc(sizeof(Macho_Segment_t)));
-    const std::vector<uint8_t>& segment_content = segment.content();
-    uint8_t* content = static_cast<uint8_t*>(malloc(segment_content.size() * sizeof(uint8_t)));
+    span<const uint8_t> segment_content = segment.content();
+    auto* content = static_cast<uint8_t*>(malloc(segment_content.size() * sizeof(uint8_t)));
     std::copy(
         std::begin(segment_content),
         std::end(segment_content),

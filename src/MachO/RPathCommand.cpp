@@ -1,5 +1,5 @@
 /* Copyright 2017 - 2021 J.Rieck (based on R. Thomas's work)
- * Copyright 2017 - 2021 Quarkslab
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,31 +18,31 @@
 
 #include "LIEF/MachO/hash.hpp"
 
-#include "LIEF/MachO/Structures.hpp"
 #include "LIEF/MachO/RPathCommand.hpp"
+#include "MachO/Structures.hpp"
 
 namespace LIEF {
 namespace MachO {
 
-RPathCommand::RPathCommand(void) = default;
+RPathCommand::RPathCommand() = default;
 RPathCommand& RPathCommand::operator=(const RPathCommand&) = default;
 RPathCommand::RPathCommand(const RPathCommand&) = default;
-RPathCommand::~RPathCommand(void) = default;
+RPathCommand::~RPathCommand() = default;
 
-RPathCommand::RPathCommand(const rpath_command *rpathCmd) :
-  LoadCommand::LoadCommand{static_cast<LOAD_COMMAND_TYPES>(rpathCmd->cmd), rpathCmd->cmdsize}
+RPathCommand::RPathCommand(const details::rpath_command& rpath) :
+  LoadCommand::LoadCommand{static_cast<LOAD_COMMAND_TYPES>(rpath.cmd), rpath.cmdsize}
 {}
 
-RPathCommand* RPathCommand::clone(void) const {
+RPathCommand* RPathCommand::clone() const {
   return new RPathCommand(*this);
 }
 
-const std::string& RPathCommand::path(void) const {
-  return this->path_;
+const std::string& RPathCommand::path() const {
+  return path_;
 }
 
 void RPathCommand::path(const std::string& path) {
-  this->path_ = path;
+  path_ = path;
 }
 
 
@@ -52,20 +52,28 @@ void RPathCommand::accept(Visitor& visitor) const {
 
 
 bool RPathCommand::operator==(const RPathCommand& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool RPathCommand::operator!=(const RPathCommand& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
+bool RPathCommand::classof(const LoadCommand* cmd) {
+  // This must be sync with BinaryParser.tcc
+  const LOAD_COMMAND_TYPES type = cmd->command();
+  return type == LOAD_COMMAND_TYPES::LC_RPATH;
+}
 
 std::ostream& RPathCommand::print(std::ostream& os) const {
   LoadCommand::print(os);
   os << std::left
-     << std::setw(10) << "Path: " << this->path();
+     << std::setw(10) << "Path: " << path();
   return os;
 }
 

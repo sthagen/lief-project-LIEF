@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,14 +50,14 @@ class hashstream {
 
   template<class Integer, typename = typename std::enable_if<std::is_integral<Integer>::value>>
   hashstream& write(Integer integer) {
-    auto int_p = reinterpret_cast<const uint8_t*>(&integer);
-    return this->write(int_p, sizeof(Integer));
+    const auto* int_p = reinterpret_cast<const uint8_t*>(&integer);
+    return write(int_p, sizeof(Integer));
   }
 
   template<typename T, size_t size, typename = typename std::enable_if<std::is_integral<T>::value>>
   hashstream& write(const std::array<T, size>& t) {
     for (T val : t) {
-      this->write<T>(val);
+      write<T>(val);
     }
     return *this;
   }
@@ -65,7 +65,7 @@ class hashstream {
   hashstream& get(std::vector<uint8_t>& c);
   hashstream& flush();
 
-  std::vector<uint8_t>& raw(void);
+  std::vector<uint8_t>& raw();
   ~hashstream();
 
   private:

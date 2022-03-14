@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 namespace LIEF {
 namespace DEX {
 
-Hash::~Hash(void) = default;
+Hash::~Hash() = default;
 
 size_t Hash::hash(const Object& obj) {
   return LIEF::Hash::hash<LIEF::DEX::Hash>(obj);
@@ -28,30 +28,30 @@ size_t Hash::hash(const Object& obj) {
 
 
 void Hash::visit(const File& file) {
-  this->process(file.location());
-  this->process(file.header());
+  process(file.location());
+  process(file.header());
 
-  this->process(std::begin(file.classes()), std::end(file.classes()));
-  this->process(std::begin(file.methods()), std::end(file.methods()));
-  this->process(std::begin(file.strings()), std::end(file.strings()));
+  process(std::begin(file.classes()), std::end(file.classes()));
+  process(std::begin(file.methods()), std::end(file.methods()));
+  process(std::begin(file.strings()), std::end(file.strings()));
 
 }
 
 void Hash::visit(const Header& header) {
-  this->process(header.magic());
-  this->process(header.checksum());
-  this->process(header.signature());
-  this->process(header.file_size());
-  this->process(header.header_size());
-  this->process(header.endian_tag());
-  this->process(header.strings());
-  this->process(header.link());
-  this->process(header.types());
-  this->process(header.prototypes());
-  this->process(header.fields());
-  this->process(header.methods());
-  this->process(header.classes());
-  this->process(header.data());
+  process(header.magic());
+  process(header.checksum());
+  process(header.signature());
+  process(header.file_size());
+  process(header.header_size());
+  process(header.endian_tag());
+  process(header.strings());
+  process(header.link());
+  process(header.types());
+  process(header.prototypes());
+  process(header.fields());
+  process(header.methods());
+  process(header.classes());
+  process(header.data());
 }
 
 void Hash::visit(const CodeInfo& /*code_info*/) {
@@ -59,25 +59,29 @@ void Hash::visit(const CodeInfo& /*code_info*/) {
 
 void Hash::visit(const Class& cls) {
 
-  it_const_fields fields = cls.fields();
-  it_const_methods methods = cls.methods();
-  this->process(cls.fullname());
-  this->process(cls.source_filename());
-  this->process(cls.access_flags());
+  Class::it_const_fields fields = cls.fields();
+  Class::it_const_methods methods = cls.methods();
+  process(cls.fullname());
+  process(cls.source_filename());
+  process(cls.access_flags());
 
-  this->process(std::begin(fields), std::end(fields));
-  this->process(std::begin(methods), std::end(methods));
+  process(std::begin(fields), std::end(fields));
+  process(std::begin(methods), std::end(methods));
 }
 
 void Hash::visit(const Field& field) {
-  this->process(field.name());
-  this->process(field.type());
+  process(field.name());
+  if (const Type* t = field.type()) {
+    process(*t);
+  }
 }
 
 void Hash::visit(const Method& method) {
-  this->process(method.name());
-  this->process(method.bytecode());
-  this->process(method.prototype());
+  process(method.name());
+  process(method.bytecode());
+  if (const auto* p = method.prototype()) {
+    process(*p);
+  }
 }
 
 
@@ -85,47 +89,48 @@ void Hash::visit(const Type& type) {
   switch (type.type()) {
     case Type::TYPES::ARRAY:
       {
-        this->process(type.dim());
-        this->process(type.underlying_array_type());
+        process(type.dim());
+        process(type.underlying_array_type());
         break;
       }
 
     case Type::TYPES::PRIMITIVE:
       {
-        this->process(type.primitive());
+        process(type.primitive());
         break;
       }
 
     case Type::TYPES::CLASS:
       {
-        this->process(type.cls().fullname());
+        process(type.cls().fullname());
         break;
       }
 
     case Type::TYPES::UNKNOWN:
     default:
       {
-        this->process(Type::TYPES::UNKNOWN);
+        process(Type::TYPES::UNKNOWN);
       }
   }
 }
 
 void Hash::visit(const Prototype& type) {
-  this->process(type.return_type());
-  this->process(
-      std::begin(type.parameters_type()),
-      std::end(type.parameters_type()));
+  if (const auto* rty = type.return_type()) {
+    process(*rty);
+  }
+  process(std::begin(type.parameters_type()),
+          std::end(type.parameters_type()));
 }
 
 void Hash::visit(const MapItem& item) {
-  this->process(item.size());
-  this->process(item.offset());
-  this->process(item.reserved());
-  this->process(item.type());
+  process(item.size());
+  process(item.offset());
+  process(item.reserved());
+  process(item.type());
 }
 
 void Hash::visit(const MapList& list) {
-  this->process(std::begin(list.items()), std::end(list.items()));
+  process(std::begin(list.items()), std::end(list.items()));
 }
 
 

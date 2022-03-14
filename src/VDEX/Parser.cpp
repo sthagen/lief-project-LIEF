@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
+#include <memory>
+
 #include "logging.hpp"
 
 #include "LIEF/VDEX/Parser.hpp"
 #include "LIEF/VDEX/utils.hpp"
-#include "LIEF/VDEX/Structures.hpp"
-
-#include "filesystem/filesystem.h"
+#include "VDEX/Structures.hpp"
 
 #include "Header.tcc"
 #include "Parser.tcc"
@@ -28,8 +28,8 @@
 namespace LIEF {
 namespace VDEX {
 
-Parser::~Parser(void) = default;
-Parser::Parser(void)  = default;
+Parser::~Parser() = default;
+Parser::Parser()  = default;
 
 std::unique_ptr<File> Parser::parse(const std::string& filename) {
   Parser parser{filename};
@@ -44,48 +44,51 @@ std::unique_ptr<File> Parser::parse(const std::vector<uint8_t>& data, const std:
 
 Parser::Parser(const std::vector<uint8_t>& data, const std::string& name) :
   file_{new File{}},
-  stream_{std::unique_ptr<VectorStream>(new VectorStream{data})}
+  stream_{std::make_unique<VectorStream>(data)}
 {
-  if (not is_vdex(data)) {
+  if (!is_vdex(data)) {
     LIEF_ERR("{} is not a VDEX file!", name);
-    delete this->file_;
-    this->file_ = nullptr;
+    delete file_;
+    file_ = nullptr;
     return;
   }
 
   vdex_version_t version = VDEX::version(data);
-  this->init(name, version);
+  init(name, version);
 }
 
 Parser::Parser(const std::string& file) :
-  file_{new File{}},
-  stream_{std::unique_ptr<VectorStream>(new VectorStream{file})}
+  file_{new File{}}
 {
-  if (not is_vdex(file)) {
+  if (!is_vdex(file)) {
     LIEF_ERR("{} is not a VDEX file!", file);
-    delete this->file_;
-    this->file_ = nullptr;
+    delete file_;
+    file_ = nullptr;
     return;
   }
 
+  if (auto s = VectorStream::from_file(file)) {
+    stream_ = std::make_unique<VectorStream>(std::move(*s));
+  }
+
   vdex_version_t version = VDEX::version(file);
-  this->init(filesystem::path(file).filename(), version);
+  init(file, version);
 }
 
 
 void Parser::init(const std::string& /*name*/, vdex_version_t version) {
   LIEF_DEBUG("VDEX version: {:d}", version);
 
-  if (version <= VDEX_6::vdex_version) {
-    return this->parse_file<VDEX6>();
+  if (version <= details::VDEX_6::vdex_version) {
+    return parse_file<details::VDEX6>();
   }
 
-  if (version <= VDEX_10::vdex_version) {
-    return this->parse_file<VDEX10>();
+  if (version <= details::VDEX_10::vdex_version) {
+    return parse_file<details::VDEX10>();
   }
 
-  if (version <= VDEX_11::vdex_version) {
-    return this->parse_file<VDEX11>();
+  if (version <= details::VDEX_11::vdex_version) {
+    return parse_file<details::VDEX11>();
   }
 }
 

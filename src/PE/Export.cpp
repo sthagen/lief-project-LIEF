@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,18 @@
 
 #include "LIEF/PE/hash.hpp"
 
-#include "LIEF/PE/Structures.hpp"
 #include "LIEF/PE/Export.hpp"
 #include "LIEF/PE/ExportEntry.hpp"
+#include "PE/Structures.hpp"
 
 namespace LIEF {
 namespace PE {
 
-Export::~Export(void) = default;
+Export::~Export() = default;
 Export::Export(const Export&) = default;
 Export& Export::operator=(const Export&) = default;
 
-Export::Export(void) :
+Export::Export() :
   exportFlags_{0},
   timestamp_{0},
   majorVersion_{0},
@@ -36,68 +36,68 @@ Export::Export(void) :
   ordinalBase_{0}
 {}
 
-Export::Export(const pe_export_directory_table *header) :
-  exportFlags_{header->ExportFlags},
-  timestamp_{header->Timestamp},
-  majorVersion_{header->MajorVersion},
-  minorVersion_{header->MinorVersion},
-  ordinalBase_{header->OrdinalBase}
+Export::Export(const details::pe_export_directory_table& header) :
+  exportFlags_{header.ExportFlags},
+  timestamp_{header.Timestamp},
+  majorVersion_{header.MajorVersion},
+  minorVersion_{header.MinorVersion},
+  ordinalBase_{header.OrdinalBase}
 {}
 
-uint32_t Export::export_flags(void) const {
-  return this->exportFlags_;
+uint32_t Export::export_flags() const {
+  return exportFlags_;
 }
 
-uint32_t Export::timestamp(void) const {
-  return this->timestamp_;
+uint32_t Export::timestamp() const {
+  return timestamp_;
 }
 
-uint16_t Export::major_version(void) const {
-  return this->majorVersion_;
+uint16_t Export::major_version() const {
+  return majorVersion_;
 }
 
-uint16_t Export::minor_version(void) const {
-  return this->minorVersion_;
+uint16_t Export::minor_version() const {
+  return minorVersion_;
 }
 
-uint32_t Export::ordinal_base(void) const {
-  return this->ordinalBase_;
+uint32_t Export::ordinal_base() const {
+  return ordinalBase_;
 }
 
-const std::string& Export::name(void) const {
-  return this->name_;
+const std::string& Export::name() const {
+  return name_;
 }
 
-it_export_entries Export::entries(void) {
-  return this->entries_;
+Export::it_entries Export::entries() {
+  return entries_;
 }
 
-it_const_export_entries Export::entries(void) const {
-  return this->entries_;
+Export::it_const_entries Export::entries() const {
+  return entries_;
 }
 
 void Export::export_flags(uint32_t flags) {
-  this->exportFlags_ = flags;
+  exportFlags_ = flags;
 }
 
 void Export::timestamp(uint32_t timestamp) {
-  this->timestamp_ = timestamp;
+  timestamp_ = timestamp;
 }
 
 void Export::major_version(uint16_t major_version) {
-  this->majorVersion_ = major_version;
+  majorVersion_ = major_version;
 }
 
 void Export::minor_version(uint16_t minor_version) {
-  this->minorVersion_ = minor_version;
+  minorVersion_ = minor_version;
 }
 
 void Export::ordinal_base(uint32_t ordinal_base) {
-  this->ordinalBase_ = ordinal_base;
+  ordinalBase_ = ordinal_base;
 }
 
 void Export::name(const std::string& name) {
-  this->name_ = name;
+  name_ = name;
 }
 
 void Export::accept(LIEF::Visitor& visitor) const {
@@ -105,13 +105,16 @@ void Export::accept(LIEF::Visitor& visitor) const {
 }
 
 bool Export::operator==(const Export& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool Export::operator!=(const Export& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const Export& exp) {

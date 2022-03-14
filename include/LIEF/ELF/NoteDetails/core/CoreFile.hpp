@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,42 +55,42 @@ class LIEF_API CoreFile : public NoteDetails {
   public:
   static CoreFile make(Note& note);
 
-  virtual CoreFile* clone(void) const override;
+  CoreFile* clone() const override;
 
   //! Number of coredump file entries
-  uint64_t count(void) const;
+  uint64_t count() const;
 
   //! Coredump file entries
-  const files_t& files(void) const;
+  const files_t& files() const;
 
-  iterator begin(void);
-  iterator end(void);
+  iterator begin();
+  iterator end();
 
-  const_iterator begin(void) const;
-  const_iterator end(void) const;
+  const_iterator begin() const;
+  const_iterator end() const;
 
   void files(const files_t&);
 
   bool operator==(const CoreFile& rhs) const;
   bool operator!=(const CoreFile& rhs) const;
 
-  virtual void dump(std::ostream& os) const override;
+  void dump(std::ostream& os) const override;
 
-  virtual void accept(Visitor& visitor) const override;
+  void accept(Visitor& visitor) const override;
 
-  virtual ~CoreFile(void);
+  virtual ~CoreFile();
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const CoreFile& note);
 
   protected:
   template <typename ELF_T>
-  LIEF_LOCAL void parse_(void);
+  LIEF_LOCAL void parse_();
 
   template <typename ELF_T>
-  LIEF_LOCAL void build_(void);
+  LIEF_LOCAL void build_();
 
-  virtual void parse(void) override;
-  virtual void build(void) override;
+  void parse() override;
+  void build() override;
 
   private:
   CoreFile(Note& note);

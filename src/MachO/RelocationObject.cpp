@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,61 +15,45 @@
  */
 #include <numeric>
 #include <iomanip>
+#include "logging.hpp"
 
 #include "LIEF/MachO/hash.hpp"
 #include "LIEF/MachO/RelocationObject.hpp"
 #include "LIEF/MachO/EnumToString.hpp"
 #include "LIEF/MachO/Section.hpp"
+#include "MachO/Structures.hpp"
 
 namespace LIEF {
 namespace MachO {
-
+RelocationObject::RelocationObject(const RelocationObject& other) = default;
+RelocationObject::~RelocationObject() = default;
+RelocationObject::RelocationObject() = default;
 
 RelocationObject& RelocationObject::operator=(RelocationObject other) {
-  this->swap(other);
+  swap(other);
   return *this;
 }
 
-RelocationObject::RelocationObject(const RelocationObject& other) :
-  Relocation{other},
-  is_pcrel_{other.is_pcrel_},
-  is_scattered_{other.is_scattered_},
-  value_{other.value_}
-{}
-
-RelocationObject::~RelocationObject(void) = default;
-
-RelocationObject::RelocationObject(void) :
-  Relocation::Relocation{},
-  is_pcrel_{false},
-  is_scattered_{false},
-  value_{0}
-{}
-
-RelocationObject::RelocationObject(const relocation_info *relocinfo) :
-  Relocation::Relocation{},
-  is_pcrel_{static_cast<bool>(relocinfo->r_pcrel)},
-  is_scattered_{false},
-  value_{0}
+RelocationObject::RelocationObject(const details::relocation_info& relocinfo) :
+  is_pcrel_{static_cast<bool>(relocinfo.r_pcrel)}
 {
-  this->address_ = static_cast<uint32_t>(relocinfo->r_address);
-  this->size_    = static_cast<uint8_t>(relocinfo->r_length);
-  this->type_    = static_cast<uint8_t>(relocinfo->r_type);
+  address_ = static_cast<uint32_t>(relocinfo.r_address);
+  size_    = static_cast<uint8_t>(relocinfo.r_length);
+  type_    = static_cast<uint8_t>(relocinfo.r_type);
 }
 
-RelocationObject::RelocationObject(const scattered_relocation_info *scattered_relocinfo) :
-  Relocation::Relocation{},
-  is_pcrel_{static_cast<bool>(scattered_relocinfo->r_pcrel)},
+RelocationObject::RelocationObject(const details::scattered_relocation_info& scattered_relocinfo) :
+  is_pcrel_{static_cast<bool>(scattered_relocinfo.r_pcrel)},
   is_scattered_{true},
-  value_{scattered_relocinfo->r_value}
+  value_{scattered_relocinfo.r_value}
 {
-  this->address_ = scattered_relocinfo->r_address;
-  this->size_    = static_cast<uint8_t>(scattered_relocinfo->r_length);
-  this->type_    = static_cast<uint8_t>(scattered_relocinfo->r_type);
+  address_ = scattered_relocinfo.r_address;
+  size_    = static_cast<uint8_t>(scattered_relocinfo.r_length);
+  type_    = static_cast<uint8_t>(scattered_relocinfo.r_type);
 }
 
 
-RelocationObject* RelocationObject::clone(void) const {
+RelocationObject* RelocationObject::clone() const {
   return new RelocationObject(*this);
 }
 
@@ -77,85 +61,69 @@ RelocationObject* RelocationObject::clone(void) const {
 void RelocationObject::swap(RelocationObject& other) {
   Relocation::swap(other);
 
-  std::swap(this->is_pcrel_,     other.is_pcrel_);
-  std::swap(this->is_scattered_, other.is_scattered_);
-  std::swap(this->value_,        other.value_);
+  std::swap(is_pcrel_,     other.is_pcrel_);
+  std::swap(is_scattered_, other.is_scattered_);
+  std::swap(value_,        other.value_);
 }
 
-bool RelocationObject::is_pc_relative(void) const {
-  return this->is_pcrel_;
+bool RelocationObject::is_pc_relative() const {
+  return is_pcrel_;
 }
 
-size_t RelocationObject::size(void) const {
-  if (this->size_ < 2) {
-    return (this->size_ + 1) * 8;
-  } else {
-    return sizeof(uint32_t) * 8;
+size_t RelocationObject::size() const {
+  if (size_ < 2) {
+    return (size_ + 1) * 8;
   }
+  return sizeof(uint32_t) * 8;
 }
 
 
-bool RelocationObject::is_scattered(void) const {
-  return this->is_scattered_;
+bool RelocationObject::is_scattered() const {
+  return is_scattered_;
 }
 
 
-uint64_t RelocationObject::address(void) const {
-  if (not this->has_section()) {
+uint64_t RelocationObject::address() const {
+  const Section* sec = section();
+  if (sec == nullptr) {
     return Relocation::address();
   }
 
-  return this->address_ + this->section().offset();
+  return address_ + section()->offset();
 }
 
-int32_t RelocationObject::value(void) const {
-  if (not this->is_scattered()) {
-    throw not_found("This relocation is not a 'scattered' one");
+int32_t RelocationObject::value() const {
+  if (!is_scattered()) {
+    LIEF_ERR("This relocation is not a 'scattered' one");
+    return -1;
   }
-  return this->value_;
+  return value_;
 }
 
-RELOCATION_ORIGINS RelocationObject::origin(void) const {
+RELOCATION_ORIGINS RelocationObject::origin() const {
   return RELOCATION_ORIGINS::ORIGIN_RELOC_TABLE;
 }
 
 
 void RelocationObject::pc_relative(bool val) {
-  this->is_pcrel_ = val;
+  is_pcrel_ = val;
 }
 
 void RelocationObject::size(size_t size) {
   switch(size) {
-    case 8:
-      {
-        this->size_ = 0;
-        break;
-      }
-
-    case 16:
-      {
-        this->size_ = 1;
-        break;
-      }
-
-    case 32:
-      {
-        this->size_ = 2;
-        break;
-      }
-
-    default:
-      {
-        throw integrity_error("Size must not be bigger than 32 bits");
-      }
+    case 8:  size_ = 0; break;
+    case 16: size_ = 1; break;
+    case 32: size_ = 2; break;
+    default: LIEF_ERR("Size must not be bigger than 32 bits");
   }
 }
 
 void RelocationObject::value(int32_t value) {
-  if (not this->is_scattered()) {
-    throw not_found("This relocation is not a 'scattered' one");
+  if (!is_scattered()) {
+    LIEF_ERR("This relocation is not a 'scattered' one");
+    return;
   }
-  this->value_ = value;
+  value_ = value;
 }
 
 
@@ -165,15 +133,22 @@ void RelocationObject::accept(Visitor& visitor) const {
 
 
 bool RelocationObject::operator==(const RelocationObject& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool RelocationObject::operator!=(const RelocationObject& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
+
+bool RelocationObject::classof(const Relocation& r) {
+  return r.origin() == RELOCATION_ORIGINS::ORIGIN_RELOC_TABLE;
+}
 
 std::ostream& RelocationObject::print(std::ostream& os) const {
   return Relocation::print(os);

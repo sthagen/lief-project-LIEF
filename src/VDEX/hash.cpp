@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 namespace LIEF {
 namespace VDEX {
 
-Hash::~Hash(void) = default;
+Hash::~Hash() = default;
 
 size_t Hash::hash(const Object& obj) {
   return LIEF::Hash::hash<LIEF::VDEX::Hash>(obj);
@@ -29,19 +29,19 @@ size_t Hash::hash(const Object& obj) {
 
 
 void Hash::visit(const File& file) {
-  this->process(file.header());
+  process(file.header());
   for (const DEX::File& dexfile : file.dex_files()) {
-    this->process(DEX::Hash::hash(dexfile));
+    process(DEX::Hash::hash(dexfile));
   }
 }
 
 void Hash::visit(const Header& header) {
-  this->process(header.magic());
-  this->process(header.version());
-  this->process(header.nb_dex_files());
-  this->process(header.dex_size());
-  this->process(header.verifier_deps_size());
-  this->process(header.quickening_info_size());
+  process(header.magic());
+  process(header.version());
+  process(header.nb_dex_files());
+  process(header.dex_size());
+  process(header.verifier_deps_size());
+  process(header.quickening_info_size());
 }
 
 

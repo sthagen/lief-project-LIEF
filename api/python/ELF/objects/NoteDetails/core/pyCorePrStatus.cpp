@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,19 +41,19 @@ void create<CorePrStatus>(py::module& m) {
 
   py::class_<CorePrStatus, NoteDetails> cls(m, "CorePrStatus");
 
-  py::class_<Elf64_timeval>(cls, "timeval")
-    .def_readwrite("sec",  &Elf64_timeval::tv_sec)
-    .def_readwrite("usec", &Elf64_timeval::tv_usec);
+  py::class_<CorePrStatus::timeval_t>(cls, "timeval")
+    .def_readwrite("sec",  &CorePrStatus::timeval_t::sec)
+    .def_readwrite("usec", &CorePrStatus::timeval_t::usec);
 
-  py::class_<Elf_siginfo>(cls, "siginfo")
-    .def_readwrite("sicode", &Elf_siginfo::si_code)
-    .def_readwrite("errno",  &Elf_siginfo::si_errno)
-    .def_readwrite("signo",  &Elf_siginfo::si_signo);
+  py::class_<CorePrStatus::siginfo_t>(cls, "siginfo")
+    .def_readwrite("sicode", &CorePrStatus::siginfo_t::si_code)
+    .def_readwrite("errno",  &CorePrStatus::siginfo_t::si_errno)
+    .def_readwrite("signo",  &CorePrStatus::siginfo_t::si_signo);
 
   cls
     .def_property("siginfo",
-        static_cast<getter_t<const Elf_siginfo&>>(&CorePrStatus::siginfo),
-        static_cast<setter_t<const Elf_siginfo&>>(&CorePrStatus::siginfo),
+        static_cast<getter_t<const CorePrStatus::siginfo_t&>>(&CorePrStatus::siginfo),
+        static_cast<setter_t<const CorePrStatus::siginfo_t&>>(&CorePrStatus::siginfo),
         "Info associated with the signal")
 
     .def_property("current_sig",
@@ -92,34 +92,34 @@ void create<CorePrStatus>(py::module& m) {
         "Process session ID")
 
     .def_property("utime",
-        static_cast<getter_t<Elf64_timeval>>(&CorePrStatus::utime),
-        static_cast<setter_t<Elf64_timeval>>(&CorePrStatus::utime),
+        static_cast<getter_t<CorePrStatus::timeval_t>>(&CorePrStatus::utime),
+        static_cast<setter_t<CorePrStatus::timeval_t>>(&CorePrStatus::utime),
         "User time (" RST_CLASS_REF(lief.ELF.CorePrStatus.timeval) ")")
 
     .def_property("utime",
-        static_cast<getter_t<Elf64_timeval>>(&CorePrStatus::utime),
-        static_cast<setter_t<Elf64_timeval>>(&CorePrStatus::utime),
+        static_cast<getter_t<CorePrStatus::timeval_t>>(&CorePrStatus::utime),
+        static_cast<setter_t<CorePrStatus::timeval_t>>(&CorePrStatus::utime),
         "User time (" RST_CLASS_REF(lief.ELF.CorePrStatus.timeval) ")")
 
     .def_property("stime",
-        static_cast<getter_t<Elf64_timeval>>(&CorePrStatus::stime),
-        static_cast<setter_t<Elf64_timeval>>(&CorePrStatus::stime),
+        static_cast<getter_t<CorePrStatus::timeval_t>>(&CorePrStatus::stime),
+        static_cast<setter_t<CorePrStatus::timeval_t>>(&CorePrStatus::stime),
         "System time (" RST_CLASS_REF(lief.ELF.CorePrStatus.timeval) ")")
 
     .def_property("cutime",
-        static_cast<getter_t<Elf64_timeval>>(&CorePrStatus::cutime),
-        static_cast<setter_t<Elf64_timeval>>(&CorePrStatus::cutime),
+        static_cast<getter_t<CorePrStatus::timeval_t>>(&CorePrStatus::cutime),
+        static_cast<setter_t<CorePrStatus::timeval_t>>(&CorePrStatus::cutime),
         "Cumulative user time (" RST_CLASS_REF(lief.ELF.CorePrStatus.timeval) ")")
 
     .def_property("cstime",
-        static_cast<getter_t<Elf64_timeval>>(&CorePrStatus::cstime),
-        static_cast<setter_t<Elf64_timeval>>(&CorePrStatus::cstime),
+        static_cast<getter_t<CorePrStatus::timeval_t>>(&CorePrStatus::cstime),
+        static_cast<setter_t<CorePrStatus::timeval_t>>(&CorePrStatus::cstime),
         "Cumulative system time (" RST_CLASS_REF(lief.ELF.CorePrStatus.timeval) ")")
 
     .def_property("register_context",
         static_cast<getter_t<const CorePrStatus::reg_context_t&>>(&CorePrStatus::reg_context),
         static_cast<setter_t<const CorePrStatus::reg_context_t&>>(&CorePrStatus::reg_context),
-        "Current registers state as a dictionarry whose keys are "
+        "Current registers state as a dictionary where the keys are "
         RST_CLASS_REF(lief.ELF.CorePrStatus.REGISTERS) " and the values the register's value")
 
     .def("get",

@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,10 @@ using setter_t = void (DataDirectory::*)(T);
 
 template<>
 void create<DataDirectory>(py::module& m) {
-  py::class_<DataDirectory, LIEF::Object>(m, "DataDirectory")
+  py::class_<DataDirectory, LIEF::Object>(m, "DataDirectory",
+      R"delim(
+      Class that represents a PE data directory entry
+      )delim")
     .def(py::init<>())
     .def_property("rva",
         static_cast<getter_t<uint32_t>>(&DataDirectory::RVA),
@@ -46,8 +49,8 @@ void create<DataDirectory>(py::module& m) {
         "Size in bytes of the content associated with the current data directory")
 
     .def_property_readonly("section",
-        static_cast<Section& (DataDirectory::*) (void)>(&DataDirectory::section),
-        "" RST_CLASS_REF(lief.PE.Section) " associated with the current data directory",
+        static_cast<Section* (DataDirectory::*) (void)>(&DataDirectory::section),
+        "" RST_CLASS_REF(lief.PE.Section) " associated with the current data directory or None if not linked",
         py::return_value_policy::reference)
 
     .def_property_readonly("type",

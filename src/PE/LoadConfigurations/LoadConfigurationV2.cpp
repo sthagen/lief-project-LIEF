@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,23 +26,20 @@ namespace PE {
 
 LoadConfigurationV2& LoadConfigurationV2::operator=(const LoadConfigurationV2&) = default;
 LoadConfigurationV2::LoadConfigurationV2(const LoadConfigurationV2&) = default;
-LoadConfigurationV2::~LoadConfigurationV2(void) = default;
+LoadConfigurationV2::~LoadConfigurationV2() = default;
 
-LoadConfigurationV2::LoadConfigurationV2(void) :
-  LoadConfigurationV1{},
-  code_integrity_{}
-{}
+LoadConfigurationV2::LoadConfigurationV2() = default;
 
-WIN_VERSION LoadConfigurationV2::version(void) const {
+WIN_VERSION LoadConfigurationV2::version() const {
   return LoadConfigurationV2::VERSION;
 }
 
 
-const CodeIntegrity& LoadConfigurationV2::code_integrity(void) const {
-  return this->code_integrity_;
+const CodeIntegrity& LoadConfigurationV2::code_integrity() const {
+  return code_integrity_;
 }
 
-CodeIntegrity& LoadConfigurationV2::code_integrity(void) {
+CodeIntegrity& LoadConfigurationV2::code_integrity() {
   return const_cast<CodeIntegrity&>(static_cast<const LoadConfigurationV2*>(this)->code_integrity());
 }
 
@@ -51,21 +48,23 @@ void LoadConfigurationV2::accept(Visitor& visitor) const {
 }
 
 bool LoadConfigurationV2::operator==(const LoadConfigurationV2& rhs) const {
+  if (this == &rhs) {
+    return true;
+  }
   size_t hash_lhs = Hash::hash(*this);
   size_t hash_rhs = Hash::hash(rhs);
   return hash_lhs == hash_rhs;
 }
 
 bool LoadConfigurationV2::operator!=(const LoadConfigurationV2& rhs) const {
-  return not (*this == rhs);
+  return !(*this == rhs);
 }
 
 std::ostream& LoadConfigurationV2::print(std::ostream& os) const {
   LoadConfigurationV1::print(os);
 
   os << std::setw(LoadConfiguration::PRINT_WIDTH) << std::setfill(' ') << "Code Integrity:" << std::endl;
-  oprefixstream out("    ", os);
-  out << this->code_integrity();
+  os << code_integrity();
   return os;
 }
 

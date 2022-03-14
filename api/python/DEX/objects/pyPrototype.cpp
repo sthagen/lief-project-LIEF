@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ void create<Prototype>(py::module& m) {
 
   py::class_<Prototype, LIEF::Object>(m, "Prototype", "DEX Prototype representation")
     .def_property_readonly("return_type",
-        static_cast<no_const_getter_t<Type&>>(&Prototype::return_type),
+        static_cast<no_const_getter_t<Type*>>(&Prototype::return_type),
         "" RST_CLASS_REF(lief.DEX.Type) " returned",
         py::return_value_policy::reference)
 

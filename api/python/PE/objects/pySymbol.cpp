@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,8 +62,8 @@ void create<Symbol>(py::module& m) {
         &Symbol::numberof_aux_symbols)
 
     .def_property_readonly("section",
-        static_cast<no_const_getter<Section&>>(&Symbol::section),
-        py::return_value_policy::reference_internal)
+        static_cast<no_const_getter<Section*>>(&Symbol::section),
+        py::return_value_policy::reference)
 
     .def_property_readonly("has_section",
         &Symbol::has_section,

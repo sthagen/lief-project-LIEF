@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "LIEF/MachO/hash.hpp"
 #include "LIEF/MachO/DataInCode.hpp"
 
+#include "pyIterators.hpp"
 #include "pyMachO.hpp"
 
 
@@ -38,18 +39,24 @@ template<>
 void create<DataInCode>(py::module& m) {
 
   // Init Iterator
-  init_ref_iterator<DataInCode::it_entries>(m);
+  init_ref_iterator<DataInCode::it_entries>(m, "it_data_in_code_entries");
 
-  py::class_<DataInCode, LoadCommand>(m, "DataInCode")
+  py::class_<DataInCode, LoadCommand>(m, "DataInCode",
+      R"delim(
+      Interface of the LC_DATA_IN_CODE command
+
+      This command is used to list slices of code sections that contain data. The *slices*
+      information are stored as an array of :class:`~lief.MachO.DataCodeEntry`
+      )delim")
     .def_property("data_offset",
         static_cast<getter_t<uint32_t>>(&DataInCode::data_offset),
         static_cast<setter_t<uint32_t>>(&DataInCode::data_offset),
-        "Offset in the binary where signature starts")
+        "Start of the array of the DataCodeEntry entries")
 
     .def_property("data_size",
         static_cast<getter_t<uint32_t>>(&DataInCode::data_size),
         static_cast<setter_t<uint32_t>>(&DataInCode::data_size),
-        "Size of the raw signature")
+        "Whole size of the array (``size = sizeof(DataCodeEntry) * nb_elements``)")
 
     .def_property_readonly("entries",
         static_cast<DataInCode::it_entries (DataInCode::*)(void)>(&DataInCode::entries),

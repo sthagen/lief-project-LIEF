@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +34,10 @@ using setter_t = void (LoadConfigurationV0::*)(T);
 template<>
 void create<LoadConfigurationV0>(py::module& m) {
   py::class_<LoadConfigurationV0, LoadConfiguration>(m, "LoadConfigurationV0",
-    "" RST_CLASS_REF(lief.PE.LoadConfiguration) " enhanced with SEH. \n\n"
-    "It is associated with the " RST_CLASS_REF(lief.PE.WIN_VERSION) ": "
-    ":attr:`~lief.PE.WIN_VERSION.SEH`")
+    R"delim(
+    :class:`~lief.PE.LoadConfiguration` enhanced with SEH.
+    It is associated with the :class:`~lief.PE.WIN_VERSION`: :attr:`~lief.PE.WIN_VERSION.SEH`
+    )delim")
 
     .def(py::init<>())
 

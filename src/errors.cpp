@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,10 @@ const std::error_category& lief_error_category() {
         case lief_errors::read_out_of_bound: return "read_out_of_bound";
         case lief_errors::asn1_bad_tag:      return "asn1_bad_tag";
         case lief_errors::file_error:        return "file_error";
+        case lief_errors::file_format_error: return "file_format_error";
+        case lief_errors::parsing_error:     return "parsing_error";
+        case lief_errors::build_error:       return "build_error";
+        case lief_errors::data_too_large:    return "data_too_large";
         default: return "error";
       }
     }

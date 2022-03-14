@@ -1,5 +1,5 @@
-/* Copyright 2021 R. Thomas
- * Copyright 2021 Quarkslab
+/* Copyright 2021 - 2022 R. Thomas
+ * Copyright 2021 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ PKCS9MessageDigest::PKCS9MessageDigest(std::vector<uint8_t> digest) :
   digest_{std::move(digest)}
 {}
 
-std::unique_ptr<Attribute> PKCS9MessageDigest::clone(void) const {
+std::unique_ptr<Attribute> PKCS9MessageDigest::clone() const {
   return std::unique_ptr<Attribute>(new PKCS9MessageDigest{*this});
 }
 
@@ -41,7 +41,7 @@ void PKCS9MessageDigest::accept(Visitor& visitor) const {
 }
 
 std::string PKCS9MessageDigest::print() const {
-  return hex_dump(this->digest());
+  return hex_dump(digest());
 }
 
 

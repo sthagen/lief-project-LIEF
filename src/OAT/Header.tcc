@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2021 R. Thomas
- * Copyright 2017 - 2021 Quarkslab
+/* Copyright 2017 - 2022 R. Thomas
+ * Copyright 2017 - 2022 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 #include <string>
+#include "LIEF/OAT/Header.hpp"
+#include "OAT/Structures.hpp"
 namespace LIEF {
 namespace OAT {
 
@@ -41,17 +43,13 @@ Header::Header(const T* header) :
   dex2oat_context_{}
 {
 
-  std::copy(
-      std::begin(header->magic),
-      std::end(header->magic),
-      std::begin(this->magic_)
+  std::copy(std::begin(header->magic), std::end(header->magic),
+            std::begin(magic_)
   );
-  if (std::all_of(
-        std::begin(header->oat_version),
-        std::end(header->oat_version) - 1,
-        ::isdigit))
+  if (std::all_of(std::begin(header->oat_version), std::end(header->oat_version) - 1,
+                  ::isdigit))
   {
-    this->version_ = static_cast<uint32_t>(
+    version_ = static_cast<uint32_t>(
         std::stoi(
           std::string{reinterpret_cast<const char*>(header->oat_version), sizeof(header->oat_version)}));
   }
@@ -60,7 +58,7 @@ Header::Header(const T* header) :
 
 
 template<>
-Header::Header(const OAT_131::oat_header* header) :
+Header::Header(const details::OAT_131::oat_header* header) :
   magic_{},
   version_{0},
   checksum_{header->adler32_checksum},
@@ -86,14 +84,14 @@ Header::Header(const OAT_131::oat_header* header) :
   std::copy(
       std::begin(header->magic),
       std::end(header->magic),
-      std::begin(this->magic_)
+      std::begin(magic_)
   );
   if (std::all_of(
         std::begin(header->oat_version),
         std::end(header->oat_version) - 1,
         ::isdigit))
   {
-    this->version_ = static_cast<uint32_t>(std::stoi(std::string{reinterpret_cast<const char*>(header->oat_version), sizeof(header->oat_version)}));
+    version_ = static_cast<uint32_t>(std::stoi(std::string{reinterpret_cast<const char*>(header->oat_version), sizeof(header->oat_version)}));
   }
 
 }
