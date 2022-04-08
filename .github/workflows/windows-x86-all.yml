@@ -52,15 +52,21 @@ jobs:
           ${{ runner.os }}-x86-sccache-
     - name: Start sccache server
       run: sccache --start-server
+    - name: Set env variables
+      run: |
+        chcp 65001 #set code page to utf-8
+        echo ("LIEF_SAMPLES_DIR=" + $env:RUNNER_TEMP + "/samples") >> $env:GITHUB_ENV
     - name: ⛓ Build Python ${{ matrix.python-version }} & Test
       if: matrix.python-version == 3.6
       run: |
-        python ./setup.py --ninja --lief-test bdist_wheel
+        python -m pip install pytest requests
+        python tests/dl_samples.py %LIEF_SAMPLES_DIR%
+        python ./setup.py --ninja --lief-test bdist_wheel --plat-name=win32
       shell: cmd
     - name: ❱ Build Python ${{ matrix.python-version }}
       if: matrix.python-version != 3.6
       run: |
-        python ./setup.py --ninja bdist_wheel
+        python ./setup.py --ninja bdist_wheel --plat-name=win32
       shell: cmd
     - name: ❱ Build SDK
       if: matrix.python-version == 3.9
@@ -84,7 +90,6 @@ jobs:
     - name: 🛑 Stop sccache server
       run: sccache --stop-server || true
     - name: Setup WSL
-      if: matrix.python-version == 3.9
       uses: Vampire/setup-wsl@v1
       with:
         distribution: Debian
@@ -104,15 +109,14 @@ jobs:
           ssh
     - shell: wsl-bash {0}
       name: Deploy
-      if: matrix.python-version == 3.9
       env:
-        LIEF_AUTOMATIC_BUILDS_KEY: ${{ secrets.LIEF_AUTOMATIC_BUILDS_KEY }}
-        LIEF_AUTOMATIC_BUILDS_IV: ${{ secrets.LIEF_AUTOMATIC_BUILDS_IV }}
+        LIEF_S3_KEY: ${{ secrets.LIEF_S3_KEY }}
+        LIEF_S3_SECRET: ${{ secrets.LIEF_S3_SECRET }}
         GITHUB_ACTIONS: "true"
         GITHUB_WORKSPACE: ${{ env.GITHUB_WORKSPACE }}
         GITHUB_REF: ${{ env.GITHUB_REF }}
         GITHUB_REPOSITORY: ${{ env.GITHUB_REPOSITORY }}
-        WSLENV: LIEF_AUTOMATIC_BUILDS_KEY:LIEF_AUTOMATIC_BUILDS_IV:GITHUB_ACTIONS:GITHUB_WORKSPACE:GITHUB_REF:GITHUB_REPOSITORY
+        WSLENV: LIEF_S3_KEY:LIEF_S3_SECRET:GITHUB_ACTIONS:GITHUB_WORKSPACE:GITHUB_REF:GITHUB_REPOSITORY
       run: |
-        python3 -m pip install --no-cache-dir --upgrade pip setuptools requests mako wheel
+        python3 -m pip install --no-cache-dir --upgrade pip setuptools requests mako wheel boto3
         python3 .github/deploy.py

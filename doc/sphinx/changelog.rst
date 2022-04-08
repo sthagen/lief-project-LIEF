@@ -1,6 +1,62 @@
 Changelog
 =========
 
+0.13.0 - Not Released Yet
+-------------------------
+
+:ELF:
+
+  * Add support for modifying section-less binaries. The ELF :class:`~lief.ELF.Section` objects gain
+    the :meth:`lief.ELF.Section.as_frame` method which defines the section as a *framed* section.
+
+    A framed section is a section that concretely does not wraps data and can be corrupted.
+
+    :Example:
+
+      .. code-block:: python
+
+        elf = lief.parse("/bin/ssh")
+        text = elf.get_section(".text").as_frame()
+
+        # We can now corrupt all the fields of the section
+        text.offset  = 0xdeadc0de
+        text.size    = 0xffffff
+        text.address = 0x123
+
+        elf.write("/tmp/out")
+
+:MachO:
+
+  * Add API to get a :class:`~lief.MachO.Section` from a specified segment's name and section's name.
+
+  :Example:
+
+    .. code-block:: python
+
+      sec = bin.get_section("__DATA", "__objc_metadata")
+
+:General Design:
+
+  * Remove the exceptions
+
+
+0.12.1 - April 08, 2022
+------------------------
+
+:ELF:
+  * Fix section inclusion calculations (:pr:`692`)
+
+:PE:
+  * Fix parsing regressions (:issue:`689`, :issue:`687`, :issue:`686`, :issue:`685`, :issue:`691`, :issue:`693`)
+
+:Compilation:
+  * Nightly builds are now upload to Saleway's S3 server:
+
+    - https://lief.s3-website.fr-par.scw.cloud/latest/lief
+    - https://lief.s3-website.fr-par.scw.cloud/latest/sdk
+
+  * Fix `GLIBCXX_USE_CXX11_ABI=1` ABI issue (see: :issue:`683`)
+
 0.12.0 - March 25, 2022
 -----------------------
 

@@ -328,12 +328,20 @@ ok_error_t ResourcesParser::parse_string_file_info(ResourceVersion& version, Bin
     uint16_t wType = 0;
     std::u16string szKey;
 
+    const size_t pos = stream.pos();
+
     if (auto res = stream.read<uint16_t>()) {
       wLength = *res;
       LIEF_DEBUG("StringTable.wLength: 0x{:x}", wLength);
+      if (wLength == 0) {
+        LIEF_WARN("StringTable.wLength should not be null");
+        break;
+      }
     } else {
       LIEF_ERR("Can't read StringTable.wLength");
     }
+
+    const size_t end_offset = pos + wLength;
 
     if (auto res = stream.read<uint16_t>()) {
       wValueLength = *res;
@@ -389,7 +397,7 @@ ok_error_t ResourcesParser::parse_string_file_info(ResourceVersion& version, Bin
 
       LangCodeItem lang{wType, szKey};
       stream.align(sizeof(uint32_t));
-      if(parse_string(lang, stream)) {
+      if (parse_string(lang, stream)) {
         version.string_file_info_->childs_.push_back(std::move(lang));
       } else {
         LIEF_WARN("StringTable.String parsed with error");
@@ -398,6 +406,7 @@ ok_error_t ResourcesParser::parse_string_file_info(ResourceVersion& version, Bin
       LIEF_ERR("Can't read StringTable.szKey");
       return make_error_code(lief_errors::parsing_error);
     }
+    stream.setpos(end_offset);
   }
   return ok();
 }
@@ -407,7 +416,7 @@ ok_error_t ResourcesParser::parse_string(LangCodeItem& lci, BinaryStream& stream
   /* https://docs.microsoft.com/en-us/windows/win32/menurc/string-str
    * typedef struct {
    *   WORD  wLength;
-   *   WORD  wValueLength;
+   *   WORD  wValueLength; // The size, in words, of the Value member.
    *   WORD  wType;
    *   WCHAR szKey;
    *   WORD  Padding;
@@ -421,12 +430,19 @@ ok_error_t ResourcesParser::parse_string(LangCodeItem& lci, BinaryStream& stream
   std::u16string value;
   while (stream) {
     stream.align(sizeof(uint32_t));
+    const size_t pos = stream.pos();
     if (auto res = stream.read<uint16_t>()) {
       wLength = *res;
       LIEF_DEBUG("String.wLength: 0x{:x}", wLength);
+      if (wLength == 0) {
+        LIEF_WARN("String.wLength should not be null.");
+        break;
+      }
     } else {
       LIEF_ERR("Can't read String.wLength");
     }
+
+    const size_t end_offset = pos + wLength;
 
     if (auto res = stream.read<uint16_t>()) {
       wValueLength = *res;
@@ -445,22 +461,39 @@ ok_error_t ResourcesParser::parse_string(LangCodeItem& lci, BinaryStream& stream
       LIEF_ERR("Can't read String.wType");
     }
     LIEF_DEBUG("String.szKey @0x{:x}", stream.pos());
+    /*
+     * Read the Key
+     */
     if (auto res = stream.read_u16string()) {
       szKey = *res;
       std::string u8szKey = u16tou8(szKey);
       stream.align(sizeof(uint32_t));
-      LIEF_DEBUG("String.Value @0x{:x}", stream.pos());
-      if (auto res = stream.read_u16string(wValueLength)) {
-        value = res->c_str(); // To remove trailling \0
-        std::string u8value = u16tou8(value);
-        LIEF_DEBUG("{}: {}", u8szKey, u8value);
-        lci.items_.emplace(szKey, value);
-        stream.align(sizeof(uint32_t));
+      LIEF_DEBUG("String.Key: {}", u8szKey);
+      /*
+       * Read the value
+       */
+      if (wValueLength > 0) {
+        LIEF_DEBUG("String.Value @0x{:x}", stream.pos());
+        if (auto res = stream.read_u16string()) {
+          if (res->size() + /* null char */ 1 != wValueLength) {
+            LIEF_INFO("String.Value.size() is different from wValueLength ({} / {})",
+                      wValueLength, res->size() + 1);
+          }
+          value = res->c_str(); // To remove trailling \0
+          std::string u8value = u16tou8(value);
+          LIEF_DEBUG("{}: {}", u8szKey, u8value);
+          lci.items_.emplace(szKey, value);
+          stream.align(sizeof(uint32_t));
+        }
+      } else {
+
+        lci.items_.emplace(szKey, std::u16string());
       }
     } else {
       LIEF_ERR("Can't read String.szKey");
       return make_error_code(lief_errors::parsing_error);
     }
+    stream.setpos(end_offset);
   }
   return ok();
 }
@@ -614,11 +647,12 @@ ok_error_t ResourcesParser::parse_ext_dialogs(std::vector<ResourceDialog>& dialo
   }
 
   for (size_t i = 0; i < cDlgItems; ++i) {
-    LIEF_DEBUG("parsing DLGTEMPLATEEX.item[{}]", i);
+    LIEF_DEBUG("parsing DLGTEMPLATEEX.item[{}] at 0x{:04x}", i, stream.pos());
     if (!parse_ext_dialog_item(new_dialog, stream)) {
       LIEF_INFO("Error while parsing DLGTEMPLATEEX.item[{}]", i);
       break;
     }
+    LIEF_DEBUG("[Done]: DLGTEMPLATEEX.item[{}]\n", i);
   }
   dialogs.push_back(std::move(new_dialog));
   return ok();
@@ -780,7 +814,6 @@ ok_error_t ResourcesParser::parse_ext_dialog_item(ResourceDialog& dialog, Binary
         return make_error_code(lief_errors::read_error);
       }
     }
-    stream.align(sizeof(uint32_t));
   }
 
   /* extraCount */ {
@@ -800,6 +833,7 @@ ok_error_t ResourcesParser::parse_ext_dialog_item(ResourceDialog& dialog, Binary
 
 ok_error_t ResourcesParser::parse_regular_dialogs(std::vector<ResourceDialog>&,
                                                   const ResourceData&, BinaryStream&) {
+  LIEF_INFO("Parsing regular dialogs is not implemented");
   return make_error_code(lief_errors::not_implemented);
 }
 

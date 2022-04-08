@@ -22,6 +22,7 @@
 
 #include "LIEF/MachO/hash.hpp"
 
+#include "pyErr.hpp"
 #include "pyMachO.hpp"
 #include "pyIterators.hpp"
 
@@ -340,7 +341,9 @@ void create<Binary>(py::module& m) {
         py::return_value_policy::reference)
 
     .def("virtual_address_to_offset",
-        &Binary::virtual_address_to_offset,
+        [] (const Binary& self, uint64_t va) {
+          return error_or(&Binary::virtual_address_to_offset, self, va);
+        },
         "Convert the virtual address to an offset in the binary",
         "virtual_address"_a)
 
@@ -390,25 +393,25 @@ void create<Binary>(py::module& m) {
         py::return_value_policy::reference_internal)
 
     .def("add",
-        static_cast<LoadCommand& (Binary::*)(const DylibCommand&)>(&Binary::add),
+        static_cast<LoadCommand* (Binary::*)(const DylibCommand&)>(&Binary::add),
         "Add a new " RST_CLASS_REF(lief.MachO.DylibCommand) "",
         "dylib_command"_a,
         py::return_value_policy::reference)
 
     .def("add",
-        static_cast<LoadCommand& (Binary::*)(const SegmentCommand&)>(&Binary::add),
+        static_cast<LoadCommand* (Binary::*)(const SegmentCommand&)>(&Binary::add),
         "Add a new " RST_CLASS_REF(lief.MachO.SegmentCommand) "",
         "segment"_a,
         py::return_value_policy::reference)
 
     .def("add",
-        static_cast<LoadCommand& (Binary::*)(const LoadCommand&)>(&Binary::add),
+        static_cast<LoadCommand* (Binary::*)(const LoadCommand&)>(&Binary::add),
         "Add a new " RST_CLASS_REF(lief.MachO.LoadCommand) "",
         "load_command"_a,
         py::return_value_policy::reference)
 
     .def("add",
-        static_cast<LoadCommand& (Binary::*)(const LoadCommand&, size_t)>(&Binary::add),
+        static_cast<LoadCommand* (Binary::*)(const LoadCommand&, size_t)>(&Binary::add),
         "Add a new " RST_CLASS_REF(lief.MachO.LoadCommand) " at ``index``",
         "load_command"_a, "index"_a,
         py::return_value_policy::reference)
@@ -494,7 +497,7 @@ void create<Binary>(py::module& m) {
         py::return_value_policy::reference)
 
     .def("add_library",
-        static_cast<LoadCommand& (Binary::*)(const std::string&)>(&Binary::add_library),
+        static_cast<LoadCommand* (Binary::*)(const std::string&)>(&Binary::add_library),
         "Add a new library dependency",
         "library_name"_a,
         py::return_value_policy::reference)
@@ -519,6 +522,16 @@ void create<Binary>(py::module& m) {
     .def_property_readonly("functions",
         &Binary::functions,
         "Return list of **all** " RST_CLASS_REF(lief.Function) " found")
+
+    .def("get_section",
+        py::overload_cast<const std::string&, const std::string&>(&Binary::get_section),
+        R"delim(
+        Return the section from the segment with the name
+        given in the first parameter and with the section's name provided in the
+        second parameter. If the section cannot be found, it returns a nullptr
+        )delim",
+        "segname"_a, "secname"_a,
+        py::return_value_policy::reference_internal)
 
     .def("__getitem__",
         static_cast<LoadCommand* (Binary::*)(LOAD_COMMAND_TYPES)>(&Binary::operator[]),

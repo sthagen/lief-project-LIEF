@@ -300,40 +300,37 @@ ok_error_t Parser::init(const std::string& name) {
     return make_error_code(lief_errors::parsing_error);
   }
 
-  try {
-    binary_->original_size_ = binary_size_;
-    binary_->name(name);
-    auto res = DataHandler::Handler::from_stream(stream_);
-    if (!res) {
-      LIEF_ERR("The provided stream is not supported by the ELF DataHandler");
-      return make_error_code(lief_errors::not_supported);
-    }
-
-    binary_->datahandler_ = std::move(*res);
-
-    auto res_ident = stream_->peek<Header::identity_t>();
-    if (!res_ident) {
-      LIEF_ERR("Can't read ELF identity. Nothing to parse");
-      return res_ident.error();
-    }
-    stream_->set_endian_swap(should_swap());
-
-    binary_->type_ = determine_elf_class(*stream_);
-    type_ = binary_->type_;
-
-    switch (type_) {
-      case ELF_CLASS::ELFCLASS32: return parse_binary<details::ELF32>();
-      case ELF_CLASS::ELFCLASS64: return parse_binary<details::ELF64>();
-      case ELF_CLASS::ELFCLASSNONE:
-      default:
-        {
-          LIEF_ERR("Can't determine the ELF class ({})", static_cast<size_t>(type_));
-          return make_error_code(lief_errors::corrupted);
-        }
-    }
-  } catch (const std::exception& e) {
-    LIEF_WARN("{}", e.what());
+  binary_->original_size_ = binary_size_;
+  binary_->name(name);
+  auto res = DataHandler::Handler::from_stream(stream_);
+  if (!res) {
+    LIEF_ERR("The provided stream is not supported by the ELF DataHandler");
+    return make_error_code(lief_errors::not_supported);
   }
+
+  binary_->datahandler_ = std::move(*res);
+
+  auto res_ident = stream_->peek<Header::identity_t>();
+  if (!res_ident) {
+    LIEF_ERR("Can't read ELF identity. Nothing to parse");
+    return res_ident.error();
+  }
+  stream_->set_endian_swap(should_swap());
+
+  binary_->type_ = determine_elf_class(*stream_);
+  type_ = binary_->type_;
+
+  switch (type_) {
+    case ELF_CLASS::ELFCLASS32: return parse_binary<details::ELF32>();
+    case ELF_CLASS::ELFCLASS64: return parse_binary<details::ELF64>();
+    case ELF_CLASS::ELFCLASSNONE:
+    default:
+      {
+        LIEF_ERR("Can't determine the ELF class ({})", static_cast<size_t>(type_));
+        return make_error_code(lief_errors::corrupted);
+      }
+  }
+
   return ok();
 }
 
@@ -377,7 +374,7 @@ ok_error_t Parser::parse_symbol_version(uint64_t symbol_version_offset) {
 }
 
 
-uint64_t Parser::get_dynamic_string_table_from_segments() const {
+result<uint64_t> Parser::get_dynamic_string_table_from_segments() const {
   Segment* dyn_segment = binary_->get(SEGMENT_TYPES::PT_DYNAMIC);
   if (dyn_segment == nullptr) {
     return 0;
@@ -439,11 +436,10 @@ uint64_t Parser::get_dynamic_string_table_from_sections() const {
 }
 
 uint64_t Parser::get_dynamic_string_table() const {
-  uint64_t offset = get_dynamic_string_table_from_segments();
-  if (offset == 0) {
-    offset = get_dynamic_string_table_from_sections();
+  if (auto res = get_dynamic_string_table_from_segments()) {
+    return *res;
   }
-  return offset;
+  return get_dynamic_string_table_from_sections();
 }
 
 
@@ -498,6 +494,7 @@ ok_error_t Parser::parse_symbol_sysv_hash(uint64_t offset) {
   }
 
   binary_->sysv_hash_ = std::move(sysvhash);
+  binary_->sizing_info_->hash = stream_->pos() - offset;
   return ok();
 }
 
@@ -609,18 +606,16 @@ ok_error_t Parser::parse_overlay() {
 }
 
 bool Parser::check_section_in_segment(const Section& section, const Segment& segment) {
-  const uint64_t sec_end = section.virtual_address() + section.size();
   if (section.virtual_address() > 0) {
     const uint64_t seg_vend = segment.virtual_address() + segment.virtual_size();
     return segment.virtual_address() <= section.virtual_address() &&
-           sec_end <= seg_vend;
+           section.virtual_address() + section.size() <= seg_vend;
   }
 
   if (section.file_offset() > 0) {
     const uint64_t seg_end = segment.file_offset() + segment.physical_size();
     return segment.file_offset() <= section.file_offset() &&
-           sec_end < seg_end;
-
+           section.file_offset() + section.size() <= seg_end;
   }
   return false;
 }

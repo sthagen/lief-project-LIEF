@@ -412,8 +412,32 @@ void SegmentCommand::content_resize(size_t size) {
 
 void SegmentCommand::content_insert(size_t where, size_t size) {
   update_data([] (std::vector<uint8_t>& inner_data, size_t w, size_t s) {
-                inner_data.insert(std::begin(inner_data) + w, s, 0);
+                if (s == 0) {
+                  return;
+                }
+                if (w < inner_data.size()) {
+                  inner_data.insert(std::begin(inner_data) + w, s, 0);
+                } else {
+                  inner_data.resize(inner_data.size() + w + s, 0);
+                }
               }, where, size);
+}
+
+const Section* SegmentCommand::get_section(const std::string& name) const {
+  const auto it = std::find_if(std::begin(sections_), std::end(sections_),
+      [&name] (const std::unique_ptr<Section>& sec) {
+        return sec->name() == name;
+      });
+
+  if (it == std::end(sections_)) {
+    return nullptr;
+  }
+
+  return it->get();
+}
+
+Section* SegmentCommand::get_section(const std::string& name) {
+  return const_cast<Section*>(static_cast<const SegmentCommand*>(this)->get_section(name));
 }
 
 

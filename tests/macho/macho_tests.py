@@ -1,248 +1,216 @@
 #!/usr/bin/env python
-import unittest
 import lief
-import tempfile
-import sys
-import subprocess
-import stat
-import os
-import logging
-import random
-import itertools
-
-from subprocess import Popen
-
-from unittest import TestCase
 from utils import get_sample
 
-class TestMachO(TestCase):
+def test_function_starts():
+    dd = lief.parse(get_sample('MachO/MachO64_x86-64_binary_dd.bin'))
 
-    def setUp(self):
-        self.logger = logging.getLogger(__name__)
+    functions = [
+        0x100001581, 0x1000016cc, 0x1000017cc,
+        0x1000019e3, 0x100001a03, 0x100001a1d,
+        0x1000020ad, 0x1000022f6, 0x1000023ef,
+        0x10000246b, 0x10000248c, 0x1000026da,
+        0x100002754, 0x10000286b, 0x100002914,
+        0x100002bd8, 0x100002be8, 0x100002c2b,
+        0x100002c62, 0x100002d24, 0x100002d5a,
+        0x100002d91, 0x100002dd5, 0x100002de6,
+        0x100002dfc, 0x100002e40, 0x100002e51,
+        0x100002e67, 0x100002f9e
+    ]
 
-    def test_function_starts(self):
-        dd = lief.parse(get_sample('MachO/MachO64_x86-64_binary_dd.bin'))
+    assert dd.function_starts.data_offset == 21168
+    assert dd.function_starts.data_size ==   48
+    text_segment = list(filter(lambda e : e.name == "__TEXT", dd.segments))[0]
+    functions_dd = map(text_segment.virtual_address .__add__, dd.function_starts.functions)
 
-        functions = [
-            0x100001581, 0x1000016cc, 0x1000017cc,
-            0x1000019e3, 0x100001a03, 0x100001a1d,
-            0x1000020ad, 0x1000022f6, 0x1000023ef,
-            0x10000246b, 0x10000248c, 0x1000026da,
-            0x100002754, 0x10000286b, 0x100002914,
-            0x100002bd8, 0x100002be8, 0x100002c2b,
-            0x100002c62, 0x100002d24, 0x100002d5a,
-            0x100002d91, 0x100002dd5, 0x100002de6,
-            0x100002dfc, 0x100002e40, 0x100002e51,
-            0x100002e67, 0x100002f9e
-        ]
+    assert functions == list(functions_dd)
 
-        self.assertEqual(dd.function_starts.data_offset, 21168)
-        self.assertEqual(dd.function_starts.data_size,   48)
-        text_segment = list(filter(lambda e : e.name == "__TEXT", dd.segments))[0]
-        functions_dd = map(text_segment.virtual_address .__add__, dd.function_starts.functions)
 
-        self.assertEqual(functions, list(functions_dd))
+def test_version_min():
+    sshd = lief.parse(get_sample('MachO/MachO64_x86-64_binary_sshd.bin'))
+    assert sshd.version_min.version == [10, 11, 0]
+    assert sshd.version_min.sdk == [10, 11, 0]
 
+def test_va2offset():
+    dd = lief.parse(get_sample('MachO/MachO64_x86-64_binary_dd.bin'))
+    assert dd.virtual_address_to_offset(0x100004054) == 0x4054
 
-    def test_version_min(self):
-        sshd = lief.parse(get_sample('MachO/MachO64_x86-64_binary_sshd.bin'))
-        self.assertEqual(sshd.version_min.version, [10, 11, 0])
-        self.assertEqual(sshd.version_min.sdk, [10, 11, 0])
 
-    def test_va2offset(self):
-        dd = lief.parse(get_sample('MachO/MachO64_x86-64_binary_dd.bin'))
-        self.assertEqual(dd.virtual_address_to_offset(0x100004054), 0x4054)
+def test_thread_cmd():
+    micromacho = lief.parse(get_sample('MachO/MachO32_x86_binary_micromacho.bin'))
+    assert micromacho.has_thread_command
+    assert micromacho.thread_command.pc == 0x68
+    assert micromacho.thread_command.flavor == 1
+    assert micromacho.thread_command.count == 16
+    assert micromacho.entrypoint == 0x68
 
+def test_rpath_cmd():
+    rpathmacho = lief.parse(get_sample('MachO/MachO64_x86-64_binary_rpathtest.bin'))
+    assert rpathmacho.rpath.path == "@executable_path/../lib"
 
-    def test_thread_cmd(self):
-        micromacho = lief.parse(get_sample('MachO/MachO32_x86_binary_micromacho.bin'))
-        self.assertTrue(micromacho.has_thread_command)
-        self.assertEqual(micromacho.thread_command.pc, 0x68)
-        self.assertEqual(micromacho.thread_command.flavor, 1)
-        self.assertEqual(micromacho.thread_command.count, 16)
-        self.assertEqual(micromacho.entrypoint, 0x68)
+def test_relocations():
+    helloworld = lief.parse(get_sample('MachO/MachO64_x86-64_object_HelloWorld64.o'))
 
-    def test_rpath_cmd(self):
-        rpathmacho = lief.parse(get_sample('MachO/MachO64_x86-64_binary_rpathtest.bin'))
-        self.assertEqual(rpathmacho.rpath.path, "@executable_path/../lib")
+    # __text Section
+    text_section = helloworld.get_section("__text")
+    relocations  = text_section.relocations
+    assert len(relocations) == 2
 
-    def test_relocations(self):
-        helloworld = lief.parse(get_sample('MachO/MachO64_x86-64_object_HelloWorld64.o'))
+    # 1
+    assert relocations[0].address == 0x233
+    assert relocations[0].type ==    2
+    assert relocations[0].size ==    32
 
-        # __text Section
-        text_section = helloworld.get_section("__text")
-        relocations  = text_section.relocations
-        self.assertEqual(len(relocations), 2)
+    assert not relocations[0].is_scattered
 
-        # 1
-        self.assertEqual(relocations[0].address, 0x233)
-        self.assertEqual(relocations[0].type,    2)
-        self.assertEqual(relocations[0].size,    32)
+    assert relocations[0].has_symbol
+    assert relocations[0].symbol.name == "_printf"
 
-        self.assertEqual(relocations[0].is_scattered, False)
+    assert relocations[0].has_section
+    assert relocations[0].section.name == text_section.name
 
-        self.assertEqual(relocations[0].has_symbol,  True)
-        self.assertEqual(relocations[0].symbol.name, "_printf")
+    # 0
+    assert relocations[1].address == 0x21b
+    assert relocations[1].type ==    1
+    assert relocations[1].size ==    32
 
-        self.assertEqual(relocations[0].has_section,  True)
-        self.assertEqual(relocations[0].section.name, text_section.name)
+    assert not relocations[1].is_scattered
 
-        # 0
-        self.assertEqual(relocations[1].address, 0x21b)
-        self.assertEqual(relocations[1].type,    1)
-        self.assertEqual(relocations[1].size,    32)
+    assert not relocations[1].has_symbol
 
-        self.assertEqual(relocations[1].is_scattered, False)
+    assert relocations[1].has_section
+    assert relocations[1].section.name == text_section.name
 
-        self.assertEqual(relocations[1].has_symbol,  False)
 
-        self.assertEqual(relocations[1].has_section,  True)
-        self.assertEqual(relocations[1].section.name, text_section.name)
+    # __compact_unwind__LD  Section
+    cunwind_section = helloworld.get_section("__compact_unwind")
+    relocations  = cunwind_section.relocations
+    assert len(relocations) == 1
 
+    # 0
+    assert relocations[0].address == 0x247
+    assert relocations[0].type ==    0
+    assert relocations[0].size ==    32
 
-        # __compact_unwind__LD  Section
-        cunwind_section = helloworld.get_section("__compact_unwind")
-        relocations  = cunwind_section.relocations
-        self.assertEqual(len(relocations), 1)
+    assert not relocations[0].is_scattered
 
-        # 0
-        self.assertEqual(relocations[0].address, 0x247)
-        self.assertEqual(relocations[0].type,    0)
-        self.assertEqual(relocations[0].size,    32)
+    assert not relocations[0].has_symbol
 
-        self.assertEqual(relocations[0].is_scattered, False)
+    assert relocations[0].has_section
+    assert relocations[0].section.name == "__cstring"
 
-        self.assertEqual(relocations[0].has_symbol,  False)
+def test_data_in_code():
+    binary = lief.parse(get_sample('MachO/MachO32_ARM_binary_data-in-code-LLVM.bin'))
 
-        self.assertEqual(relocations[0].has_section,  True)
-        self.assertEqual(relocations[0].section.name, "__cstring")
+    assert binary.has_data_in_code
+    dcode = binary.data_in_code
 
-    def test_data_in_code(self):
-        binary = lief.parse(get_sample('MachO/MachO32_ARM_binary_data-in-code-LLVM.bin'))
+    assert dcode.data_offset == 0x11c
+    assert dcode.data_size == 0x20
 
-        self.assertTrue(binary.has_data_in_code)
-        dcode = binary.data_in_code
+    assert len(dcode.entries) == 4
 
-        self.assertEqual(dcode.data_offset, 0x11c)
-        self.assertEqual(dcode.data_size, 0x20)
+    assert dcode.entries[0].type == lief.MachO.DataCodeEntry.TYPES.DATA
+    assert dcode.entries[0].offset == 0
+    assert dcode.entries[0].length == 4
 
-        self.assertEqual(len(dcode.entries), 4)
+    assert dcode.entries[1].type == lief.MachO.DataCodeEntry.TYPES.JUMP_TABLE_32
+    assert dcode.entries[1].offset == 4
+    assert dcode.entries[1].length == 4
 
-        self.assertEqual(dcode.entries[0].type, lief.MachO.DataCodeEntry.TYPES.DATA)
-        self.assertEqual(dcode.entries[0].offset, 0)
-        self.assertEqual(dcode.entries[0].length, 4)
+    assert dcode.entries[2].type == lief.MachO.DataCodeEntry.TYPES.JUMP_TABLE_16
+    assert dcode.entries[2].offset == 8
+    assert dcode.entries[2].length == 2
 
-        self.assertEqual(dcode.entries[1].type, lief.MachO.DataCodeEntry.TYPES.JUMP_TABLE_32)
-        self.assertEqual(dcode.entries[1].offset, 4)
-        self.assertEqual(dcode.entries[1].length, 4)
+    assert dcode.entries[3].type == lief.MachO.DataCodeEntry.TYPES.JUMP_TABLE_8
+    assert dcode.entries[3].offset == 10
+    assert dcode.entries[3].length == 1
 
-        self.assertEqual(dcode.entries[2].type, lief.MachO.DataCodeEntry.TYPES.JUMP_TABLE_16)
-        self.assertEqual(dcode.entries[2].offset, 8)
-        self.assertEqual(dcode.entries[2].length, 2)
 
-        self.assertEqual(dcode.entries[3].type, lief.MachO.DataCodeEntry.TYPES.JUMP_TABLE_8)
-        self.assertEqual(dcode.entries[3].offset, 10)
-        self.assertEqual(dcode.entries[3].length, 1)
+def test_segment_split_info():
+    binary = lief.parse(get_sample('MachO/FAT_MachO_x86_x86-64_library_libdyld.dylib'))
 
+    assert binary.has_segment_split_info
+    ssi = binary.segment_split_info
+    assert ssi.data_offset == 32852
+    assert ssi.data_size == 292
 
-    def test_segment_split_info(self):
-        binary = lief.parse(get_sample('MachO/FAT_MachO_x86_x86-64_library_libdyld.dylib'))
+def test_dyld_environment():
+    binary = lief.parse(get_sample('MachO/MachO64_x86-64_binary_safaridriver.bin'))
+    assert binary.has_dyld_environment
+    assert binary.dyld_environment.value == "DYLD_VERSIONED_FRAMEWORK_PATH=/System/Library/StagedFrameworks/Safari"
 
-        self.assertTrue(binary.has_segment_split_info)
-        ssi = binary.segment_split_info
-        self.assertEqual(ssi.data_offset, 32852)
-        self.assertEqual(ssi.data_size, 292)
+def test_sub_framework():
+    binary = lief.parse(get_sample('MachO/FAT_MachO_x86_x86-64_library_libdyld.dylib'))
+    assert binary.has_sub_framework
+    assert binary.sub_framework.umbrella == "System"
 
-    def test_dyld_environment(self):
-        binary = lief.parse(get_sample('MachO/MachO64_x86-64_binary_safaridriver.bin'))
-        self.assertTrue(binary.has_dyld_environment)
-        self.assertEqual(binary.dyld_environment.value, "DYLD_VERSIONED_FRAMEWORK_PATH=/System/Library/StagedFrameworks/Safari")
+def test_unwind():
+    binary = lief.parse(get_sample('MachO/MachO64_x86-64_binary_sshd.bin'))
 
-    def test_sub_framework(self):
-        binary = lief.parse(get_sample('MachO/FAT_MachO_x86_x86-64_library_libdyld.dylib'))
-        self.assertTrue(binary.has_sub_framework)
-        self.assertEqual(binary.sub_framework.umbrella, "System")
+    functions = sorted(binary.functions, key=lambda f: f.address)
 
-    def test_unwind(self):
-        binary = lief.parse(get_sample('MachO/MachO64_x86-64_binary_sshd.bin'))
+    assert len(functions) == 2619
 
-        functions = sorted(binary.functions, key=lambda f: f.address)
+    assert functions[0].address == 2624
+    assert functions[0].size    == 0
+    assert functions[0].name    == ""
 
-        self.assertEqual(len(functions), 2619)
+    assert functions[-1].address == 0x1000a4f65
+    assert functions[-1].size    == 0
+    assert functions[-1].name    == "ctor_0"
 
-        self.assertEqual(functions[0].address, 2624)
-        self.assertEqual(functions[0].size,    0)
-        self.assertEqual(functions[0].name,    "")
 
-        self.assertEqual(functions[-1].address, 0x1000a4f65)
-        self.assertEqual(functions[-1].size,    0)
-        self.assertEqual(functions[-1].name,    "ctor_0")
+def test_build_version():
+    binary = lief.MachO.parse(get_sample('MachO/FAT_MachO_arm-arm64-binary-helloworld.bin'))
+    target = binary[1]
 
+    assert target.has_build_version
+    build_version = target.build_version
 
-    def test_build_version(self):
-        binary = lief.MachO.parse(get_sample('MachO/FAT_MachO_arm-arm64-binary-helloworld.bin'))
-        target = binary[1]
+    assert build_version.minos == [12, 1, 0]
+    assert build_version.sdk ==   [12, 1, 0]
+    assert build_version.platform == lief.MachO.BuildVersion.PLATFORMS.IOS
 
-        self.assertTrue(target.has_build_version)
-        build_version = target.build_version
+    tools = build_version.tools
+    assert len(tools) == 1
+    assert tools[0].version == [409, 12, 0]
+    assert tools[0].tool == lief.MachO.BuildToolVersion.TOOLS.LD
 
-        self.assertEqual(build_version.minos, [12, 1, 0])
-        self.assertEqual(build_version.sdk,   [12, 1, 0])
-        self.assertEqual(build_version.platform, lief.MachO.BuildVersion.PLATFORMS.IOS)
+def test_segment_index():
+    binary = lief.parse(get_sample('MachO/MachO64_x86-64_binary_safaridriver.bin'))
+    assert binary.get_segment("__LINKEDIT").index == len(binary.segments) - 1
+    original_data_index = binary.get_segment("__DATA").index
 
-        tools = build_version.tools
-        self.assertEqual(len(tools), 1)
-        self.assertEqual(tools[0].version, [409, 12, 0])
-        self.assertEqual(tools[0].tool, lief.MachO.BuildToolVersion.TOOLS.LD)
+    # Add a new segment (it should be placed right beore __LINKEDIT)
+    segment = lief.MachO.SegmentCommand("__LIEF", [0x60] * 0x100)
+    segment = binary.add(segment)
+    assert segment.index == binary.get_segment("__LINKEDIT").index - 1
+    assert segment.index == original_data_index + 1
 
-    def test_segment_index(self):
-        binary = lief.parse(get_sample('MachO/MachO64_x86-64_binary_safaridriver.bin'))
-        self.assertEqual(binary.get_segment("__LINKEDIT").index, len(binary.segments) - 1)
-        original_data_index = binary.get_segment("__DATA").index
+    # discard changes
+    binary = lief.parse(get_sample('MachO/MachO64_x86-64_binary_safaridriver.bin'))
+    text_segment = binary.get_segment("__TEXT")
+    original_data_index = binary.get_segment("__DATA").index
 
-        # Add a new segment (it should be placed right beore __LINKEDIT)
-        segment = lief.MachO.SegmentCommand("__LIEF", [0x60] * 0x100)
-        segment = binary.add(segment)
-        self.assertEqual(segment.index, binary.get_segment("__LINKEDIT").index - 1)
-        self.assertEqual(segment.index, original_data_index + 1)
+    binary.remove(text_segment)
+    assert binary.get_segment("__DATA").index == original_data_index - 1
+    assert binary.get_segment("__LINKEDIT").index == original_data_index
+    assert binary.get_segment("__PAGEZERO").index == 0
 
-        # discard changes
-        binary = lief.parse(get_sample('MachO/MachO64_x86-64_binary_safaridriver.bin'))
-        text_segment = binary.get_segment("__TEXT")
-        original_data_index = binary.get_segment("__DATA").index
+def test_offset_to_va():
 
-        binary.remove(text_segment)
-        self.assertEqual(binary.get_segment("__DATA").index, original_data_index - 1)
-        self.assertEqual(binary.get_segment("__LINKEDIT").index, original_data_index)
-        self.assertEqual(binary.get_segment("__PAGEZERO").index, 0)
+    # |Name        |Virtual Address|Virtual Size|Offset|Size
+    # +------------+---------------+------------+------+----
+    # |__PAGEZERO  |0x0            |0x100000000 |0x0   |0x0
+    # |__TEXT      |0x100000000    |0x4000      |0x0   |0x4000
+    # |__DATA_CONST|0x100004000    |0x4000      |0x4000|0x4000
+    # |__DATA      |0x100008000    |0x8000      |0x8000|0x4000
+    # |__LINKEDIT  |0x100010000    |0x4000      |0xc000|0x130
 
-    def test_offset_to_va(self):
-
-        # |Name        |Virtual Address|Virtual Size|Offset|Size
-        # +------------+---------------+------------+------+----
-        # |__PAGEZERO  |0x0            |0x100000000 |0x0   |0x0
-        # |__TEXT      |0x100000000    |0x4000      |0x0   |0x4000
-        # |__DATA_CONST|0x100004000    |0x4000      |0x4000|0x4000
-        # |__DATA      |0x100008000    |0x8000      |0x8000|0x4000
-        # |__LINKEDIT  |0x100010000    |0x4000      |0xc000|0x130
-
-        sample = get_sample("MachO/MachO64_x86-64_binary_large-bss.bin")
-        large_bss = lief.parse(sample)
-        self.assertEqual(large_bss.segment_from_offset(0).name,      "__TEXT")
-        self.assertEqual(large_bss.segment_from_offset(0x4001).name, "__DATA_CONST")
-        self.assertEqual(large_bss.segment_from_offset(0xc000).name, "__LINKEDIT")
-        self.assertEqual(large_bss.segment_from_offset(0xc001).name, "__LINKEDIT")
-
-
-
-if __name__ == '__main__':
-
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
-
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-    root_logger.addHandler(ch)
-
-    unittest.main(verbosity=2)
-
+    sample = get_sample("MachO/MachO64_x86-64_binary_large-bss.bin")
+    large_bss = lief.parse(sample)
+    assert large_bss.segment_from_offset(0).name      == "__TEXT"
+    assert large_bss.segment_from_offset(0x4001).name == "__DATA_CONST"
+    assert large_bss.segment_from_offset(0xc000).name == "__LINKEDIT"
+    assert large_bss.segment_from_offset(0xc001).name == "__LINKEDIT"

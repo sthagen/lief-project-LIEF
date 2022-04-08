@@ -7,9 +7,14 @@ import pathlib
 import subprocess
 import shutil
 import json
+import itertools
+from collections import defaultdict
 from datetime import datetime
 from mako.template import Template
 from enum import Enum, auto
+import tempfile
+import boto3
+from botocore.exceptions import ClientError
 
 class CI(Enum):
     UNKNOWN        = auto()
@@ -96,7 +101,7 @@ def get_tag(ci):
         logger.critical("Unsupported CI to resolve working directory")
         sys.exit(1)
 
-LOG_LEVEL = logging.DEBUG
+LOG_LEVEL = logging.INFO
 
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 logging.getLogger().setLevel(LOG_LEVEL)
@@ -127,9 +132,13 @@ ALLOWED_BRANCHES = {"master", "deploy", "devel"}
 BRANCH_NAME = get_branch(CURRENT_CI)
 TAG_NAME    = get_tag(CURRENT_CI)
 IS_TAGGED   = TAG_NAME is not None and len(TAG_NAME) > 0
+
 logger.info("Branch: %s", BRANCH_NAME)
 logger.info("Tag:    %s", TAG_NAME)
-if BRANCH_NAME not in ALLOWED_BRANCHES and not IS_TAGGED:
+
+if BRANCH_NAME.startswith("release-"):
+    logger.info("Branch release")
+elif BRANCH_NAME not in ALLOWED_BRANCHES and not IS_TAGGED:
     logger.info("Skip deployment for branch '%s'", BRANCH_NAME)
     sys.exit(0)
 
@@ -140,267 +149,134 @@ if is_pr(CURRENT_CI):
 CURRENTDIR = pathlib.Path(__file__).resolve().parent
 REPODIR    = CURRENTDIR.parent
 
-DEPLOY_KEY = os.getenv("LIEF_AUTOMATIC_BUILDS_KEY", None)
-DEPLOY_IV  = os.getenv("LIEF_AUTOMATIC_BUILDS_IV", None)
+# According to Scaleway S3 documentation, the endpoint
+# should starts with '<bucket>'.s3.<region>.scw.cloud
+# Nevertheless boto3 uses /{Bucket} endpoints suffix
+# which create issues (see: https://stackoverflow.com/a/70383653)
+LIEF_S3_REGION   = "fr-par"
+LIEF_S3_ENDPOINT = "https://s3.{region}.scw.cloud".format(region=LIEF_S3_REGION)
+LIEF_S3_BUCKET   = "lief"
+LIEF_S3_KEY      = os.getenv("LIEF_S3_KEY", None)
+LIEF_S3_SECRET   = os.getenv("LIEF_S3_SECRET", None)
 
-if DEPLOY_KEY is None or len(DEPLOY_KEY) == 0:
-    logger.error("Deploy key is not set!")
+if LIEF_S3_KEY is None or len(LIEF_S3_KEY) == 0:
+    logger.error("LIEF_S3_KEY is not set!")
     sys.exit(1)
 
-if DEPLOY_IV is None or len(DEPLOY_IV) == 0:
-    logger.error("Deploy IV is not set!")
+if LIEF_S3_SECRET is None or len(LIEF_S3_SECRET) == 0:
+    logger.error("LIEF_S3_SECRET is not set!")
     sys.exit(1)
-
-GIT_USER  = "lief-{}-ci".format(CI_PRETTY_NAME)
-GIT_EMAIL = "ci@lief.re"
 
 CI_CWD = pathlib.Path(get_ci_workdir(CURRENT_CI))
 
 if CI_CWD is None:
-    logger.debug("Can't resolve CI working dir")
+    logger.error("Can't resolve CI working dir")
     sys.exit(1)
 
-LIEF_PACKAGE_REPO     = "https://github.com/lief-project/packages.git"
-LIEF_PACKAGE_DIR      = REPODIR / "deploy-packages"
-LIEF_PACKAGE_SSH_REPO = "git@github.com:lief-project/packages.git"
-SDK_PACKAGE_DIR       = LIEF_PACKAGE_DIR / "sdk"
-PYPI_PACKAGE_DIR      = LIEF_PACKAGE_DIR / "lief"
-JSON_PACKAGE          = LIEF_PACKAGE_DIR / "packages.json"
-DIST_DIR              = REPODIR / "dist"
-BUILD_DIR             = REPODIR / "build"
+DIST_DIR  = REPODIR / "dist"
+BUILD_DIR = REPODIR / "build"
 
-
-logger.debug("Working directory: %s", CI_CWD)
-
-SSH_DIR     = pathlib.Path("~/.ssh").expanduser().resolve()
-PYTHON      = shutil.which("python")
-GIT         = shutil.which("git")
-TAR         = shutil.which("tar")
-OPENSSL     = shutil.which("openssl")
-MV          = shutil.which("mv")
-RM          = shutil.which("rm")
-SSH_AGENT   = shutil.which("ssh-agent")
-SSH_ADD     = shutil.which("ssh-add")
-SSH_KEYSCAN = shutil.which("ssh-keyscan")
-
-if DEPLOY_KEY is None:
-    logger.error("Deploy key is not set!")
-    sys.exit(1)
-
-if DEPLOY_IV is None:
-    logger.error("Deploy IV is not set!")
-    sys.exit(1)
-
-
-#####################
-# Clone package repo
-#####################
-target_branch = "gh-pages"
-
-if BRANCH_NAME != "master":
-    target_branch = "packages-{}".format(BRANCH_NAME.replace("/", "-").replace("_", "-"))
-
-if IS_TAGGED:
-    target_branch = str(TAG_NAME)
-
-new_branch = False
-if not LIEF_PACKAGE_DIR.is_dir():
-    cmd = "{} clone --branch={} -j8 --single-branch {} {}".format(GIT, target_branch, LIEF_PACKAGE_REPO, LIEF_PACKAGE_DIR)
-    p = subprocess.Popen(cmd, shell=True, cwd=REPODIR, stderr=subprocess.STDOUT)
-    p.wait()
-
-    if p.returncode:
-        cmd = "{} clone --branch=master -j8 --single-branch {} {}".format(GIT, LIEF_PACKAGE_REPO, LIEF_PACKAGE_DIR)
-        pmaster = subprocess.Popen(cmd, shell=True, cwd=REPODIR, stderr=subprocess.STDOUT)
-        pmaster.wait()
-        if pmaster.returncode:
-            sys.exit(1)
-        new_branch = True
-
-        cmd = "{} checkout --orphan {}".format(GIT, target_branch)
-        pmaster = subprocess.Popen(cmd, shell=True, cwd=LIEF_PACKAGE_DIR, stderr=subprocess.STDOUT)
-        pmaster.wait()
-        if pmaster.returncode:
-            sys.exit(1)
-
-        cmd = "{} reset --hard".format(GIT)
-        pmaster = subprocess.Popen(cmd, shell=True, cwd=LIEF_PACKAGE_DIR, stderr=subprocess.STDOUT)
-        pmaster.wait()
-
-SDK_PACKAGE_DIR.mkdir(exist_ok=True)
-PYPI_PACKAGE_DIR.mkdir(exist_ok=True)
-
-packages_info = {}
-new_packages_info = {}
-if JSON_PACKAGE.is_file():
-    try:
-        packages_info = json.loads(JSON_PACKAGE.read_bytes())
-    except json.decoder.JSONDecodeError as e:
-        logger.error(e)
-else:
-    JSON_PACKAGE.touch()
-
-logger.info("CI: %s - %s", GIT_USER, GIT_EMAIL)
-cmds = [
-    "{} config user.name '{}'".format(GIT, GIT_USER),
-    "{} config user.email '{}'".format(GIT, GIT_EMAIL),
-    "{} reset --soft root".format(GIT),
-    "{} ls-files -v".format(GIT),
-]
-
-for cmd in cmds:
-    p = subprocess.Popen(cmd, shell=True, cwd=LIEF_PACKAGE_DIR, stderr=subprocess.STDOUT)
-    p.wait()
-
-    if p.returncode:
-        sys.exit(1)
-
-for file in DIST_DIR.glob("*.whl"):
-    logger.debug("Copying '%s' to '%s'", file.as_posix(), PYPI_PACKAGE_DIR.as_posix())
-    new_packages_info[file.name] = datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
-    shutil.copy(file.as_posix(), PYPI_PACKAGE_DIR.as_posix())
-
-for file in BUILD_DIR.glob("*.zip"):
-    logger.debug("Copying '%s' to '%s'", file.as_posix(), SDK_PACKAGE_DIR.as_posix())
-    new_packages_info[file.name] = datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
-    shutil.copy(file.as_posix(), SDK_PACKAGE_DIR.as_posix())
-
-for file in BUILD_DIR.glob("*.tar.gz"):
-    logger.debug("Copying '%s' to '%s'", file.as_posix(), SDK_PACKAGE_DIR.as_posix())
-    new_packages_info[file.name] = datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
-    shutil.copy(file.as_posix(), SDK_PACKAGE_DIR.as_posix())
-
-for k, v in new_packages_info.items():
-    logger.info("{:<30}: {}".format(k, v))
-
-try:
-    packages_info.update(new_packages_info)
-    JSON_PACKAGE.write_text(json.dumps(packages_info))
-except Exception as e:
-    logger.error(e)
+logger.info("Working directory: %s", CI_CWD)
 
 INDEX_TEMPLATE = r"""
+<!DOCTYPE html>
 <html>
 <title>Links for lief</title>
 <body>
 <h1>Links for lief</h1>
-% for name in names:
-    <a href="${base_url}/${base}/${name}">${name}</a><br />
+% for path, filename in files:
+    <a href="/${path}">${filename}</a><br />
 % endfor
 </body>
 </html>
 """
 
-EXCLUDED = ['index.html', '.gitkeep']
-BASE_URL = "https://lief-project.github.io"
+SKIP_LIST = ["index.html"]
 
-fnames = [fname for fname in sorted(f.name for f in PYPI_PACKAGE_DIR.iterdir() if f.is_file() and f.name not in EXCLUDED)]
-html = Template(INDEX_TEMPLATE).render(names=fnames, base_url=BASE_URL, base="packages/lief")
-with open((PYPI_PACKAGE_DIR / "index.html").as_posix(), "w") as f:
-    f.write(html)
-
-
-fnames = [fname for fname in sorted(f.name for f in SDK_PACKAGE_DIR.iterdir() if f.is_file() and f.name not in EXCLUDED)]
-html = Template(INDEX_TEMPLATE).render(names=fnames, base_url=BASE_URL, base="packages/sdk")
-with open((SDK_PACKAGE_DIR / "index.html").as_posix(), "w") as f:
-    f.write(html)
-
-if not SSH_DIR.is_dir():
-    SSH_DIR.mkdir(mode=0o700)
-
-#fix_ssh_perms()
-deploy_key_path = (REPODIR / ".github" / "deploy-key.enc").as_posix()
-output_key_path = (REPODIR / ".git" / "deploy-key")
-cmd = "{} aes-256-cbc -K {} -iv {} -in {} -out {} -d".format(
-        OPENSSL, DEPLOY_KEY, DEPLOY_IV, deploy_key_path, output_key_path.as_posix())
-
-kwargs = {
-    'shell': True,
-    'cwd':   REPODIR,
-    'stdout': subprocess.DEVNULL,
-    'stderr': subprocess.DEVNULL,
-}
-
-p = subprocess.Popen(cmd, **kwargs)
-p.wait()
-
-if p.returncode:
-    sys.exit(1)
-
-output_key_path.chmod(0o600)
-logger.info(output_key_path)
-
-process = subprocess.run(SSH_AGENT, stdout=subprocess.PIPE, universal_newlines=True, stderr=subprocess.STDOUT)
-OUTPUT_PATTERN = re.compile(r'SSH_AUTH_SOCK=(?P<socket>[^;]+).*SSH_AGENT_PID=(?P<pid>\d+)', re.MULTILINE | re.DOTALL)
-match = OUTPUT_PATTERN.search(process.stdout)
-if match is None:
-    logger.error("Can't start ssh-agent")
-    sys.exit(1)
-
-agent_data = match.groupdict()
-logger.info(f'ssh agent data: {agent_data!s}')
-logger.info('Exporting ssh agent environment variables' )
-
-os.environ['SSH_AUTH_SOCK'] = agent_data['socket']
-os.environ['SSH_AGENT_PID'] = agent_data['pid']
-
-process = subprocess.run([SSH_ADD, output_key_path], stderr=subprocess.STDOUT)
-if process.returncode != 0:
-    raise Exception(f'Failed to add the key: {output_key_path}')
-known_hosts = (SSH_DIR / "known_hosts").as_posix()
-cmd = "{} -H github.com >> {}".format(SSH_KEYSCAN, known_hosts)
-
-kwargs = {
-    'shell':  True,
-    'cwd':    REPODIR,
-    'stderr': subprocess.STDOUT,
-}
-
-p = subprocess.Popen(cmd, **kwargs)
-p.wait()
-
-if p.returncode:
-    sys.exit(1)
-
-commit_msg = 'Automatic deployment by {}'.format(CI_PRETTY_NAME)
-cmds = [
-    "{} add .".format(GIT),
-    "{} commit -m '{}'".format(GIT, commit_msg),
-    "{} ls-files -v".format(GIT),
-]
-
-for cmd in cmds:
-    logger.info("Running %s", cmd)
-    p = subprocess.Popen(cmd, shell=True, cwd=LIEF_PACKAGE_DIR, stderr=subprocess.STDOUT)
-    p.wait()
-
-    if p.returncode:
-        logger.error("Error while running %s", cmd)
-        sys.exit(1)
-
-for i in range(10):
-    p = subprocess.Popen("{} push --force {} {}".format(GIT, LIEF_PACKAGE_SSH_REPO, target_branch),
-            shell=True, cwd=LIEF_PACKAGE_DIR, stderr=subprocess.STDOUT)
-    p.wait()
-
-    if p.returncode == 0:
-        break
-
-    cmds = [
-        "{} branch -a -v".format(GIT),
-        "{} fetch -v origin {}".format(GIT, target_branch),
-        "{} branch -a -v".format(GIT),
-        "{} rebase -s recursive -X theirs FETCH_HEAD".format(GIT),
-        "{} branch -a -v".format(GIT),
-    ]
-    for c in cmds:
-        p = subprocess.Popen(c, shell=True, cwd=LIEF_PACKAGE_DIR, stderr=subprocess.STDOUT)
-        p.wait()
-else:
-    logger.critical("Can't push file on %s -> %s", LIEF_PACKAGE_SSH_REPO, target_branch)
-    sys.exit(1)
+s3 = boto3.resource(
+    's3',
+    region_name=LIEF_S3_REGION,
+    use_ssl=True,
+    endpoint_url=LIEF_S3_ENDPOINT,
+    aws_access_key_id=LIEF_S3_KEY,
+    aws_secret_access_key=LIEF_S3_SECRET
+)
 
 
-output_key_path.unlink()
+def push_wheel(file: str, dir_name: str):
+    wheel_file = pathlib.Path(file)
+    dst = f"{dir_name}/lief/{wheel_file.name}"
+    logger.info("Uploading %s to %s", file, dst)
+    try:
+        obj = s3.Object(LIEF_S3_BUCKET, dst)
+        obj.put(Body=wheel_file.read_bytes())
+        return 0
+    except ClientError as e:
+        logger.error("S3 push failed: %s", e)
+        return 1
+
+
+def push_sdk(file: str, dir_name: str):
+    sdk_file = pathlib.Path(file)
+    dst = f"{dir_name}/sdk/{sdk_file.name}"
+    logger.info("Uploading %s to %s", file, dst)
+    try:
+        obj = s3.Object(LIEF_S3_BUCKET, dst)
+        obj.put(Body=sdk_file.read_bytes())
+        return 0
+    except ClientError as e:
+        logger.error("S3 push failed: %s", e)
+        return 1
+
+def filename(object):
+    return pathlib.Path(object.key).name
+
+def generate_sdk_index(dir_name: str):
+    files = s3.Bucket(LIEF_S3_BUCKET).objects.filter(Prefix=f'{dir_name}/sdk')
+    tmpl_info = [(object.key, filename(object)) for object in files if filename(object) not in SKIP_LIST]
+    html = Template(INDEX_TEMPLATE).render(files=tmpl_info)
+    return html
+
+def generate_pypi_index(dir_name: str):
+    files = s3.Bucket(LIEF_S3_BUCKET).objects.filter(Prefix=f'{dir_name}/lief')
+    tmpl_info = [(object.key, filename(object)) for object in files if filename(object) not in SKIP_LIST]
+    html = Template(INDEX_TEMPLATE).render(files=tmpl_info)
+    return html
+
+dir_name = "latest"
+
+if BRANCH_NAME != "master":
+    dir_name = "{}".format(BRANCH_NAME.replace("/", "-").replace("_", "-"))
+
+if BRANCH_NAME.startswith("release-"):
+    _, dir_name = BRANCH_NAME.split("release-")
+
+if IS_TAGGED:
+    dir_name = str(TAG_NAME)
+
+logger.info("Destination directory: %s", dir_name)
+
+for file in DIST_DIR.glob("*.whl"):
+    logger.info("[WHEEL] Uploading '%s'", file.as_posix())
+    push_wheel(file.as_posix(), dir_name)
+
+for file in itertools.chain(BUILD_DIR.glob("*.zip"), BUILD_DIR.glob("*.tar.gz")):
+    logger.info("[SDK  ] Uploading '%s'", file.as_posix())
+    push_sdk(file.as_posix(), dir_name)
+
+sdk_index = generate_sdk_index(dir_name)
+with tempfile.TemporaryDirectory() as tmp:
+    tmp = pathlib.Path(tmp)
+    index = (tmp / "index.html")
+    index.write_text(sdk_index)
+    push_sdk(index.as_posix(), dir_name)
+
+pypi_index = generate_pypi_index(dir_name)
+with tempfile.TemporaryDirectory() as tmp:
+    tmp = pathlib.Path(tmp)
+    index = (tmp / "index.html")
+    index.write_text(pypi_index)
+    push_wheel(index.as_posix(), dir_name)
+
 logger.info("Done!")
 

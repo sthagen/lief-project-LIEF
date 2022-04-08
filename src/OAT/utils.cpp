@@ -30,24 +30,16 @@ bool is_oat(const std::string& file) {
     return false;
   }
 
-  try {
-    if (const auto elf_binary = ELF::Parser::parse(file)) {
-      return is_oat(*elf_binary);
-    }
-  } catch (const exception&) {
-    return false;
+  if (const auto elf_binary = ELF::Parser::parse(file)) {
+    return is_oat(*elf_binary);
   }
   return false;
 }
 
 
 bool is_oat(const std::vector<uint8_t>& raw) {
-  try {
-    if (const auto elf_binary = ELF::Parser::parse(raw)) {
-      return is_oat(*elf_binary);
-    }
-  } catch (const exception&) {
-    return false;
+  if (const auto elf_binary = ELF::Parser::parse(raw)) {
+    return is_oat(*elf_binary);
   }
   return false;
 }
@@ -67,13 +59,8 @@ oat_version_t version(const std::string& file) {
     return 0;
   }
 
-  std::unique_ptr<const ELF::Binary> elf_binary;
-  try {
-    if (const auto elf = ELF::Parser::parse(file)) {
-      return version(*elf_binary);
-    }
-  } catch (const exception&) {
-    return 0;
+  if (const auto elf = ELF::Parser::parse(file)) {
+    return version(*elf);
   }
   return 0;
 }
@@ -83,13 +70,8 @@ oat_version_t version(const std::vector<uint8_t>& raw) {
     return 0;
   }
 
-  std::unique_ptr<const ELF::Binary> elf_binary;
-  try {
-    if (const auto elf = ELF::Parser::parse(raw)) {
-      return version(*elf_binary);
-    }
-  } catch (const exception&) {
-    return 0;
+  if (const auto elf = ELF::Parser::parse(raw)) {
+    return version(*elf);
   }
   return 0;
 }

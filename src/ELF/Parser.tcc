@@ -44,6 +44,7 @@
 
 #include "ELF/Structures.hpp"
 #include "ELF/DataHandler/Handler.hpp"
+#include "ELF/SizingInfo.hpp"
 
 #include "Object.tcc"
 
@@ -63,51 +64,34 @@ ok_error_t Parser::parse_binary() {
 
   // Parse Sections
   // ==============
-  try {
-    if (binary_->header_.section_headers_offset() > 0) {
-      parse_sections<ELF_T>();
-    } else {
-      LIEF_WARN("The current binary doesn't have a section header");
-    }
-
-  } catch (const LIEF::read_out_of_bound& e) {
-    LIEF_WARN(e.what());
-  } catch (const corrupted& e) {
-    LIEF_WARN(e.what());
+  if (binary_->header_.section_headers_offset() > 0) {
+    parse_sections<ELF_T>();
+  } else {
+    LIEF_WARN("The current binary doesn't have a section header");
   }
-
 
   // Parse segments
   // ==============
-
-  try {
-    if (binary_->header_.program_headers_offset() > 0) {
-      LIEF_SW_START(sw);
-      parse_segments<ELF_T>();
-      LIEF_SW_END("segments parsed in {}", duration_cast<std::chrono::microseconds>(sw.elapsed()));
-    } else {
-      if (binary_->header().file_type() != E_TYPE::ET_REL) {
-        LIEF_WARN("Binary doesn't have a program header");
-      }
+  if (binary_->header_.program_headers_offset() > 0) {
+    LIEF_SW_START(sw);
+    parse_segments<ELF_T>();
+    LIEF_SW_END("segments parsed in {}", duration_cast<std::chrono::microseconds>(sw.elapsed()));
+  } else {
+    if (binary_->header().file_type() != E_TYPE::ET_REL) {
+      LIEF_WARN("Binary doesn't have a program header");
     }
-  } catch (const corrupted& e) {
-    LIEF_WARN(e.what());
   }
 
   // Parse Dynamic elements
   // ======================
 
   // Find the dynamic Segment
-  const Segment* seg_dyn = binary_->get(SEGMENT_TYPES::PT_DYNAMIC);
-  if (seg_dyn != nullptr) {
+  if (const Segment* seg_dyn = binary_->get(SEGMENT_TYPES::PT_DYNAMIC)) {
     const Elf_Off offset = seg_dyn->file_offset();
     const Elf_Off size   = seg_dyn->physical_size();
 
-    try {
-      parse_dynamic_entries<ELF_T>(offset, size);
-    } catch (const exception& e) {
-      LIEF_WARN(e.what());
-    }
+    parse_dynamic_entries<ELF_T>(offset, size);
+    binary_->sizing_info_->dynamic = size;
   }
 
 
@@ -119,12 +103,10 @@ ok_error_t Parser::parse_binary() {
 
     if (dt_symtab != nullptr && dt_syment != nullptr) {
       const uint64_t virtual_address = dt_symtab->value();
-      //const uint64_t size            = (*it_dynamic_symbol_size)->value();
-      try {
-        const uint64_t offset = binary_->virtual_address_to_offset(virtual_address);
-        parse_dynamic_symbols<ELF_T>(offset);
-      } catch (const LIEF::exception& e) {
-        LIEF_ERR(e.what());
+      if (auto res = binary_->virtual_address_to_offset(virtual_address)) {
+        parse_dynamic_symbols<ELF_T>(*res);
+      } else {
+        LIEF_WARN("Can't convert DT_SYMTAB.virtual_address into an offset (0x{:x})", virtual_address);
       }
     }
   }
@@ -141,11 +123,11 @@ ok_error_t Parser::parse_binary() {
     if (dt_rela != nullptr && dt_relasz != nullptr) {
       const uint64_t virtual_address = dt_rela->value();
       const uint64_t size            = dt_relasz->value();
-      try {
-        uint64_t offset = binary_->virtual_address_to_offset(virtual_address);
-        parse_dynamic_relocations<ELF_T, typename ELF_T::Elf_Rela>(offset, size);
-      } catch (const LIEF::exception& e) {
-        LIEF_WARN(e.what());
+      if (auto res = binary_->virtual_address_to_offset(virtual_address)) {
+        parse_dynamic_relocations<ELF_T, typename ELF_T::Elf_Rela>(*res, size);
+        binary_->sizing_info_->rela = size;
+      } else {
+        LIEF_WARN("Can't convert DT_RELA.virtual_address into an offset (0x{:x})", virtual_address);
       }
     }
   }
@@ -160,11 +142,11 @@ ok_error_t Parser::parse_binary() {
     if (dt_rel != nullptr && dt_relsz != nullptr) {
       const uint64_t virtual_address = dt_rel->value();
       const uint64_t size            = dt_relsz->value();
-      try {
-        const uint64_t offset = binary_->virtual_address_to_offset(virtual_address);
-        parse_dynamic_relocations<ELF_T, typename ELF_T::Elf_Rel>(offset, size);
-      } catch (const LIEF::exception& e) {
-        LIEF_WARN(e.what());
+      if (auto res = binary_->virtual_address_to_offset(virtual_address)) {
+        parse_dynamic_relocations<ELF_T, typename ELF_T::Elf_Rel>(*res, size);
+        binary_->sizing_info_->rela = size;
+      } else {
+        LIEF_WARN("Can't convert DT_REL.virtual_address into an offset (0x{:x})", virtual_address);
       }
     }
   }
@@ -191,36 +173,29 @@ ok_error_t Parser::parse_binary() {
         }
       }
 
-      try {
-        const uint64_t offset = binary_->virtual_address_to_offset(virtual_address);
-        if (type == DYNAMIC_TAGS::DT_RELA) {
-          parse_pltgot_relocations<ELF_T, typename ELF_T::Elf_Rela>(offset, size);
-        } else {
-          parse_pltgot_relocations<ELF_T, typename ELF_T::Elf_Rel>(offset, size);
-        }
-      } catch (const LIEF::exception& e) {
-        LIEF_WARN(e.what());
-
+      if (auto res = binary_->virtual_address_to_offset(virtual_address)) {
+        auto parsing_result = type == DYNAMIC_TAGS::DT_RELA ?
+                              parse_pltgot_relocations<ELF_T, typename ELF_T::Elf_Rela>(*res, size) :
+                              parse_pltgot_relocations<ELF_T, typename ELF_T::Elf_Rel>(*res, size);
+        binary_->sizing_info_->jmprel = size;
+      } else {
+        LIEF_WARN("Can't convert DT_JMPREL.virtual_address into an offset (0x{:x})", virtual_address);
       }
     }
   }
 
   // Parse Symbol Version
   // ====================
-  {
-    DynamicEntry* dt_versym = binary_->get(DYNAMIC_TAGS::DT_VERSYM);
-
-    if (dt_versym != nullptr) {
-      const uint64_t virtual_address = dt_versym->value();
-      try {
-        uint64_t offset = binary_->virtual_address_to_offset(virtual_address);
-        parse_symbol_version(offset);
-      } catch (const LIEF::exception&) {
-
-      }
-
+  if (DynamicEntry* dt_versym = binary_->get(DYNAMIC_TAGS::DT_VERSYM)) {
+    const uint64_t virtual_address = dt_versym->value();
+    if (auto res = binary_->virtual_address_to_offset(virtual_address)) {
+      parse_symbol_version(*res);
+      binary_->sizing_info_->versym = binary_->dynamic_symbols_.size() * sizeof(uint16_t);
+    } else {
+      LIEF_WARN("Can't convert DT_VERSYM.virtual_address into an offset (0x{:x})", virtual_address);
     }
   }
+
 
   // Parse Symbol Version Requirement
   // ================================
@@ -232,11 +207,11 @@ ok_error_t Parser::parse_binary() {
       const uint64_t virtual_address = dt_verneed->value();
       const uint32_t nb_entries = std::min(Parser::NB_MAX_SYMBOLS,
                                            static_cast<uint32_t>(dt_verneed_num->value()));
-      try {
-        const uint64_t offset = binary_->virtual_address_to_offset(virtual_address);
-        parse_symbol_version_requirement<ELF_T>(offset, nb_entries);
-      } catch (const LIEF::exception& e) {
-        LIEF_WARN("{}", e.what());
+
+      if (auto res = binary_->virtual_address_to_offset(virtual_address)) {
+        parse_symbol_version_requirement<ELF_T>(*res, nb_entries);
+      } else {
+        LIEF_WARN("Can't convert DT_VERNEED.virtual_address into an offset (0x{:x})", virtual_address);
       }
     }
   }
@@ -249,11 +224,11 @@ ok_error_t Parser::parse_binary() {
     if (dt_verdef != nullptr && dt_verdef_num != nullptr) {
       const uint64_t virtual_address = dt_verdef->value();
       const auto size                = static_cast<uint32_t>(dt_verdef_num->value());
-      try {
-        const uint64_t offset = binary_->virtual_address_to_offset(virtual_address);
-        parse_symbol_version_definition<ELF_T>(offset, size);
-      } catch (const LIEF::exception&) {
 
+      if (auto res = binary_->virtual_address_to_offset(virtual_address)) {
+        parse_symbol_version_definition<ELF_T>(*res, size);
+      } else {
+        LIEF_WARN("Can't convert DT_VERDEF.virtual_address into an offset (0x{:x})", virtual_address);
       }
     }
   }
@@ -261,51 +236,38 @@ ok_error_t Parser::parse_binary() {
 
   // Parse static symbols
   // ====================
-  {
-    const Section* sec_symbtab = binary_->get(ELF_SECTION_TYPES::SHT_SYMTAB);
+  if (const Section* sec_symbtab = binary_->get(ELF_SECTION_TYPES::SHT_SYMTAB)) {
+    auto nb_entries = static_cast<uint32_t>((sec_symbtab->size() / sizeof(typename ELF_T::Elf_Sym)));
+    nb_entries = std::min(nb_entries, Parser::NB_MAX_SYMBOLS);
 
-    if (sec_symbtab != nullptr) {
-      auto nb_entries = static_cast<uint32_t>((sec_symbtab->size() / sizeof(typename ELF_T::Elf_Sym)));
-      nb_entries = std::min(nb_entries, Parser::NB_MAX_SYMBOLS);
-
-      if (sec_symbtab->link() == 0 || sec_symbtab->link() >= binary_->sections_.size()) {
-        LIEF_WARN("section->link() is not valid !");
-      } else {
-        // We should have:
-        // nb_entries == section->information())
-        // but lots of compiler not respect this rule
-        parse_static_symbols<ELF_T>(sec_symbtab->file_offset(), nb_entries,
-                                    *binary_->sections_[sec_symbtab->link()]);
-      }
+    if (sec_symbtab->link() == 0 || sec_symbtab->link() >= binary_->sections_.size()) {
+      LIEF_WARN("section->link() is not valid !");
+    } else {
+      // We should have:
+      // nb_entries == section->information())
+      // but lots of compiler not respect this rule
+      parse_static_symbols<ELF_T>(sec_symbtab->file_offset(), nb_entries,
+                                  *binary_->sections_[sec_symbtab->link()]);
     }
   }
 
 
   // Parse Symbols's hash
   // ====================
-  {
-    DynamicEntry* dt_hash = binary_->get(DYNAMIC_TAGS::DT_HASH);
-    if (dt_hash != nullptr) {
-      try {
-        const uint64_t symbol_sys_hash_offset = binary_->virtual_address_to_offset(dt_hash->value());
-        parse_symbol_sysv_hash(symbol_sys_hash_offset);
-      } catch (const conversion_error&) {
-      } catch (const exception& e) {
-        LIEF_WARN("{}", e.what());
-      }
+  if (DynamicEntry* dt_hash = binary_->get(DYNAMIC_TAGS::DT_HASH)) {
+    if (auto res = binary_->virtual_address_to_offset(dt_hash->value())) {
+      parse_symbol_sysv_hash(*res);
+    } else {
+      LIEF_WARN("Can't convert DT_HASH.virtual_address into an offset (0x{:x})", dt_hash->value());
     }
   }
 
-  {
-    DynamicEntry* dt_gnu_hash = binary_->get(DYNAMIC_TAGS::DT_GNU_HASH);
-    if (dt_gnu_hash != nullptr) {
-      try {
-        const uint64_t symbol_gnu_hash_offset = binary_->virtual_address_to_offset(dt_gnu_hash->value());
-        parse_symbol_gnu_hash<ELF_T>(symbol_gnu_hash_offset);
-      } catch (const conversion_error&) {
-      } catch (const exception& e) {
-        LIEF_WARN("{}", e.what());
-      }
+
+  if (DynamicEntry* dt_gnu_hash = binary_->get(DYNAMIC_TAGS::DT_GNU_HASH)) {
+    if (auto res = binary_->virtual_address_to_offset(dt_gnu_hash->value())) {
+      parse_symbol_gnu_hash<ELF_T>(*res);
+    } else {
+      LIEF_WARN("Can't convert DT_GNU_HASH.virtual_address into an offset (0x{:x})", dt_gnu_hash->value());
     }
   }
 
@@ -315,14 +277,13 @@ ok_error_t Parser::parse_binary() {
     if (segment.type() != SEGMENT_TYPES::PT_NOTE) {
       continue;
     }
-    try {
-      const uint64_t note_offset = binary_->virtual_address_to_offset(segment.virtual_address());
-      parse_notes(note_offset, segment.physical_size());
-    } catch (const conversion_error&) {
-    } catch (const exception& e) {
-      LIEF_WARN("{}", e.what());
-    }
 
+    const uint64_t va = segment.virtual_address();
+    if (auto res = binary_->virtual_address_to_offset(va)) {
+      parse_notes(*res, segment.physical_size());
+    } else {
+      LIEF_WARN("Can't convert PT_NOTE.virtual_address into an offset (0x{:x})", va);
+    }
   }
 
   // Parse Note Sections
@@ -332,14 +293,7 @@ ok_error_t Parser::parse_binary() {
       continue;
     }
 
-    try {
-      parse_notes(section.offset(), section.size());
-    } catch (const conversion_error&) {
-    } catch (const exception& e) {
-      LIEF_WARN("{}", e.what());
-    }
-
-
+    parse_notes(section.offset(), section.size());
   }
 
   // Try to parse using sections
@@ -351,16 +305,11 @@ ok_error_t Parser::parse_binary() {
     if (skip_allocated_sections && section.has(ELF_SECTION_FLAGS::SHF_ALLOC)){
       continue;
     }
-    try {
-      if (section.type() == ELF_SECTION_TYPES::SHT_REL) {
-        parse_section_relocations<ELF_T, typename ELF_T::Elf_Rel>(section);
-      }
-      else if (section.type() == ELF_SECTION_TYPES::SHT_RELA) {
-        parse_section_relocations<ELF_T, typename ELF_T::Elf_Rela>(section);
-      }
-
-    } catch (const exception& e) {
-      LIEF_WARN("Unable to parse relocations from section '{}' ({})", section.name(), e.what());
+    if (section.type() == ELF_SECTION_TYPES::SHT_REL) {
+      parse_section_relocations<ELF_T, typename ELF_T::Elf_Rel>(section);
+    }
+    else if (section.type() == ELF_SECTION_TYPES::SHT_RELA) {
+      parse_section_relocations<ELF_T, typename ELF_T::Elf_Rela>(section);
     }
   }
 
@@ -549,10 +498,8 @@ result<uint32_t> Parser::nb_dynsym_relocations() const {
   if (dt_rela != nullptr && dt_relasz != nullptr) {
     const uint64_t virtual_address = dt_rela->value();
     const uint64_t size            = dt_relasz->value();
-    try {
-      uint64_t offset = binary_->virtual_address_to_offset(virtual_address);
-      nb_symbols = std::max(nb_symbols, max_relocation_index<ELF_T, rela_t>(offset, size));
-    } catch (const LIEF::exception&) {
+    if (auto res = binary_->virtual_address_to_offset(virtual_address)) {
+      nb_symbols = std::max(nb_symbols, max_relocation_index<ELF_T, rela_t>(*res, size));
     }
   }
 
@@ -565,13 +512,9 @@ result<uint32_t> Parser::nb_dynsym_relocations() const {
   if (dt_rel != nullptr && dt_relsz != nullptr) {
     const uint64_t virtual_address = dt_rel->value();
     const uint64_t size            = dt_relsz->value();
-    try {
-      const uint64_t offset = binary_->virtual_address_to_offset(virtual_address);
-      nb_symbols = std::max(nb_symbols, max_relocation_index<ELF_T, rel_t>(offset, size));
-    } catch (const LIEF::exception&) {
-
+    if (auto res = binary_->virtual_address_to_offset(virtual_address)) {
+      nb_symbols = std::max(nb_symbols, max_relocation_index<ELF_T, rel_t>(*res, size));
     }
-
   }
 
   // Parse PLT/GOT Relocations
@@ -594,16 +537,12 @@ result<uint32_t> Parser::nb_dynsym_relocations() const {
         type = DYNAMIC_TAGS::DT_REL;
       }
     }
-
-    try {
-      const uint64_t offset = binary_->virtual_address_to_offset(virtual_address);
+    if (auto res = binary_->virtual_address_to_offset(virtual_address)) {
       if (type == DYNAMIC_TAGS::DT_RELA) {
-        nb_symbols = std::max(nb_symbols, max_relocation_index<ELF_T, rela_t>(offset, size));
+        nb_symbols = std::max(nb_symbols, max_relocation_index<ELF_T, rela_t>(*res, size));
       } else {
-        nb_symbols = std::max(nb_symbols, max_relocation_index<ELF_T, rel_t>(offset, size));
+        nb_symbols = std::max(nb_symbols, max_relocation_index<ELF_T, rel_t>(*res, size));
       }
-    } catch (const LIEF::exception& e) {
-      LIEF_WARN("{}", e.what());
     }
   }
 
@@ -672,7 +611,12 @@ result<uint32_t> Parser::nb_dynsym_sysv_hash() const {
     LIEF_ERR("Can't find DT_GNU_HASH");
     return make_error_code(lief_errors::not_found);
   }
-  const Elf_Off sysv_hash_offset = binary_->virtual_address_to_offset(dyn_hash->value());
+  Elf_Off sysv_hash_offset = 0;
+  if (auto res = binary_->virtual_address_to_offset(dyn_hash->value())) {
+    sysv_hash_offset = *res;
+  } else {
+    return res.error();
+  }
 
   // From the doc: 'so nchain should equal the number of symbol table entries.'
   stream_->setpos(sysv_hash_offset + sizeof(uint32_t));
@@ -694,7 +638,13 @@ result<uint32_t> Parser::nb_dynsym_gnu_hash() const {
     LIEF_ERR("Can't find DT_GNU_HASH");
     return make_error_code(lief_errors::not_found);
   }
-  const Elf_Off gnu_hash_offset = binary_->virtual_address_to_offset(dyn_hash->value());
+  Elf_Off gnu_hash_offset = 0;
+
+  if (auto res = binary_->virtual_address_to_offset(dyn_hash->value())) {
+    gnu_hash_offset = *res;
+  } else {
+    return res.error();
+  }
 
   stream_->setpos(gnu_hash_offset);
   const auto res_nbuckets = stream_->read_conv<uint32_t>();
@@ -938,6 +888,7 @@ ok_error_t Parser::parse_segments() {
           LIEF_ERR("Can't read the interpreter string");
         } else {
           binary_->interpreter_ = *interpreter;
+          binary_->sizing_info_->interpreter = read_size;
         }
       }
     } else {
@@ -1077,6 +1028,10 @@ ok_error_t Parser::parse_dynamic_symbols(uint64_t offset) {
       symbol->name(std::move(*name));
     }
     binary_->dynamic_symbols_.push_back(std::move(symbol));
+  }
+  binary_->sizing_info_->dynsym = binary_->dynamic_symbols_.size() * sizeof(Elf_Sym);
+  if (const auto* dt_strsz = binary_->get(DYNAMIC_TAGS::DT_STRSZ)) {
+    binary_->sizing_info_->dynstr = dt_strsz->value();
   }
   return ok();
 } // build_dynamic_sybols
@@ -1218,80 +1173,72 @@ ok_error_t Parser::parse_dynamic_entries(uint64_t offset, uint64_t size) {
 
   // Check for INIT array
   // ====================
-  {
-    DynamicEntry* dt_init_array = binary_->get(DYNAMIC_TAGS::DT_INIT_ARRAY);
-    if (dt_init_array != nullptr) {
-      DynamicEntry* dt_init_arraysz = binary_->get(DYNAMIC_TAGS::DT_INIT_ARRAYSZ);
-      if (dt_init_arraysz != nullptr) {
-        std::vector<uint64_t>& array = dt_init_array->as<DynamicEntryArray>()->array();
-
-        const auto nb_functions = static_cast<uint32_t>(dt_init_arraysz->value() / sizeof(uint__));
-        const Elf_Off offset = binary_->virtual_address_to_offset(dt_init_array->value());
-
-        stream_->setpos(offset);
+  if (DynamicEntry* dt_init_array = binary_->get(DYNAMIC_TAGS::DT_INIT_ARRAY)) {
+    if (DynamicEntry* dt_init_arraysz = binary_->get(DYNAMIC_TAGS::DT_INIT_ARRAYSZ)) {
+      binary_->sizing_info_->init_array = dt_init_arraysz->value();
+      std::vector<uint64_t>& array = dt_init_array->as<DynamicEntryArray>()->array();
+      const auto nb_functions = static_cast<uint32_t>(dt_init_arraysz->value() / sizeof(uint__));
+      if (auto offset = binary_->virtual_address_to_offset(dt_init_array->value())) {
+        stream_->setpos(*offset);
         for (size_t i = 0; i < nb_functions; ++i) {
-          auto val = stream_->read_conv<Elf_Addr>();
-          if (!val) {
+          if (auto val = stream_->read_conv<Elf_Addr>()) {
+            array.push_back(*val);
+          } else {
             break;
           }
-          array.push_back(*val);
         }
-      } else {
-        LIEF_WARN("The binary is not consistent. Found DT_INIT_ARRAY but missing DT_INIT_ARRAYSZ");
       }
+    } else {
+      LIEF_WARN("The binary is not consistent. Found DT_INIT_ARRAY but missing DT_INIT_ARRAYSZ");
     }
   }
 
 
   // Check for FINI array
   // ====================
-  {
-    DynamicEntry* dt_fini_array = binary_->get(DYNAMIC_TAGS::DT_FINI_ARRAY);
-    if (dt_fini_array != nullptr) {
-      DynamicEntry* dt_fini_arraysz = binary_->get(DYNAMIC_TAGS::DT_FINI_ARRAYSZ);
-      if (dt_fini_arraysz != nullptr) {
-        std::vector<uint64_t>& array = dt_fini_array->as<DynamicEntryArray>()->array();
+  if (DynamicEntry* dt_fini_array = binary_->get(DYNAMIC_TAGS::DT_FINI_ARRAY)) {
+    if (DynamicEntry* dt_fini_arraysz = binary_->get(DYNAMIC_TAGS::DT_FINI_ARRAYSZ)) {
+      binary_->sizing_info_->fini_array = dt_fini_arraysz->value();
+      std::vector<uint64_t>& array = dt_fini_array->as<DynamicEntryArray>()->array();
 
-        const auto nb_functions = static_cast<uint32_t>(dt_fini_arraysz->value() / sizeof(uint__));
-        const Elf_Off offset = binary_->virtual_address_to_offset(dt_fini_array->value());
+      const auto nb_functions = static_cast<uint32_t>(dt_fini_arraysz->value() / sizeof(uint__));
 
-        stream_->setpos(offset);
+      if (auto offset = binary_->virtual_address_to_offset(dt_fini_array->value())) {
+        stream_->setpos(*offset);
         for (size_t i = 0; i < nb_functions; ++i) {
-          auto val = stream_->read_conv<Elf_Addr>();
-          if (!val) {
+          if (auto val = stream_->read_conv<Elf_Addr>()) {
+            array.push_back(*val);
+          } else {
             break;
           }
-          array.push_back(*val);
         }
-      } else {
-        LIEF_WARN("The binary is not consistent. Found DT_FINI_ARRAY but missing DT_FINI_ARRAYSZ");
       }
+    } else {
+      LIEF_WARN("The binary is not consistent. Found DT_FINI_ARRAY but missing DT_FINI_ARRAYSZ");
     }
   }
 
   // Check for PREINIT array
   // =======================
-  {
-    DynamicEntry* dt_preini_array = binary_->get(DYNAMIC_TAGS::DT_PREINIT_ARRAY);
-    if (dt_preini_array != nullptr) {
-      DynamicEntry* dt_preinit_arraysz = binary_->get(DYNAMIC_TAGS::DT_PREINIT_ARRAYSZ);
-      if (dt_preinit_arraysz != nullptr) {
-        std::vector<uint64_t>& array = dt_preini_array->as<DynamicEntryArray>()->array();
+  if (DynamicEntry* dt_preini_array = binary_->get(DYNAMIC_TAGS::DT_PREINIT_ARRAY)) {
+    if (DynamicEntry* dt_preinit_arraysz = binary_->get(DYNAMIC_TAGS::DT_PREINIT_ARRAYSZ)) {
+      binary_->sizing_info_->preinit_array = dt_preinit_arraysz->value();
+      std::vector<uint64_t>& array = dt_preini_array->as<DynamicEntryArray>()->array();
 
-        const auto nb_functions = static_cast<uint32_t>(dt_preinit_arraysz->value() / sizeof(uint__));
-        const Elf_Off offset = binary_->virtual_address_to_offset(dt_preini_array->value());
+      const auto nb_functions = static_cast<uint32_t>(dt_preinit_arraysz->value() / sizeof(uint__));
 
-        stream_->setpos(offset);
+      if (auto offset = binary_->virtual_address_to_offset(dt_preini_array->value())) {
+        stream_->setpos(static_cast<Elf_Off>(*offset));
         for (size_t i = 0; i < nb_functions; ++i) {
-          auto val = stream_->read_conv<Elf_Addr>();
-          if (!val) {
+          if (auto val = stream_->read_conv<Elf_Addr>()) {
+            array.push_back(*val);
+          } else {
             break;
           }
-          array.push_back(*val);
         }
-      } else {
-        LIEF_WARN("The binary is not consistent. Found DT_PREINIT_ARRAY but missing DT_PREINIT_ARRAYSZ");
       }
+    } else {
+      LIEF_WARN("The binary is not consistent. Found DT_PREINIT_ARRAY but missing DT_PREINIT_ARRAYSZ");
     }
   }
   return ok();
@@ -1507,7 +1454,9 @@ ok_error_t Parser::parse_symbol_version_requirement(uint64_t offset, uint32_t nb
   // We mask the 15th (7FFF) bit because it sets if this symbol is a hidden on or not
   // but we don't care
   for (const std::unique_ptr<SymbolVersionRequirement>& svr : binary_->symbol_version_requirements_) {
+    binary_->sizing_info_->verneed += sizeof(Elf_Verneed);
     for (std::unique_ptr<SymbolVersionAuxRequirement>& svar : svr->aux_requirements_) {
+        binary_->sizing_info_->verneed += sizeof(Elf_Vernaux);
         for (const std::unique_ptr<SymbolVersion>& sv : binary_->symbol_version_table_) {
           if ((sv->value() & 0x7FFF) == svar->other()) {
             sv->symbol_aux_ = svar.get();
@@ -1573,7 +1522,9 @@ ok_error_t Parser::parse_symbol_version_definition(uint64_t offset, uint32_t nb_
   // We mask the 15th bit because it sets if this symbol is a hidden on or not
   // but we don't care
   for (std::unique_ptr<SymbolVersionDefinition>& svd : binary_->symbol_version_definition_) {
+    binary_->sizing_info_->verdef += sizeof(Elf_Verdef);
     for (std::unique_ptr<SymbolVersionAux>& sva : svd->symbol_version_aux_) {
+      binary_->sizing_info_->verdef += sizeof(Elf_Verdaux);
       for (std::unique_ptr<SymbolVersion>& sv : binary_->symbol_version_table_) {
         if (svd->ndx() > 1 && (sv->value() & 0x7FFF) == svd->ndx()) {
           sv->symbol_aux_ = sva.get();
@@ -1687,6 +1638,7 @@ ok_error_t Parser::parse_symbol_gnu_hash(uint64_t offset) {
     LIEF_ERR("GNU Hash, symndx corrupted");
   }
   binary_->gnu_hash_ = std::move(gnuhash);
+  binary_->sizing_info_->gnu_hash = stream_->pos() - offset;
   return ok();
 }
 
