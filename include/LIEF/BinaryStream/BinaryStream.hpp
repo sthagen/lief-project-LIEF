@@ -192,7 +192,13 @@ class BinaryStream {
       if (dst == nullptr) {
         return make_error_code(lief_errors::read_error);
       }
+
       const void* ptr = *raw;
+
+      if (ptr == nullptr) {
+        return make_error_code(lief_errors::read_error);
+      }
+
       memcpy(dst, ptr, size);
       return ok();
     }
@@ -208,7 +214,7 @@ class ScopedStream {
   ScopedStream(const ScopedStream&) = delete;
   ScopedStream& operator=(const ScopedStream&) = delete;
 
-  ScopedStream(const ScopedStream&&) = delete;
+  ScopedStream(ScopedStream&&) = delete;
   ScopedStream& operator=(ScopedStream&&) = delete;
 
   explicit ScopedStream(BinaryStream& stream, uint64_t pos) :
@@ -217,6 +223,11 @@ class ScopedStream {
   {
     stream_.setpos(pos);
   }
+
+  explicit ScopedStream(BinaryStream& stream) :
+    pos_{stream.pos()},
+    stream_{stream}
+  {}
 
   inline ~ScopedStream() {
     stream_.setpos(pos_);
@@ -241,7 +252,7 @@ result<T> BinaryStream::read() const {
 template<class T>
 result<T> BinaryStream::peek() const {
   const auto current_p = pos();
-  T ret;
+  T ret{};
   if (auto res = peek_in(&ret, pos(), sizeof(T))) {
     setpos(current_p);
     return ret;

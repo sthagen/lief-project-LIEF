@@ -105,6 +105,16 @@ Section
 
 ----------
 
+
+SegmentCommand
+**************
+
+.. doxygenclass:: LIEF::MachO::SegmentCommand
+   :project: lief
+
+
+----------
+
 Symbol
 ******
 
@@ -190,15 +200,38 @@ Relocation Dyld
 
 ----------
 
+Relocation Dyld
+***************
 
-Binding Info
-************
-
-.. doxygenclass:: LIEF::MachO::BindingInfo
+.. doxygenclass:: LIEF::MachO::RelocationDyld
    :project: lief
 
 ----------
 
+
+Relocation Fixup
+****************
+
+.. doxygenclass:: LIEF::MachO::RelocationFixup
+   :project: lief
+
+----------
+
+Dyld Binding Info
+*****************
+
+.. doxygenclass:: LIEF::MachO::DyldBindingInfo
+   :project: lief
+
+----------
+
+Chained Binding Info
+********************
+
+.. doxygenclass:: LIEF::MachO::ChainedBindingInfo
+   :project: lief
+
+----------
 
 Export Info
 ***********
@@ -308,6 +341,48 @@ Fileset Command
 
 ----------
 
+DyldChainedFixups Command
+*************************
+
+.. doxygenclass:: LIEF::MachO::DyldChainedFixups
+   :project: lief
+
+----------
+
+DyldExportsTrie Command
+************************
+
+.. doxygenclass:: LIEF::MachO::DyldExportsTrie
+   :project: lief
+
+----------
+
+Code Signature Dir Command
+**************************
+
+.. doxygenclass:: LIEF::MachO::CodeSignatureDir
+   :project: lief
+
+----------
+
+
+Linker Optimization Hint Command
+********************************
+
+.. doxygenclass:: LIEF::MachO::LinkerOptHint
+   :project: lief
+
+----------
+
+
+Two Level Hints Command
+***********************
+
+.. doxygenclass:: LIEF::MachO::TwoLevelHints
+   :project: lief
+
+----------
+
 
 Utilities
 *********
@@ -410,5 +485,11 @@ Enums
    :project: lief
 
 .. doxygenenum:: LIEF::MachO::SYMBOL_ORIGINS
+   :project: lief
+
+.. doxygenenum:: LIEF::MachO::DYLD_CHAINED_FORMAT
+   :project: lief
+
+.. doxygenenum:: LIEF::MachO::DYLD_CHAINED_PTR_FORMAT
    :project: lief
 
