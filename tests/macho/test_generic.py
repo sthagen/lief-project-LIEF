@@ -220,3 +220,43 @@ def test_get_section():
     sample = get_sample("MachO/MachO64_x86-64_binary_large-bss.bin")
     macho = lief.parse(sample)
     assert macho.get_section("__DATA_CONST", "__got") is not None
+
+
+
+def test_segment_add_section():
+    binary = lief.parse(get_sample('MachO/MachO64_x86-64_binary_safaridriver.bin'))
+
+    section = lief.MachO.Section("__bar", [1, 2, 3])
+
+    existing_segment = binary.get_segment("__TEXT")
+    new_segment = lief.MachO.SegmentCommand("__FOO")
+
+    for segment in (existing_segment, new_segment):
+        assert not segment.has_section(section.name)
+        assert not segment.has(section)
+        assert segment.numberof_sections == len(segment.sections)
+
+        numberof_sections = segment.numberof_sections
+
+        section = segment.add_section(section)
+        assert segment.numberof_sections == numberof_sections + 1
+        assert segment.has_section(section.name)
+        assert segment.has(section)
+        assert section in segment.sections
+
+def test_issue_728():
+    x86_64_binary = lief.parse(get_sample('MachO/MachO64_x86-64_binary_safaridriver.bin'))
+    arm64_binary = lief.MachO.parse(get_sample('MachO/FAT_MachO_arm-arm64-binary-helloworld.bin')).take(lief.MachO.CPU_TYPES.ARM64)
+
+    segment = lief.MachO.SegmentCommand("__FOO")
+    segment.add_section(lief.MachO.Section("__bar", [1, 2, 3]))
+
+    for parsed in (x86_64_binary, arm64_binary):
+        if parsed.header.cpu_type == lief.MachO.CPU_TYPES.x86_64:
+            expected_virtual_size = 0x1000
+        elif parsed.header.cpu_type == lief.MachO.CPU_TYPES.ARM64:
+            expected_virtual_size = 0x4000
+
+        new_segment = parsed.add(segment)
+        assert new_segment.virtual_size == expected_virtual_size
+
