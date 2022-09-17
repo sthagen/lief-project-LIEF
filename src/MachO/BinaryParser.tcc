@@ -887,16 +887,24 @@ ok_error_t BinaryParser::parse_load_commands() {
            * with the BinaryParser constructor
            */
           const size_t current_pos = stream_->pos();
+          if (!visited_.insert(cmd->fileoff).second) {
+            break;
+          }
+
           stream_->setpos(cmd->fileoff);
           BinaryParser bp;
-          bp.stream_ = std::move(stream_);
-          bp.config_ = config_;
+          bp.binary_  = std::unique_ptr<Binary>(new Binary{});
+          bp.stream_  = std::move(stream_);
+          bp.config_  = config_;
+          bp.visited_ = visited_;
+
           if (!bp.init_and_parse()) {
             LIEF_WARN("Parsing the Binary fileset raised error.");
           }
 
           stream_ = std::move(bp.stream_);
           stream_->setpos(current_pos);
+          visited_ = std::move(bp.visited_);
 
           if (bp.binary_ != nullptr) {
             std::unique_ptr<Binary> filset_bin = std::move(bp.binary_);
@@ -1626,6 +1634,10 @@ ok_error_t BinaryParser::parse_dyldinfo_generic_bind() {
             case BIND_SUBOPCODE_THREADED::BIND_SUBOPCODE_THREADED_APPLY:
               {
                 uint64_t delta = 0;
+                if (segment_idx >= segments.size()) {
+                  LIEF_ERR("Wrong index ({:d})", segment_idx);
+                  return make_error_code(lief_errors::corrupted);
+                }
                 const SegmentCommand& current_segment = segments[segment_idx];
                 do {
                   const uint64_t address = current_segment.virtual_address() + segment_offset;
