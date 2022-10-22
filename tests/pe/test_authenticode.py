@@ -14,6 +14,11 @@ from unittest import TestCase
 import lief
 from utils import get_sample
 
+try:
+    sys.set_int_max_str_digits(0)
+except:
+    pass
+
 lief.logging.set_level(lief.logging.LOGGING_LEVEL.WARNING)
 
 def from_hex(x):
@@ -273,8 +278,8 @@ class TestAuthenticode(TestCase):
 
     def test_issue_703(self):
         sig: lief.PE.Signature = lief.PE.Signature.parse(get_sample("pkcs7/cert_issue_703.der"))
-        self.assertEqual(sig.certificates[0].issuer, "CN=TxExoTiQueMoDz\Tx ExoTiQueMoDz")
-        self.assertEqual(sig.certificates[0].subject, "CN=TxExoTiQueMoDz\Tx ExoTiQueMoDz")
+        self.assertEqual(sig.certificates[0].issuer, "CN=TxExoTiQueMoDz\\Tx ExoTiQueMoDz")
+        self.assertEqual(sig.certificates[0].subject, "CN=TxExoTiQueMoDz\\Tx ExoTiQueMoDz")
 
 
 

@@ -43,7 +43,6 @@
 #include "LIEF/ELF/SymbolVersionAuxRequirement.hpp"
 #include "LIEF/ELF/Note.hpp"
 
-#include "LIEF/ELF/Builder.hpp"
 #include "LIEF/errors.hpp"
 
 #include "ELF/Structures.hpp"
@@ -1004,17 +1003,25 @@ ok_error_t Builder::build_dynamic_section() {
     dynamic_table_raw.write_conv<Elf_Dyn>(dynhdr);
   }
 
-  // Update the PT_DYNAMIC segment
-  Segment* dynamic_seg = binary_->get(SEGMENT_TYPES::PT_DYNAMIC);
-  if (dynamic_seg == nullptr) {
-    LIEF_ERR("Can't find the PT_DYNAMIC segment");
-    return make_error_code(lief_errors::file_format_error);
-  }
   std::vector<uint8_t> raw = dynamic_table_raw.raw();
-  dynamic_seg->physical_size(raw.size());
-  dynamic_seg->virtual_size(raw.size());
-  dynamic_seg->content(std::move(raw));
-  return ok();
+
+  // Update the dynamic section if present
+  if (Section* dynamic_section = binary_->get_section(".dynamic")) {
+    dynamic_section->content(raw);
+  } else {
+    LIEF_INFO("Can't find the .dynamic section; will still try to update PT_DYNAMIC.");
+  }
+
+  // Update the PT_DYNAMIC segment
+  if (Segment* dynamic_seg = binary_->get(SEGMENT_TYPES::PT_DYNAMIC)) {
+    dynamic_seg->physical_size(raw.size());
+    dynamic_seg->virtual_size(raw.size());
+    dynamic_seg->content(std::move(raw));
+    return ok();
+  }
+
+  LIEF_ERR("Can't find the PT_DYNAMIC segment");
+  return make_error_code(lief_errors::file_format_error);
 }
 
 
@@ -1232,6 +1239,11 @@ ok_error_t Builder::build_section_relocations() {
   auto* layout = static_cast<ObjectFileLayout*>(layout_.get());
 
   Binary::it_object_relocations object_relocations = binary_->object_relocations();
+  if (object_relocations.empty()) {
+    LIEF_ERR("Relocations are empty");
+    return make_error_code(lief_errors::not_found);
+  }
+
   const bool is_rela = object_relocations[0].is_rela();
   std::unordered_map<Section*, vector_iostream> section_content;
 
@@ -1269,7 +1281,7 @@ ok_error_t Builder::build_section_relocations() {
         // NOTE: To suppress a warning we require a cast here, this path is not constexpr but only uses Elf64_Xword
         info = (static_cast<details::ELF64::Elf_Xword>(symidx) << 32) | (reloc->type() & 0xffffffffL);
       }
-      
+
       if (is_rela) {
         Elf_Rela relahdr;
         relahdr.r_offset = static_cast<Elf_Addr>(reloc->address());
