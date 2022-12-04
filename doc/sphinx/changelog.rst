@@ -6,6 +6,8 @@ Changelog
 
 :ELF:
 
+  * Fix coredump parsing issue (c.f. :issue:`830` found by :github_user:`Lan1keA`)
+  * Fix and (re)enable removing dynamic symbols (c.f. :issue:`828`)
   * Add support for `NT_GNU_BUILD_ATTRIBUTE_OPEN` and `NT_GNU_BUILD_ATTRIBUTE_FUNC` (c.f. :issue:`816`)
   * [CVE-2022-38497] Fix ELF core parsing issue (:issue:`766` found by :github_user:`CCWANG19`)
   * [CVE-2022-38306] Fix a heap overflow found by :github_user:`CCWANG19` (:issue:`763`)
