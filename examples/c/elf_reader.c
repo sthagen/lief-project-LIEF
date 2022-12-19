@@ -14,6 +14,11 @@ int main(int argc, char **argv) {
   }
 
   Elf_Binary_t *elf_binary = elf_parse(argv[1]);
+
+  if (elf_binary == NULL) {
+    return EXIT_FAILURE;
+  }
+
   fprintf(stdout, "Binary Name: %s\n", elf_binary->name);
   fprintf(stdout, "Interpreter: %s\n", elf_binary->interpreter);
 
@@ -40,8 +45,7 @@ int main(int argc, char **argv) {
   fprintf(stdout, "Name string table idx: %d\n",      header.name_string_table_idx);
 
   Elf_Section_t** sections = elf_binary->sections;
-  /*for (size_t i = 0; sections[i] != NULL; ++i) {*/
-  for (i = 0; i < header.numberof_sections; ++i) {
+  for (i = 0; i < header.numberof_sections && sections[i] != NULL; ++i) {
     Elf_Section_t* section = sections[i];
     fprintf(stdout, ""
         "%-20s "
@@ -64,7 +68,7 @@ int main(int argc, char **argv) {
         section->entry_size,
         section->entropy
         );
-    if (section->size > 3) {
+    if (section->size > 3 && section->content != NULL) {
       fprintf(stdout, "content[0..3]: %02x %02x %02x\n",
           section->content[0], section->content[1], section->content[2]);
     }
@@ -165,7 +169,7 @@ int main(int argc, char **argv) {
         segment->size,
         segment->alignment
         );
-    if (segment->size > 3) {
+    if (segment->size > 3 && segment->content != NULL) {
       fprintf(stdout, "content[0..3]: %02x %02x %02x\n",
           segment->content[0], segment->content[1], segment->content[2]);
     }

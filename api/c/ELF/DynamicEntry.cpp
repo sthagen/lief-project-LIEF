@@ -162,9 +162,9 @@ void init_c_dynamic_entries(Elf_Binary_t* c_binary, Binary* binary) {
         {
           c_binary->dynamic_entries[i] =
             static_cast<Elf_DynamicEntry_t*>(malloc(sizeof(Elf_DynamicEntry_t)));
-          c_binary->dynamic_entries[i]->tag   = static_cast<enum LIEF_ELF_DYNAMIC_TAGS>(entry.tag());
+          c_binary->dynamic_entries[i]->tag = static_cast<uint64_t>(entry.tag());
           c_binary->dynamic_entries[i]->value = entry.value();
-
+          break;
         }
     }
   }
@@ -208,14 +208,24 @@ void destroy_dynamic_entries(Elf_Binary_t* c_binary) {
       case DYNAMIC_TAGS::DT_FINI_ARRAY:
       case DYNAMIC_TAGS::DT_PREINIT_ARRAY:
         {
-          free(reinterpret_cast<Elf_DynamicEntry_Array_t*>(dynamic_entries[idx]));
+          Elf_DynamicEntry_Array_t* entry_array=reinterpret_cast<Elf_DynamicEntry_Array_t*>(dynamic_entries[idx]);
+          free(entry_array->array);
+          free(entry_array);
           break;
         }
 
       case DYNAMIC_TAGS::DT_FLAGS:
+        {
+          Elf_DynamicEntry_Flags_t* entry_flags=reinterpret_cast<Elf_DynamicEntry_Flags_t*>(dynamic_entries[idx]);
+          free(entry_flags->flags);
+          free(entry_flags);
+          break;
+        }
       case DYNAMIC_TAGS::DT_FLAGS_1:
         {
-          free(reinterpret_cast<Elf_DynamicEntry_Flags_t*>(dynamic_entries[idx]));
+          Elf_DynamicEntry_Flags_t* entry_flags=reinterpret_cast<Elf_DynamicEntry_Flags_t*>(dynamic_entries[idx]);
+          free(entry_flags->flags_1);
+          free(entry_flags);
           break;
         }
 

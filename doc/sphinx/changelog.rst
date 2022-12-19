@@ -6,6 +6,8 @@ Changelog
 
 :ELF:
 
+  * Fix overflow issue in segments (c.f. :issue:`845` found by :github_user:`liyansong2018`)
+  * Fix missing relationship between symbols and sections (c.f. :issue:`841`)
   * Fix coredump parsing issue (c.f. :issue:`830` found by :github_user:`Lan1keA`)
   * Fix and (re)enable removing dynamic symbols (c.f. :issue:`828`)
   * Add support for `NT_GNU_BUILD_ATTRIBUTE_OPEN` and `NT_GNU_BUILD_ATTRIBUTE_FUNC` (c.f. :issue:`816`)
@@ -64,6 +66,7 @@ Changelog
 
 :PE:
 
+  * The Python API now returns `bytes` objects instead of `List[int]`
   * Remove :meth:`lief.PE.ResourceNode.sort_by_id`
   * Fix the ordering of childs of :class:`~lief.PE.ResourceNode`
 

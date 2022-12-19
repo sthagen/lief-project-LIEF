@@ -86,7 +86,11 @@ Parser::Parser(const std::string& file) :
 }
 
 Parser::Parser(std::vector<uint8_t> data) :
-  stream_{std::make_unique<VectorStream>(std::move(data))}
+  Parser{std::make_unique<VectorStream>(std::move(data))}
+{}
+
+
+Parser::Parser(std::unique_ptr<BinaryStream> stream) : stream_{std::move(stream)}
 {}
 
 
@@ -132,13 +136,9 @@ ok_error_t Parser::parse_dos_stub() {
 
 ok_error_t Parser::parse_rich_header() {
   LIEF_DEBUG("Parsing rich header");
-  const std::vector<uint8_t>& dos_stub = binary_->dos_stub();
-  //SpanStream stream;
-  auto res = SpanStream::from_vector(dos_stub);
-  if (!res) {
-    return make_error_code(lief_errors::parsing_error);
-  }
-  SpanStream stream = std::move(*res);
+  span<const uint8_t> dos_stub = binary_->dos_stub();
+
+  SpanStream stream(dos_stub);
 
   const auto it_rich = std::search(std::begin(dos_stub), std::end(dos_stub),
                                    std::begin(details::Rich_Magic), std::end(details::Rich_Magic));
@@ -1127,6 +1127,16 @@ std::unique_ptr<Binary> Parser::parse(std::vector<uint8_t> data, const std::stri
     return nullptr;
   }
   Parser parser{std::move(data)};
+  parser.init(name);
+  return std::move(parser.binary_);
+}
+
+std::unique_ptr<Binary> Parser::parse(std::unique_ptr<BinaryStream> stream, const std::string& name) {
+  if (!is_pe(*stream)) {
+    return nullptr;
+  }
+
+  Parser parser{std::move(stream)};
   parser.init(name);
   return std::move(parser.binary_);
 }
