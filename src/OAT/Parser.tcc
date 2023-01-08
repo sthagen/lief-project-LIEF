@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2022 R. Thomas
- * Copyright 2017 - 2022 Quarkslab
+/* Copyright 2017 - 2023 R. Thomas
+ * Copyright 2017 - 2023 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -294,7 +294,7 @@ void Parser::parse_header() {
   const auto oat_hdr = std::move(*res_oat_hdr);
   oat.header_ = &oat_hdr;
   LIEF_DEBUG("Nb dex files: #{:d}", oat.header_.nb_dex_files());
-  LIEF_DEBUG("OAT version: {}", oat_hdr.oat_version);
+  //LIEF_DEBUG("OAT version: {}", oat_hdr.oat_version);
 
   parse_header_keys<OAT_T>();
 }
