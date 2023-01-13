@@ -218,6 +218,7 @@ ok_error_t BinaryParser::parse_load_commands() {
   // set as soon as we can
   uint32_t low_fileoff = -1U;
   std::set<LOAD_COMMAND_TYPES> not_parsed;
+  int64_t imagebase = -1;
 
   for (size_t i = 0; i < nbcmds; ++i) {
     const auto command = stream_->peek<details::load_command>(loadcommands_offset);
@@ -226,7 +227,9 @@ ok_error_t BinaryParser::parse_load_commands() {
     }
 
     std::unique_ptr<LoadCommand> load_command;
-    switch (static_cast<LOAD_COMMAND_TYPES>(command->cmd)) {
+    const auto cmd_type = static_cast<LOAD_COMMAND_TYPES>(command->cmd);
+
+    switch (cmd_type) {
 
       // ===============
       // Segment command
@@ -257,6 +260,10 @@ ok_error_t BinaryParser::parse_load_commands() {
           binary_->offset_seg_[segment->file_offset()] = segment;
           binary_->segments_.push_back(segment);
 
+          if (segment->name() == "__TEXT" && imagebase < 0) {
+            imagebase = segment->virtual_address();
+          }
+
           if (MemoryStream::classof(*stream_)) {
             // Link the memory stream with our
             // binary object so that is can translate virtual address to offset
@@ -266,7 +273,12 @@ ok_error_t BinaryParser::parse_load_commands() {
           if (segment->file_size() > 0) {
             if (MemoryStream::classof(*stream_)) {
               auto& memstream = static_cast<MemoryStream&>(*stream_);
-              uintptr_t address = memstream.base_address() + segment->virtual_address();
+              uintptr_t segment_va = segment->virtual_address();
+              if (imagebase >= 0 && segment_va >= static_cast<uint64_t>(imagebase)) {
+                segment_va -= static_cast<uint64_t>(imagebase);
+              }
+
+              uintptr_t address = memstream.base_address() + segment_va;
               const auto* p = reinterpret_cast<const uint8_t*>(address);
               segment->data_ = {p, p + segment->file_size()};
             } else {
@@ -340,7 +352,7 @@ ok_error_t BinaryParser::parse_load_commands() {
           auto* lib = load_command->as<DylibCommand>();
           lib->name(*name);
           binary_->libraries_.push_back(lib);
-          if (static_cast<LOAD_COMMAND_TYPES>(command->cmd) != LOAD_COMMAND_TYPES::LC_ID_DYLIB) {
+          if (cmd_type != LOAD_COMMAND_TYPES::LC_ID_DYLIB) {
             binding_libs_.push_back(lib);
           }
           break;
@@ -600,7 +612,7 @@ ok_error_t BinaryParser::parse_load_commands() {
           /*
            * DO NOT FORGET TO UPDATE VersionMin::classof
            */
-          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command->cmd)));
+          LIEF_DEBUG("[+] Parsing {}", to_string(cmd_type));
 
           const auto cmd = stream_->peek<details::version_min_command>(loadcommands_offset);
           if (!cmd) {
@@ -619,7 +631,7 @@ ok_error_t BinaryParser::parse_load_commands() {
           /*
            * DO NOT FORGET TO UPDATE BuildVersion::classof
            */
-          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command->cmd)));
+          LIEF_DEBUG("[+] Parsing {}", to_string(cmd_type));
 
           const auto cmd = stream_->peek<details::build_version_command>(loadcommands_offset);
           if (!cmd) {
@@ -848,7 +860,7 @@ ok_error_t BinaryParser::parse_load_commands() {
           /*
            * DO NOT FORGET TO UPDATE EncryptionInfo::classof
            */
-          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command->cmd)));
+          LIEF_DEBUG("[+] Parsing {}", to_string(cmd_type));
           const auto cmd = stream_->peek<details::encryption_info_command>(loadcommands_offset);
           if (!cmd) {
             LIEF_ERR("Can't parse encryption_info_command");
@@ -866,7 +878,7 @@ ok_error_t BinaryParser::parse_load_commands() {
           /*
            * DO NOT FORGET TO UPDATE FilesetCommand::classof
            */
-          LIEF_DEBUG("[+] Parsing {}", to_string(static_cast<LOAD_COMMAND_TYPES>(command->cmd)));
+          LIEF_DEBUG("[+] Parsing {}", to_string(cmd_type));
 
           const auto cmd = stream_->peek<details::fileset_entry_command>(loadcommands_offset);
           if (!cmd) {
@@ -1029,8 +1041,8 @@ ok_error_t BinaryParser::parse_load_commands() {
 
       default:
         {
-          if (not_parsed.insert(static_cast<LOAD_COMMAND_TYPES>(command->cmd)).second) {
-            LIEF_WARN("Command '{}' not parsed!", to_string(static_cast<LOAD_COMMAND_TYPES>(command->cmd)));
+          if (not_parsed.insert(cmd_type).second) {
+            LIEF_WARN("Command '{}' not parsed!", to_string(cmd_type));
           }
           load_command = std::make_unique<LoadCommand>(*command);
         }
@@ -2941,8 +2953,8 @@ ok_error_t BinaryParser::do_chained_fixup(SegmentCommand& segment, uint32_t chai
   static constexpr const char DPREFIX[] = "          ";
   const auto ptr_fmt = static_cast<DYLD_CHAINED_PTR_FORMAT>(seg_info.pointer_format);
   const uint64_t imagebase = binary_->imagebase();
-  const uint64_t address = imagebase + chain_offset;
 
+  const uint64_t address = imagebase + chain_offset;
   if (fixup.auth_rebase.auth) {
     if (fixup.auth_bind.bind) {
       uint32_t bind_ordinal = ptr_fmt == DYLD_CHAINED_PTR_FORMAT::PTR_ARM64E_USERLAND24 ?
@@ -3051,8 +3063,9 @@ ok_error_t BinaryParser::do_chained_fixup(SegmentCommand& segment, uint32_t chai
 
   // See comment for: dyld_chained_ptr_generic64
   const uint64_t target = ptr_fmt == DYLD_CHAINED_PTR_FORMAT::PTR_64 ?
-                          fixup.unpack_target() + binary_->imagebase() :
-                          fixup.unpack_target() + binary_->imagebase();
+                          fixup.unpack_target() :
+                          fixup.unpack_target() + imagebase;
+
   auto reloc = std::make_unique<RelocationFixup>(ptr_fmt, imagebase);
   reloc->set(fixup.rebase);
   reloc->architecture_ = binary_->header().cpu_type();
@@ -3087,8 +3100,9 @@ ok_error_t BinaryParser::do_chained_fixup(SegmentCommand& segment, uint32_t chai
 {
   static constexpr const char DPREFIX[] = "          ";
   const auto ptr_fmt = static_cast<DYLD_CHAINED_PTR_FORMAT>(seg_info.pointer_format);
+  const uint64_t imagebase = binary_->imagebase();
 
-  const uint64_t address = binary_->imagebase() + chain_offset;
+  const uint64_t address = imagebase + chain_offset;
   if (fixup.bind.bind > 0) {
     const uint64_t ordinal = fixup.bind.ordinal;
     if (ordinal >= chained_fixups_->internal_bindings_.size()) {
@@ -3111,7 +3125,7 @@ ok_error_t BinaryParser::do_chained_fixup(SegmentCommand& segment, uint32_t chai
      * We use the BindingInfo::address_ to store the imagebase
      * to avoid creating a new attribute in ChainedBindingInfo
      */
-    binding_extra_info->address_ = binary_->imagebase();
+    binding_extra_info->address_ = imagebase;
     local_binding->elements_.push_back(binding_extra_info.get());
 
     if (Symbol* sym = binding_extra_info->symbol()) {
@@ -3140,9 +3154,9 @@ ok_error_t BinaryParser::do_chained_fixup(SegmentCommand& segment, uint32_t chai
    * Not sure if it really matters in our case
    */
   const uint64_t target = ptr_fmt == DYLD_CHAINED_PTR_FORMAT::PTR_64 ?
-                          fixup.unpack_target() + binary_->imagebase() :
-                          fixup.unpack_target() + binary_->imagebase();
-  auto reloc = std::make_unique<RelocationFixup>(ptr_fmt, binary_->imagebase());
+                          fixup.unpack_target() :
+                          fixup.unpack_target() + imagebase;
+  auto reloc = std::make_unique<RelocationFixup>(ptr_fmt, imagebase);
   reloc->set(fixup.rebase);
   reloc->architecture_ = binary_->header().cpu_type();
   reloc->segment_      = &segment;
@@ -3174,8 +3188,9 @@ ok_error_t BinaryParser::do_chained_fixup(SegmentCommand& segment, uint32_t chai
 {
   static constexpr const char DPREFIX[] = "          ";
   const auto ptr_fmt = static_cast<DYLD_CHAINED_PTR_FORMAT>(seg_info.pointer_format);
+  const uint64_t imagebase = binary_->imagebase();
 
-  const uint64_t address = binary_->imagebase() + chain_offset;
+  const uint64_t address = imagebase + chain_offset;
   if (fixup.bind.bind > 0) {
     const uint64_t ordinal = fixup.bind.ordinal;
 
@@ -3199,7 +3214,7 @@ ok_error_t BinaryParser::do_chained_fixup(SegmentCommand& segment, uint32_t chai
      * We use the BindingInfo::address_ to store the imagebase
      * to avoid creating a new attribute in ChainedBindingInfo
      */
-    binding_extra_info->address_ = binary_->imagebase();
+    binding_extra_info->address_ = imagebase;
     local_binding->elements_.push_back(binding_extra_info.get());
 
     if (Symbol* sym = binding_extra_info->symbol()) {
@@ -3226,7 +3241,7 @@ ok_error_t BinaryParser::do_chained_fixup(SegmentCommand& segment, uint32_t chai
     reloc = std::make_unique<RelocationFixup>(ptr_fmt, fake_bias);
     reloc->set(fake_fixup);
   } else {
-    reloc = std::make_unique<RelocationFixup>(ptr_fmt, binary_->imagebase());
+    reloc = std::make_unique<RelocationFixup>(ptr_fmt, imagebase);
     reloc->set(fixup.rebase);
   }
 
