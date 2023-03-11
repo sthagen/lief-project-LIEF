@@ -16,7 +16,7 @@
 #include <iomanip>
 
 #include "LIEF/PE/hash.hpp"
-#include "LIEF/exception.hpp"
+
 
 #include "LIEF/PE/LoadConfigurations.hpp"
 #include "LIEF/PE/EnumToString.hpp"
@@ -28,31 +28,6 @@ namespace PE {
 LoadConfiguration& LoadConfiguration::operator=(const LoadConfiguration&) = default;
 LoadConfiguration::LoadConfiguration(const LoadConfiguration&)            = default;
 LoadConfiguration::~LoadConfiguration()                               = default;
-
-decltype(details::PE32::load_configuration_sizes) details::PE32::load_configuration_sizes = {
-  {WIN_VERSION::WIN_UNKNOWN,   sizeof(PE32::load_configuration_t)},
-  {WIN_VERSION::WIN_SEH,       sizeof(PE32::load_configuration_v0_t)},
-  {WIN_VERSION::WIN8_1,        sizeof(PE32::load_configuration_v1_t)},
-  {WIN_VERSION::WIN10_0_9879,  sizeof(PE32::load_configuration_v2_t)},
-  {WIN_VERSION::WIN10_0_14286, sizeof(PE32::load_configuration_v3_t)},
-  {WIN_VERSION::WIN10_0_14383, sizeof(PE32::load_configuration_v4_t)},
-  {WIN_VERSION::WIN10_0_14901, sizeof(PE32::load_configuration_v5_t)},
-  {WIN_VERSION::WIN10_0_15002, sizeof(PE32::load_configuration_v6_t)},
-  {WIN_VERSION::WIN10_0_16237, sizeof(PE32::load_configuration_v7_t)},
-};
-
-
-decltype(details::PE64::load_configuration_sizes) details::PE64::load_configuration_sizes = {
-  {WIN_VERSION::WIN_UNKNOWN,   sizeof(PE64::load_configuration_t)},
-  {WIN_VERSION::WIN_SEH,       sizeof(PE64::load_configuration_v0_t)},
-  {WIN_VERSION::WIN8_1,        sizeof(PE64::load_configuration_v1_t)},
-  {WIN_VERSION::WIN10_0_9879,  sizeof(PE64::load_configuration_v2_t)},
-  {WIN_VERSION::WIN10_0_14286, sizeof(PE64::load_configuration_v3_t)},
-  {WIN_VERSION::WIN10_0_14383, sizeof(PE64::load_configuration_v4_t)},
-  {WIN_VERSION::WIN10_0_14901, sizeof(PE64::load_configuration_v5_t)},
-  {WIN_VERSION::WIN10_0_15002, sizeof(PE64::load_configuration_v6_t)},
-  {WIN_VERSION::WIN10_0_16237, sizeof(PE64::load_configuration_v7_t)},
-};
 
 LoadConfiguration::LoadConfiguration() :
   characteristics_{0},
