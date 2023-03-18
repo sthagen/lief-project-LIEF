@@ -38,6 +38,8 @@ Logging
 
 .. autofunction:: lief.logging.disable
 
+.. autofunction:: lief.logging.set_path
+
 
 Logging levels
 ~~~~~~~~~~~~~~
@@ -67,9 +69,10 @@ See also the section :ref:`err_handling`
 Exceptions
 ----------
 
-In the future versions of LIEF, the exceptions will be removed to be replaced with the ``ResultOrError``
+LIEF no longer uses exceptions which have been replaced with the ``ResultOrError``
 idiom.
 
 See:
+  * :ref:`err_handling`
   * https://llvm.org/docs/ProgrammersManual.html#error-handling
   * https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html#recoverable-errors-with-result
