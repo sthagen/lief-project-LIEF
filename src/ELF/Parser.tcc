@@ -73,9 +73,7 @@ ok_error_t Parser::parse_binary() {
   // Parse segments
   // ==============
   if (binary_->header_.program_headers_offset() > 0) {
-    LIEF_SW_START(sw);
     parse_segments<ELF_T>();
-    LIEF_SW_END("segments parsed in {}", duration_cast<std::chrono::microseconds>(sw.elapsed()));
   } else {
     if (binary_->header().file_type() != E_TYPE::ET_REL) {
       LIEF_WARN("Binary doesn't have a program header");
@@ -926,6 +924,7 @@ ok_error_t Parser::parse_dynamic_relocations(uint64_t relocations_offset, uint64
   auto nb_entries = static_cast<uint32_t>(size / sizeof(REL_T));
 
   nb_entries = std::min<uint32_t>(nb_entries, Parser::NB_MAX_RELOCATIONS);
+  binary_->relocations_.reserve(nb_entries);
 
   stream_->setpos(relocations_offset);
   const ARCH arch = binary_->header().machine_type();
@@ -934,7 +933,7 @@ ok_error_t Parser::parse_dynamic_relocations(uint64_t relocations_offset, uint64
     if (!raw_reloc) {
       break;
     }
-    auto reloc = std::make_unique<Relocation>(*raw_reloc);
+    auto reloc = std::make_unique<Relocation>(std::move(*raw_reloc));
     reloc->purpose(RELOCATION_PURPOSES::RELOC_PURPOSE_DYNAMIC);
     reloc->architecture_ = arch;
 
@@ -956,9 +955,12 @@ ok_error_t Parser::parse_dynamic_relocations(uint64_t relocations_offset, uint64
 template<typename ELF_T>
 ok_error_t Parser::parse_static_symbols(uint64_t offset, uint32_t nb_symbols,
                                         const Section& string_section) {
-
   using Elf_Sym = typename ELF_T::Elf_Sym;
+  static constexpr size_t MAX_RESERVED_SYMBOLS = 10000;
   LIEF_DEBUG("== Parsing static symbols ==");
+
+  size_t nb_reserved = std::min<size_t>(nb_symbols, MAX_RESERVED_SYMBOLS);
+  binary_->static_symbols_.reserve(nb_reserved);
 
   stream_->setpos(offset);
   for (uint32_t i = 0; i < nb_symbols; ++i) {
@@ -966,7 +968,7 @@ ok_error_t Parser::parse_static_symbols(uint64_t offset, uint32_t nb_symbols,
     if (!raw_sym) {
       break;
     }
-    auto symbol = std::make_unique<Symbol>(*raw_sym);
+    auto symbol = std::make_unique<Symbol>(std::move(*raw_sym));
     auto symbol_name = stream_->peek_string_at(string_section.file_offset() + raw_sym->st_name);
     if (symbol_name) {
       symbol->name(std::move(*symbol_name));
@@ -991,6 +993,7 @@ template<typename ELF_T>
 ok_error_t Parser::parse_dynamic_symbols(uint64_t offset) {
   using Elf_Sym = typename ELF_T::Elf_Sym;
   using Elf_Off = typename ELF_T::Elf_Off;
+  static constexpr size_t MAX_RESERVED_SYMBOLS = 10000;
 
   LIEF_DEBUG("== Parsing dynamics symbols ==");
 
@@ -1014,14 +1017,17 @@ ok_error_t Parser::parse_dynamic_symbols(uint64_t offset) {
     return make_error_code(lief_errors::parsing_error);
   }
 
+  size_t nb_reserved = std::min<size_t>(nb_symbols, MAX_RESERVED_SYMBOLS);
+  binary_->dynamic_symbols_.reserve(nb_reserved);
   stream_->setpos(dynamic_symbols_offset);
+
   for (size_t i = 0; i < nb_symbols; ++i) {
     const auto symbol_header = stream_->read_conv<Elf_Sym>();
     if (!symbol_header) {
       LIEF_DEBUG("Break on symbol #{:d}", i);
       break;
     }
-    auto symbol = std::make_unique<Symbol>(*symbol_header);
+    auto symbol = std::make_unique<Symbol>(std::move(*symbol_header));
 
     if (symbol_header->st_name > 0) {
       auto name = stream_->peek_string_at(string_offset + symbol_header->st_name);
