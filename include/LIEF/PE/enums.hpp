@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIEF_PE_ENUMS_H_
-#define LIEF_PE_ENUMS_H_
+#ifndef LIEF_PE_ENUMS_H
+#define LIEF_PE_ENUMS_H
 #include <inttypes.h>
 #include <cstddef>
 #include "LIEF/enums.hpp"
@@ -1047,14 +1047,18 @@ enum class CODE_PAGES: size_t  {
 
 enum class WIN_VERSION: size_t  {
   WIN_UNKNOWN   = 0,
-  WIN_SEH       = 1,
-  WIN8_1        = 2,
-  WIN10_0_9879  = 3,
-  WIN10_0_14286 = 4,
-  WIN10_0_14383 = 5,
-  WIN10_0_14901 = 6,
-  WIN10_0_15002 = 7,
-  WIN10_0_16237 = 8,
+  WIN_SEH,
+  WIN8_1,
+  WIN10_0_9879,
+  WIN10_0_14286,
+  WIN10_0_14383,
+  WIN10_0_14901,
+  WIN10_0_15002,
+  WIN10_0_16237,
+  WIN10_0_18362,
+  WIN10_0_19534,
+  WIN10_0_MSVC_2019,
+  WIN10_0_MSVC_2019_16,
 };
 
 enum class GUARD_CF_FLAGS: size_t  {

@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIEF_ABSTRACT_SYMBOLS_H_
-#define LIEF_ABSTRACT_SYMBOLS_H_
+#ifndef LIEF_ABSTRACT_SYMBOLS_H
+#define LIEF_ABSTRACT_SYMBOLS_H
 
+#include <cstdint>
 #include <string>
 
 #include "LIEF/Object.hpp"

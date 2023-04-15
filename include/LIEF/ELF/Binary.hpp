@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIEF_ELF_BINARY_H_
-#define LIEF_ELF_BINARY_H_
+#ifndef LIEF_ELF_BINARY_H
+#define LIEF_ELF_BINARY_H
 
 #include <vector>
 #include <memory>
@@ -509,6 +509,8 @@ class LIEF_API Binary : public LIEF::Binary {
   //!                       by a PT_LOAD segment
   //!
   //! @return The section added. The `size` and the `virtual address` might change.
+  //!
+  //! This function requires a well-formed ELF binary
   Section* add(const Section& section, bool loaded = true);
 
   Section* extend(const Section& section, uint64_t size);
@@ -544,6 +546,8 @@ class LIEF_API Binary : public LIEF::Binary {
   //! The segment is inserted at the end
   //!
   //! @return The segment added. `Virtual address` and `File Offset` might change.
+  //!
+  //! This function requires a well-formed ELF binary
   Segment* add(const Segment& segment, uint64_t base = 0);
 
   //! Replace the segment given in 2nd parameter with the segment given in the first one and return the updated segment.

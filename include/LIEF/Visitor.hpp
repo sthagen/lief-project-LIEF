@@ -14,8 +14,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-#ifndef LIEF_VISITOR_H_
-#define LIEF_VISITOR_H_
+#ifndef LIEF_VISITOR_H
+#define LIEF_VISITOR_H
 #include <set>
 #include <utility>
 #include <cstddef>
@@ -99,6 +99,10 @@ LIEF_PE_FORWARD(LoadConfigurationV4)
 LIEF_PE_FORWARD(LoadConfigurationV5)
 LIEF_PE_FORWARD(LoadConfigurationV6)
 LIEF_PE_FORWARD(LoadConfigurationV7)
+LIEF_PE_FORWARD(LoadConfigurationV8)
+LIEF_PE_FORWARD(LoadConfigurationV9)
+LIEF_PE_FORWARD(LoadConfigurationV10)
+LIEF_PE_FORWARD(LoadConfigurationV11)
 LIEF_PE_FORWARD(Pogo)
 LIEF_PE_FORWARD(PogoEntry)
 
@@ -450,6 +454,18 @@ class LIEF_API Visitor {
 
   //! Method to visit a LIEF::PE::LoadConfigurationV7
   LIEF_PE_VISITABLE(LoadConfigurationV7)
+
+  //! Method to visit a LIEF::PE::LoadConfigurationV8
+  LIEF_PE_VISITABLE(LoadConfigurationV8)
+
+  //! Method to visit a LIEF::PE::LoadConfigurationV9
+  LIEF_PE_VISITABLE(LoadConfigurationV9)
+
+  //! Method to visit a LIEF::PE::LoadConfigurationV10
+  LIEF_PE_VISITABLE(LoadConfigurationV10)
+
+  //! Method to visit a LIEF::PE::LoadConfigurationV11
+  LIEF_PE_VISITABLE(LoadConfigurationV11)
 
   //! Method to visit a LIEF::PE::CodeIntegrity
   LIEF_PE_VISITABLE(CodeIntegrity)

@@ -22,3 +22,7 @@
 #include "LoadConfigurationV5.tcc"
 #include "LoadConfigurationV6.tcc"
 #include "LoadConfigurationV7.tcc"
+#include "LoadConfigurationV8.tcc"
+#include "LoadConfigurationV9.tcc"
+#include "LoadConfigurationV10.tcc"
+#include "LoadConfigurationV11.tcc"

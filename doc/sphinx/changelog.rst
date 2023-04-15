@@ -1,8 +1,8 @@
 Changelog
 =========
 
-0.13.0 - Not Released Yet
--------------------------
+0.13.0 - April 9, 2023
+----------------------
 
 :ELF:
 
@@ -35,10 +35,10 @@ Changelog
 
         elf.write("/tmp/out")
 
-  * Add API to precisely define how the the segments table should be relocated.
+  * Add API to precisely define how the segments table should be relocated.
     One might want to enforce a certain ELF layout while adding sections/ segments.
     It is now possible to call the method: :meth:`~lief.ELF.Binary.relocate_phdr_table`
-    to define how the segments table shoud be relocated for welcoming the
+    to define how the segments table should be relocated for welcoming the
     new sections/segments:
 
     .. code-block:: python
@@ -60,6 +60,7 @@ Changelog
 
 :MachO:
 
+  * Add :attr:`~lief.MachO.Binary.rpaths` iterator (:issue:`291`)
   * Add support for parsing Mach-O in memory
   * Fix a memory issue (found by :github_user:`bladchan` via :issue:`806`)
   * [CVE-2022-40923] Fix parsing issue (:issue:`784` found by :github_user:`bladchan`)
@@ -89,11 +90,11 @@ Changelog
 
 :PE:
 
-  * The *hooking* feature
   * The Python API now returns `bytes` objects instead of `List[int]`
   * Remove :meth:`lief.PE.ResourceNode.sort_by_id`
-  * Fix the ordering of childs of :class:`~lief.PE.ResourceNode`
+  * Fix the ordering of children of :class:`~lief.PE.ResourceNode`
   * Remove deprecated functions related to PE hooking.
+  * Add support for new PE LoadConfiguration structures.
 
 :DEX:
 
@@ -109,7 +110,7 @@ Changelog
   * :github_user:`ZehMatt` added the support to write LIEF binaries object through a `std::ostream` interface
     (:commit:`9d55f538602989c69454639565910884c5c5ac7c`)
   * Remove the exceptions
-  * The library contains less static initilizers which should improve the loading time.
+  * The library contains less static initializers which should improve the loading time.
 
 :Python Bindings:
 
