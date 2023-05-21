@@ -1,5 +1,4 @@
-/* Copyright 2017 - 2023 R. Thomas
- * Copyright 2017 - 2023 Quarkslab
+/* Copyright 2021 - 2023 R. Thomas
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +12,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef C_LIEF_MACHO_H_
-#define C_LIEF_MACHO_H_
+#ifndef LIEF_EXPECTED_H
+#define LIEF_EXPECTED_H
+#include "LIEF/config.h"
 
-/** @defgroup macho_c_api MachO C API */
+#undef TL_EXPECTED_EXCEPTIONS_ENABLED
 
-#include "LIEF/MachO/Binary.h"
-#include "LIEF/MachO/Symbol.h"
-#include "LIEF/MachO/Segment.h"
-#include "LIEF/MachO/Section.h"
-#include "LIEF/MachO/LoadCommand.h"
-#include "LIEF/MachO/Header.h"
-#include "LIEF/MachO/EnumToString.h"
+#ifndef LIEF_EXTERNAL_EXPECTED
+#include <LIEF/third-party/internal/expected.hpp>
+#else
+#include <tl/expected.hpp>
+#endif
+
 #endif
