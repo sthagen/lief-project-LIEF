@@ -7,6 +7,8 @@ Changelog
 :ELF:
 
   * Fix relocation issue when using `-Wl,--emit-relocs` (c.f. :issue:`897` / :pr:`898` by :github_user:`adamjseitz`)
+  * Improve the computation of the dynamic symbols thanks to :github_user:`adamjseitz` (c.f. :issue:`922`)
+  * Add support for the LoongArch architecture thanks to :github_user:`loongson-zn` (c.f. :pr:`921`)
 
 :MachO:
 
@@ -15,7 +17,6 @@ Changelog
 
 :PE:
 
-  * Fix PE authenticode verification issue in the case of special characters (:issue:`912`)
   * Add a :class:`lief.PE.ParserConfig` interface that can be used to tweak
     which parts of the PE format should be parsed (:issue:`839`).
 
@@ -33,6 +34,22 @@ Changelog
 :General Design:
 
   * Remove the `lief.Binary.name` attribute
+  * LIEF is now compiled with C++17 (the API remains C++11 compliant)
+
+
+0.13.1 - May 28, 2023
+----------------------
+
+:PE:
+
+  * Fix PE authenticode verification issue in the case of special characters (:issue:`912`)
+
+:Misc:
+
+  * Fix mypy stubs (:issue:`909`)
+  * Fix missing include (:issue:`918`)
+  * Fix C99 comments (:issue:`916`)
+  * Fix AArch64 docker image (:issue:`904`)
 
 
 
