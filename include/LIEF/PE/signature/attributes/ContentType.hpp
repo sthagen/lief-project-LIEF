@@ -49,7 +49,7 @@ class LIEF_API ContentType : public Attribute {
   ContentType& operator=(const ContentType&);
 
   //! OID as described in RFC #2985
-  inline const oid_t& oid() const {
+  const oid_t& oid() const {
     return oid_;
   }
 
@@ -57,6 +57,10 @@ class LIEF_API ContentType : public Attribute {
   std::string print() const override;
 
   std::unique_ptr<Attribute> clone() const override;
+
+  static bool classof(const Attribute* attr) {
+    return attr->type() == SIG_ATTRIBUTE_TYPES::CONTENT_TYPE;
+  }
 
   void accept(Visitor& visitor) const override;
   virtual ~ContentType();

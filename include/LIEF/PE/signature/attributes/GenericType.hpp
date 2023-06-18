@@ -46,12 +46,12 @@ class LIEF_API GenericType : public Attribute {
   std::unique_ptr<Attribute> clone() const override;
 
   //! OID of the original attribute
-  inline const oid_t& oid() const {
+  const oid_t& oid() const {
     return oid_;
   }
 
   //! Original DER blob of the attribute
-  inline const std::vector<uint8_t>& raw_content() const {
+  const std::vector<uint8_t>& raw_content() const {
     return raw_;
   }
 
@@ -61,6 +61,10 @@ class LIEF_API GenericType : public Attribute {
   void accept(Visitor& visitor) const override;
 
   virtual ~GenericType();
+
+  static bool classof(const Attribute* attr) {
+    return attr->type() == SIG_ATTRIBUTE_TYPES::GENERIC_TYPE;
+  }
 
   private:
   oid_t oid_;

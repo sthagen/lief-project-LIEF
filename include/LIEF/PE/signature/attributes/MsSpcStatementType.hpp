@@ -53,12 +53,16 @@ class LIEF_API MsSpcStatementType : public Attribute {
   //! > The SpcStatementType MUST contain one Object Identifier with either
   //! > the value ``1.3.6.1.4.1.311.2.1.21 (SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID)`` or
   //! > ``1.3.6.1.4.1.311.2.1.22 (SPC_COMMERCIAL_SP_KEY_PURPOSE_OBJID)``.
-  inline const oid_t& oid() const {
+  const oid_t& oid() const {
     return oid_;
   }
 
   //! Print information about the attribute
   std::string print() const override;
+
+  static bool classof(const Attribute* attr) {
+    return attr->type() == SIG_ATTRIBUTE_TYPES::MS_SPC_STATEMENT_TYPE;
+  }
 
   void accept(Visitor& visitor) const override;
   virtual ~MsSpcStatementType();

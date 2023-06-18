@@ -58,12 +58,16 @@ class LIEF_API PKCS9MessageDigest : public Attribute {
   std::unique_ptr<Attribute> clone() const override;
 
   //! Message digeset as a blob of bytes as described in the RFC
-  inline const std::vector<uint8_t>& digest() const {
+  const std::vector<uint8_t>& digest() const {
     return digest_;
   }
 
   //! Print information about the attribute
   std::string print() const override;
+
+  static bool classof(const Attribute* attr) {
+    return attr->type() == SIG_ATTRIBUTE_TYPES::PKCS9_MESSAGE_DIGEST;
+  }
 
   void accept(Visitor& visitor) const override;
 

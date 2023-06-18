@@ -56,12 +56,16 @@ class LIEF_API PKCS9AtSequenceNumber : public Attribute {
   std::unique_ptr<Attribute> clone() const override;
 
   //! Number as described in the RFC
-  inline uint32_t number() const {
+  uint32_t number() const {
     return number_;
   }
 
   //! Print information about the attribute
   std::string print() const override;
+
+  static bool classof(const Attribute* attr) {
+    return attr->type() == SIG_ATTRIBUTE_TYPES::PKCS9_AT_SEQUENCE_NUMBER;
+  }
 
   void accept(Visitor& visitor) const override;
   virtual ~PKCS9AtSequenceNumber();

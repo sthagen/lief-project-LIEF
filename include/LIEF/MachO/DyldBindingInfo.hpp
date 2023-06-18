@@ -46,7 +46,6 @@ class LIEF_API DyldBindingInfo : public BindingInfo {
   DyldBindingInfo& operator=(DyldBindingInfo other);
   DyldBindingInfo(const DyldBindingInfo& other);
 
-  DyldBindingInfo& operator=(DyldBindingInfo&&);
   DyldBindingInfo(DyldBindingInfo&&);
 
   void swap(DyldBindingInfo& other);
@@ -59,18 +58,18 @@ class LIEF_API DyldBindingInfo : public BindingInfo {
   BIND_TYPES binding_type() const;
   void binding_type(BIND_TYPES type);
 
-  inline bool is_non_weak_definition() const {
+  bool is_non_weak_definition() const {
     return this->is_non_weak_definition_;
   }
 
-  inline void set_non_weak_definition(bool val) {
+  void set_non_weak_definition(bool val) {
     this->is_non_weak_definition_ = val;
   }
 
   //! Original relative offset of the binding opcodes
   uint64_t original_offset() const;
 
-  inline BindingInfo::TYPES type() const override {
+  BindingInfo::TYPES type() const override {
     return BindingInfo::TYPES::DYLD_INFO;
   }
 

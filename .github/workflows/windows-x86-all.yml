@@ -13,13 +13,13 @@ jobs:
     runs-on: windows-2019
     strategy:
       matrix:
-        python-version: [3.8, 3.9, '3.10', '3.11.0']
+        python-version: [3.8, 3.9, '3.10', '3.11', '3.12-dev']
       fail-fast: false
     env:
       SCCACHE_CACHE_SIZE: 2G
       SCCACHE_DIR: "C:\\Users\\runner\\AppData\\Local\\Mozilla\\sccache"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
@@ -39,7 +39,7 @@ jobs:
     - name: Get Date
       id: get-date
       run: |
-        echo "::set-output name=date::$(/bin/date -u "+%Y-%m-%d-%H;%M;%S")"
+        echo "date=$(/bin/date -u "+%Y-%m-%d-%H;%M;%S")" >> $GITHUB_OUTPUT
       shell: bash
     - name: Save sccache
       uses: actions/cache@v3
@@ -71,6 +71,7 @@ jobs:
         python -m pip -vv wheel --wheel-dir=dist/ api/python
         python -m pip -vv install api/python
         python ./tests/run_pytest.py
+        python ./scripts/windows/run_ctest.py ./api/python/build/temp.win32-cpython-38/Release
       shell: cmd
     - name: ❱ Build Python ${{ matrix.python-version }}
       if: matrix.python-version != 3.8
@@ -99,7 +100,7 @@ jobs:
     - name: 🛑 Stop sccache server
       run: sccache --stop-server || true
     - name: Setup WSL
-      uses: Vampire/setup-wsl@v1
+      uses: Vampire/setup-wsl@v2
       with:
         distribution: Debian
         use-cache: 'true'
