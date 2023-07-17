@@ -8,10 +8,18 @@ import pathlib
 import stat
 from typing import Tuple
 
+import importlib.util
+
+def import_from_file(module_name: str, file_path: pathlib.Path):
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 def lief_samples_dir() -> str:
     dir = os.getenv("LIEF_SAMPLES_DIR", None)
     if dir is None:
-        print("LIEF_SAMPES_DIR is not set", file=sys.stderr)
+        print("LIEF_SAMPLES_DIR is not set", file=sys.stderr)
         sys.exit(1)
     if not os.path.isdir(dir):
         print("{} is not a valid directory".format(dir), file=sys.stderr)

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # Avoid warning about DOWNLOAD_EXTRACT_TIMESTAMP in CMake 3.24:
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
   cmake_policy(SET CMP0135 NEW)
 endif()
 
@@ -203,7 +203,10 @@ source_group("Source Files" FILES ${LIBLIEF_SOURCE_FILES})
 source_group("Header Files\\visitors" FILES ${LIEF_VISITOR_INCLUDE_FILES})
 
 add_library(LIB_LIEF ${LIBLIEF_SOURCE_FILES} ${LIEF_INCLUDE_FILES})
-add_library(LIEF::LIEF ALIAS LIB_LIEF)
+
+if(NOT LIEF_PY_LIEF_EXT)
+  add_library(LIEF::LIEF ALIAS LIB_LIEF)
+endif()
 
 if(NOT LIEF_OPT_MBEDTLS_EXTERNAL)
   set_source_files_properties(${mbedtls_src_crypto} PROPERTIES GENERATED TRUE)
@@ -457,8 +460,6 @@ else()
     ${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/third-party/internal/span.hpp)
 endif()
 
-
-
 target_link_libraries(LIB_LIEF PRIVATE lief_spdlog)
 
 if(ANDROID AND BUILD_SHARED_LIBS AND LIEF_LOGGING)
@@ -557,18 +558,8 @@ endif()
 
 include(LIEFCompilerFlags)
 
-# Profiling flags
-# ---------------
 if(LIEF_PROFILING)
   add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/profiling")
-endif()
-
-# Coverage flags
-# --------------
-if(LIEF_COVERAGE)
-  target_compile_options(LIB_LIEF PRIVATE -g -O0 --coverage -fprofile-arcs
-                                          -ftest-coverage)
-  target_link_libraries(LIB_LIEF gcov)
 endif()
 
 set_target_properties(LIB_LIEF PROPERTIES
@@ -643,7 +634,7 @@ endif()
 
 # Generate install target and package
 # =======================================
-if (LIEF_INSTALL)
+if(LIEF_INSTALL)
 
   # Find Package Config
   # ======================

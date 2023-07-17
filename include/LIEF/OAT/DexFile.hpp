@@ -70,7 +70,7 @@ class LIEF_API DexFile : public Object {
   bool operator==(const DexFile& rhs) const;
   bool operator!=(const DexFile& rhs) const;
 
-  virtual ~DexFile();
+  ~DexFile() override;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const DexFile& dex_file);
 
@@ -90,8 +90,6 @@ class LIEF_API DexFile : public Object {
   // OAT 131 (Android 8.1.0)
   uint32_t method_bss_mapping_offset_ = 0;
   uint32_t dex_sections_layout_offset_ = 0;
-
-
 };
 
 } // Namespace OAT

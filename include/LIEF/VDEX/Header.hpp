@@ -15,6 +15,8 @@
  */
 #ifndef LIEF_VDEX_HEADER_H
 #define LIEF_VDEX_HEADER_H
+#include <ostream>
+#include <array>
 
 #include "LIEF/VDEX/type_traits.hpp"
 #include "LIEF/visibility.h"
@@ -63,7 +65,7 @@ class LIEF_API Header : public Object {
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const Header& header);
 
-  virtual ~Header();
+  ~Header() override;
 
   private:
   magic_t magic_;
