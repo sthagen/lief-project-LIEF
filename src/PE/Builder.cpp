@@ -202,7 +202,7 @@ ok_error_t Builder::build_relocation() {
   //    reinterpret_cast<uint8_t*>(&relocHeader),
   //    reinterpret_cast<uint8_t*>(&relocHeader) + sizeof(pe_base_relocation_block));
 
-  Section new_relocation_section{".l" + std::to_string(static_cast<uint32_t>(DATA_DIRECTORY::BASE_RELOCATION_TABLE))}; // .l5 -> lief.relocation
+  Section new_relocation_section{".l" + std::to_string(static_cast<uint32_t>(DataDirectory::TYPES::BASE_RELOCATION_TABLE))}; // .l5 -> lief.relocation
   new_relocation_section.characteristics(0x42000040);
   const size_t size_aligned = align(content.size(), binary_->optional_header().file_alignment());
 
@@ -242,7 +242,7 @@ ok_error_t Builder::build_resources() {
   uint32_t offset_name   = headerSize;
   uint32_t offset_data   = headerSize + nameSize;
 
-  Section new_section_rsrc{".l" + std::to_string(static_cast<uint32_t>(DATA_DIRECTORY::RESOURCE_TABLE))};
+  Section new_section_rsrc{".l" + std::to_string(static_cast<uint32_t>(DataDirectory::TYPES::RESOURCE_TABLE))};
   new_section_rsrc.characteristics(0x40000040);
   new_section_rsrc.content(content);
 
@@ -417,7 +417,7 @@ ok_error_t Builder::build(const DosHeader& dos_header) {
   std::memset(&raw_dos_header, 0, sizeof(details::pe_dos_header));
 
   raw_dos_header.Magic                     = static_cast<uint16_t>(dos_header.magic());
-  raw_dos_header.UsedBytesInTheLastPage    = static_cast<uint16_t>(dos_header.used_bytes_in_the_last_page());
+  raw_dos_header.UsedBytesInTheLastPage    = static_cast<uint16_t>(dos_header.used_bytes_in_last_page());
   raw_dos_header.FileSizeInPages           = static_cast<uint16_t>(dos_header.file_size_in_pages());
   raw_dos_header.NumberOfRelocationItems   = static_cast<uint16_t>(dos_header.numberof_relocation());
   raw_dos_header.HeaderSizeInParagraphs    = static_cast<uint16_t>(dos_header.header_size_in_paragraphs());

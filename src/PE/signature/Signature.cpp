@@ -26,6 +26,7 @@
 
 #include "LIEF/PE/signature/Attribute.hpp"
 #include "LIEF/PE/signature/attributes.hpp"
+#include "LIEF/PE/signature/SpcIndirectData.hpp"
 
 #include <mbedtls/sha512.h>
 #include <mbedtls/sha256.h>
@@ -260,6 +261,12 @@ Signature::VERIFICATION_FLAGS Signature::check(VERIFICATION_CHECKS checks) const
   }
   const SignerInfo& signer = signers_.back();
 
+  if (!SpcIndirectData::classof(&content_info_.value())) {
+    LIEF_WARN("ContentInfo type is not SpcIndirectData");
+    return flags | VERIFICATION_FLAGS::CORRUPTED_CONTENT_INFO;
+  }
+  const auto& spc_indirect_data = static_cast<const SpcIndirectData&>(content_info_.value());
+
   // Check that Signature.digest_algorithm matches:
   // - SignerInfo.digest_algorithm
   // - ContentInfo.digest_algorithm
@@ -269,7 +276,7 @@ Signature::VERIFICATION_FLAGS Signature::check(VERIFICATION_CHECKS checks) const
     return flags | VERIFICATION_FLAGS::UNSUPPORTED_ALGORITHM;
   }
 
-  if (digest_algorithm_ != content_info_.digest_algorithm()) {
+  if (digest_algorithm_ != spc_indirect_data.digest_algorithm()) {
     LIEF_WARN("Digest algorithm is different from ContentInfo");
     return flags | VERIFICATION_FLAGS::INCONSISTENT_DIGEST_ALGORITHM;
   }
@@ -279,7 +286,7 @@ Signature::VERIFICATION_FLAGS Signature::check(VERIFICATION_CHECKS checks) const
     return flags | VERIFICATION_FLAGS::INCONSISTENT_DIGEST_ALGORITHM;
   }
 
-  const ALGORITHMS digest_algo = content_info().digest_algorithm();
+  const ALGORITHMS digest_algo = spc_indirect_data.digest_algorithm();
 
   if (signer.cert() == nullptr) {
     LIEF_WARN("Can't find certificate for which the issuer is {}", signer.issuer());
@@ -304,6 +311,11 @@ Signature::VERIFICATION_FLAGS Signature::check(VERIFICATION_CHECKS checks) const
     return flags | VERIFICATION_FLAGS::CORRUPTED_CONTENT_INFO;
   }
 
+  if (original_raw_signature_.empty()) {
+    LIEF_WARN("Original raw signature is empty");
+    return flags | VERIFICATION_FLAGS::CORRUPTED_CONTENT_INFO;
+  }
+
   std::vector<uint8_t> raw_content_info = {
     std::begin(original_raw_signature_) + content_info_start_,
     std::begin(original_raw_signature_) + content_info_end_
@@ -314,7 +326,7 @@ Signature::VERIFICATION_FLAGS Signature::check(VERIFICATION_CHECKS checks) const
 
   // Copy authenticated attributes
   SignerInfo::it_const_attributes_t auth_attrs = signer.authenticated_attributes();
-  if (auth_attrs.size() > 0) {
+  if (!auth_attrs.empty()) {
 
     std::vector<uint8_t> auth_data = signer.raw_auth_data_;
     // According to the RFC:
@@ -511,9 +523,9 @@ inline void print_attr(SignerInfo::it_const_attributes_t& attrs, std::ostream& o
           const Signature& ct = nested_attr.sig();
           auto signers = ct.signers();
           auto crts = ct.certificates();
-          if (signers.size() > 0) {
+          if (!signers.empty()) {
             suffix = signers[0].issuer();
-          } else if (crts.size() > 0) {
+          } else if (!crts.empty()) {
             suffix = crts[0].issuer();
           }
           break;
@@ -563,10 +575,15 @@ std::ostream& operator<<(std::ostream& os, const Signature& signature) {
   const ContentInfo& cinfo = signature.content_info();
   os << fmt::format("Version:             {:d}\n", signature.version());
   os << fmt::format("Digest Algorithm:    {}\n", to_string(signature.digest_algorithm()));
-  os << fmt::format("Content Info Digest: {}\n", hex_dump(cinfo.digest()));
-  if (!cinfo.file().empty()) {
-    os << fmt::format("Content Info File:   {}\n", cinfo.file());
+
+  if (SpcIndirectData::classof(&cinfo.value())) {
+    const auto& spc_indirect_data = static_cast<const SpcIndirectData&>(cinfo.value());
+    os << fmt::format("Content Info Digest: {}\n", hex_dump(spc_indirect_data.digest()));
+    if (!spc_indirect_data.file().empty()) {
+      os << fmt::format("Content Info File:   {}\n", spc_indirect_data.file());
+    }
   }
+
   Signature::it_const_crt certs = signature.certificates();
   os << fmt::format("#{:d} certificate(s):\n", certs.size());
   for (const x509& crt : certs) {
@@ -581,13 +598,13 @@ std::ostream& operator<<(std::ostream& os, const Signature& signature) {
     os << fmt::format("Encryption:   {}\n", to_string(signer.encryption_algorithm()));
     os << fmt::format("Encrypted DG: {} ...\n", hex_dump(signer.encrypted_digest()).substr(0, 41));
     SignerInfo::it_const_attributes_t auth_attr = signer.authenticated_attributes();
-    if (auth_attr.size() > 0) {
+    if (!auth_attr.empty()) {
       os << fmt::format("#{:d} authenticated attributes:\n", auth_attr.size());
       print_attr(auth_attr, os);
     }
 
     SignerInfo::it_const_attributes_t unauth_attr = signer.unauthenticated_attributes();
-    if (unauth_attr.size() > 0) {
+    if (!unauth_attr.empty()) {
       os << fmt::format("#{:d} un-authenticated attributes:\n", unauth_attr.size());
       print_attr(unauth_attr, os);
     }

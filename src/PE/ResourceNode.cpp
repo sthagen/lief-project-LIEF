@@ -202,10 +202,6 @@ void ResourceNode::name(const std::string& name) {
   LIEF_WARN("{} can't be converted to a UTF-16 string", name);
 }
 
-void ResourceNode::name(const std::u16string& name) {
-  name_ = name;
-}
-
 
 // This logic follows the description from the Microsoft documentation at
 // https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#resource-directory-table
@@ -235,18 +231,7 @@ void ResourceNode::accept(Visitor& visitor) const {
   visitor.visit(*this);
 }
 
-bool ResourceNode::operator==(const ResourceNode& rhs) const {
-  if (this == &rhs) {
-    return true;
-  }
-  size_t hash_lhs = Hash::hash(*this);
-  size_t hash_rhs = Hash::hash(rhs);
-  return hash_lhs == hash_rhs;
-}
 
-bool ResourceNode::operator!=(const ResourceNode& rhs) const {
-  return !(*this == rhs);
-}
 
 std::ostream& operator<<(std::ostream& os, const ResourceNode& node) {
   if (node.is_directory()) {

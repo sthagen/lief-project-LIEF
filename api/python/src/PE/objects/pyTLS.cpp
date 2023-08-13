@@ -42,7 +42,7 @@ void create<TLS>(nb::module_& m) {
 
     .def_prop_rw("callbacks",
         nb::overload_cast<>(&TLS::callbacks, nb::const_),
-        nb::overload_cast<const std::vector<uint64_t>&>(&TLS::callbacks),
+        nb::overload_cast<std::vector<uint64_t>>(&TLS::callbacks),
         R"delim(
         List of the callback associated with the current TLS.
 
@@ -110,7 +110,7 @@ void create<TLS>(nb::module_& m) {
           const span<const uint8_t> content = self.data_template();
           return nb::memoryview::from_memory(content.data(), content.size());
         },
-        nb::overload_cast<const std::vector<uint8_t>&>(&TLS::data_template),
+        nb::overload_cast<std::vector<uint8_t>>(&TLS::data_template),
         "The data template content"_doc)
 
     .def_prop_ro("has_section",
@@ -131,6 +131,7 @@ void create<TLS>(nb::module_& m) {
         "" RST_CLASS_REF(lief.PE.Section) " associated with the TLS object (or None if not linked)"_doc,
         nb::rv_policy::reference_internal)
 
-    LIEF_DEFAULT_STR(LIEF::PE::TLS);
+    LIEF_COPYABLE(TLS)
+    LIEF_DEFAULT_STR(TLS);
 }
 }

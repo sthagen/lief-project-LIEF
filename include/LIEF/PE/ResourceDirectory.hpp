@@ -50,7 +50,9 @@ class LIEF_API ResourceDirectory : public ResourceNode {
 
   ~ResourceDirectory() override;
 
-  ResourceDirectory* clone() const override;
+  std::unique_ptr<ResourceNode> clone() const override {
+    return std::unique_ptr<ResourceNode>(new ResourceDirectory{*this});
+  }
 
   //! Resource characteristics. This field is reserved for future use.
   //! It is currently set to zero.
@@ -90,8 +92,6 @@ class LIEF_API ResourceDirectory : public ResourceNode {
 
   void accept(Visitor& visitor) const override;
 
-  bool operator==(const ResourceDirectory& rhs) const;
-  bool operator!=(const ResourceDirectory& rhs) const;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const ResourceDirectory& directory);
 

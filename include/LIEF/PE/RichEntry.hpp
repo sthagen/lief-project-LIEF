@@ -49,9 +49,6 @@ class LIEF_API RichEntry : public Object {
 
   void accept(Visitor& visitor) const override;
 
-  bool operator==(const RichEntry& rhs) const;
-  bool operator!=(const RichEntry& rhs) const;
-
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const RichEntry& rich_entry);
 
   private:

@@ -69,11 +69,6 @@ ResourceDirectory::ResourceDirectory(const details::pe_resource_directory_table&
   type_ = ResourceNode::TYPE::DIRECTORY;
 }
 
-ResourceDirectory* ResourceDirectory::clone() const {
-  return new ResourceDirectory{*this};
-}
-
-
 uint32_t ResourceDirectory::characteristics() const {
   return characteristics_;
 }
@@ -132,18 +127,7 @@ void ResourceDirectory::accept(Visitor& visitor) const {
   visitor.visit(*this);
 }
 
-bool ResourceDirectory::operator==(const ResourceDirectory& rhs) const {
-  if (this == &rhs) {
-    return true;
-  }
-  size_t hash_lhs = Hash::hash(*this);
-  size_t hash_rhs = Hash::hash(rhs);
-  return hash_lhs == hash_rhs;
-}
 
-bool ResourceDirectory::operator!=(const ResourceDirectory& rhs) const {
-  return !(*this == rhs);
-}
 
 
 std::ostream& operator<<(std::ostream& os, const ResourceDirectory& directory) {

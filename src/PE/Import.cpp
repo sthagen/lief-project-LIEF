@@ -29,28 +29,11 @@ namespace PE {
 
 Import::~Import() = default;
 
+Import::Import(Import&& other) = default;
+Import& Import::operator=(Import&& other) = default;
 Import::Import() = default;
 Import::Import(const Import& other) = default;
-
-
-Import& Import::operator=(Import other) {
-  swap(other);
-  return *this;
-}
-
-void Import::swap(Import& other) {
-  std::swap(entries_,                  other.entries_);
-  std::swap(directory_,                other.directory_);
-  std::swap(iat_directory_,            other.iat_directory_);
-  std::swap(import_lookup_table_RVA_,  other.import_lookup_table_RVA_);
-  std::swap(timedatestamp_,            other.timedatestamp_);
-  std::swap(forwarder_chain_,          other.forwarder_chain_);
-  std::swap(name_RVA_,                 other.name_RVA_);
-  std::swap(import_address_table_RVA_, other.import_address_table_RVA_);
-  std::swap(name_,                     other.name_);
-  std::swap(type_,                     other.type_);
-}
-
+Import& Import::operator=(const Import& other)  = default;
 
 Import::Import(const details::pe_import& import) :
   import_lookup_table_RVA_(import.ImportLookupTableRVA),
@@ -184,18 +167,7 @@ void Import::accept(LIEF::Visitor& visitor) const {
   visitor.visit(*this);
 }
 
-bool Import::operator==(const Import& rhs) const {
-  if (this == &rhs) {
-    return true;
-  }
-  size_t hash_lhs = Hash::hash(*this);
-  size_t hash_rhs = Hash::hash(rhs);
-  return hash_lhs == hash_rhs;
-}
 
-bool Import::operator!=(const Import& rhs) const {
-  return !(*this == rhs);
-}
 
 std::ostream& operator<<(std::ostream& os, const Import& entry) {
   os << std::hex;

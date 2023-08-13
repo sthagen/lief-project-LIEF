@@ -89,17 +89,19 @@ class LoadConfigurationV10;
 class LoadConfigurationV11;
 class Pogo;
 class PogoEntry;
+class Repro;
 
 //! Class which implements a visitor to compute
 //! a **deterministic** hash for LIEF PE objects
 class LIEF_API Hash : public LIEF::Hash {
   public:
-  static size_t hash(const Object& obj);
+  static LIEF::Hash::value_type hash(const Object& obj);
 
   public:
   using LIEF::Hash::Hash;
   using LIEF::Hash::hash;
   using LIEF::Hash::visit;
+  using LIEF::Hash::process;
 
   public:
   void visit(const Binary& Binary)                        override;
@@ -141,6 +143,8 @@ class LIEF_API Hash : public LIEF::Hash {
   void visit(const x509& x509)                            override;
   void visit(const SignerInfo& signerinfo)                override;
   void visit(const ContentInfo& contentinfo)              override;
+  void visit(const GenericContent& content)               override;
+  void visit(const SpcIndirectData& content)              override;
   void visit(const Attribute& attr)                       override;
   void visit(const ContentType& attr)                     override;
   void visit(const GenericType& attr)                     override;
@@ -169,6 +173,7 @@ class LIEF_API Hash : public LIEF::Hash {
 
   void visit(const Pogo& pogo)        override;
   void visit(const PogoEntry& entry)  override;
+  void visit(const Repro& entry)      override;
 
   ~Hash() override;
 };

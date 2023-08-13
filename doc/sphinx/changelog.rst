@@ -31,7 +31,56 @@ Changelog
     (instead of `lief.MachO.Binary.name`)
 
 :PE:
+  * ``SECTION_CHARACTERISTICS`` is now scoped within the
+    :class:`~lief.PE.Section` class instead of being globally defined:
 
+    .. code-block:: python
+
+      # Before
+      lief.PE.SECTION_CHARACTERISTICS.CNT_CODE
+      # Now:
+      lief.PE.Section.CHARACTERISTICS.CNT_CODE
+  * ``DATA_DIRECTORY`` is now scoped within the
+    :class:`~lief.PE.DataDirectory` class instead of being globally defined:
+
+    .. code-block:: python
+
+      # Before
+      lief.PE.DATA_DIRECTORY.IAT
+      # Now:
+      lief.PE.DataDirectory.TYPES.IAT
+
+  * ``MACHINE_TYPES`` and ``HEADER_CHARACTERISTICS`` are now scoped within the
+    :class:`~lief.PE.Header` class instead of being globally defined:
+
+    .. code-block:: python
+
+      # Before
+      lief.PE.MACHINE_TYPES.AMD64
+      # Now:
+      lief.PE.Header.MACHINE_TYPES.AMD64
+
+  * :attr:`lief.PE.Header.characteristics` now returns a
+    `list`/`std::vector` instead of a ``set``.
+  * :attr:`lief.PE.OptionalHeader.dll_characteristics_lists` now returns a
+    ``list``/``std::vector`` instead of a ``set``.
+  * ``SUBSYSTEM`` and ``DLL_CHARACTERISTICS`` are now scoped within the
+    :class:`~lief.PE.OptionalHeader` class instead of being globally defined:
+
+    .. code-block:: python
+
+      # Before
+      lief.PE.SUBSYSTEM.NATIVE
+      # Now:
+      lief.PE.OptionalHeader.SUBSYSTEM.NATIVE
+  * :attr:`lief.PE.DosHeader.used_bytes_in_the_last_page` has been renamed in
+    :attr:`lief.PE.DosHeader.used_bytes_in_last_page`
+  * Refactoring of the Debug directory processing:
+    :class:`lief.PE.Debug` is now the root class of:
+    :class:`lief.PE.CodeView` / :class:`lief.PE.CodeView`, :class:`lief.PE.Pogo`,
+    :class:`lief.PE.Repro`.
+
+    The parsing logic has been cleaned and the tests updated.
   * Add a :class:`lief.PE.ParserConfig` interface that can be used to tweak
     which parts of the PE format should be parsed (:issue:`839`).
 
@@ -52,7 +101,7 @@ Changelog
   * LIEF is now compiled with C++17 (the API remains C++11 compliant)
   * Switch to `nanobind <https://nanobind.readthedocs.io/en/latest/>`_ for the
     Python bindings.
-  * CI are now more efficient
+  * CI are now more efficient.
   * The Python documentation for properties now contains the type of the
     property.
 

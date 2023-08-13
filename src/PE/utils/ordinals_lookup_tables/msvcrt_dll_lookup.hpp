@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIEF_PE_MSVCRT_DLL_LOOKUP_H_
-#define LIEF_PE_MSVCRT_DLL_LOOKUP_H_
-
+#ifndef LIEF_PE_MSVCRT_DLL_LOOKUP_H
+#define LIEF_PE_MSVCRT_DLL_LOOKUP_H
+#include <cstdint>
 
 namespace LIEF {
 namespace PE {
 
-const char* msvcrt_dll_lookup(uint32_t i) {
+inline const char* msvcrt_dll_lookup(uint32_t i) {
   switch(i) {
   case 0x0038: return "$I10_OUTPUT";
   case 0x0001: return "??0__non_rtti_object@@QAE@ABV0@@Z";

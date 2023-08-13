@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIEF_PE_SHELL32_DLL_LOOKUP_H_
-#define LIEF_PE_SHELL32_DLL_LOOKUP_H_
-
+#ifndef LIEF_PE_SHELL32_DLL_LOOKUP_H
+#define LIEF_PE_SHELL32_DLL_LOOKUP_H
+#include <cstdint>
 
 namespace LIEF {
 namespace PE {
 
-const char* shell32_dll_lookup(uint32_t i) {
+inline const char* shell32_dll_lookup(uint32_t i) {
   switch(i) {
   case 0x00ff: return "AppCompat_RunDLLW";
   case 0x0107: return "AssocCreateForClasses";

@@ -63,7 +63,7 @@ class LIEF_API ResourceNode : public Object {
 
   ~ResourceNode() override;
 
-  virtual ResourceNode* clone() const = 0;
+  virtual std::unique_ptr<ResourceNode> clone() const = 0;
 
   //! Integer that identifies the Type, Name, or Language ID of the entry
   //! depending on its depth in the tree
@@ -102,7 +102,10 @@ class LIEF_API ResourceNode : public Object {
 
   void id(uint32_t id);
   void name(const std::string& name);
-  void name(const std::u16string& name);
+
+  void name(std::u16string name) {
+    name_ = std::move(name);
+  }
 
   //! Add a ResourceDirectory to the current node
   ResourceNode& add_child(const ResourceDirectory& child);
@@ -118,8 +121,6 @@ class LIEF_API ResourceNode : public Object {
 
   void accept(Visitor& visitor) const override;
 
-  bool operator==(const ResourceNode& rhs) const;
-  bool operator!=(const ResourceNode& rhs) const;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const ResourceNode& node);
 

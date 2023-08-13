@@ -61,81 +61,6 @@ static_assert(sizeof(delay_imports) == 32, "Wrong sizeof(delay_imports)");
 
 #include "structures.inc"
 
-static const HEADER_CHARACTERISTICS header_characteristics_array[] = {
-  HEADER_CHARACTERISTICS::IMAGE_FILE_INVALID,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_RELOCS_STRIPPED,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_EXECUTABLE_IMAGE,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_LINE_NUMS_STRIPPED,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_LOCAL_SYMS_STRIPPED,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_AGGRESSIVE_WS_TRIM,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_LARGE_ADDRESS_AWARE,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_BYTES_REVERSED_LO,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_32BIT_MACHINE,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_DEBUG_STRIPPED,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_NET_RUN_FROM_SWAP,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_SYSTEM,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_DLL,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_UP_SYSTEM_ONLY,
-  HEADER_CHARACTERISTICS::IMAGE_FILE_BYTES_REVERSED_HI
-};
-
-
-static const SECTION_CHARACTERISTICS section_characteristics_array[] = {
-  SECTION_CHARACTERISTICS::IMAGE_SCN_TYPE_NO_PAD,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_CNT_CODE,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_CNT_INITIALIZED_DATA,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_CNT_UNINITIALIZED_DATA,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_LNK_OTHER,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_LNK_INFO,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_LNK_REMOVE,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_LNK_COMDAT,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_GPREL,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_MEM_PURGEABLE,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_MEM_16BIT,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_MEM_LOCKED,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_MEM_PRELOAD,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_1BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_2BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_4BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_8BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_16BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_32BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_64BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_128BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_256BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_512BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_1024BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_2048BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_4096BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_ALIGN_8192BYTES,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_LNK_NRELOC_OVFL,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_MEM_DISCARDABLE,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_MEM_NOT_CACHED,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_MEM_NOT_PAGED,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_MEM_SHARED,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_MEM_EXECUTE,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_MEM_READ,
-  SECTION_CHARACTERISTICS::IMAGE_SCN_MEM_WRITE,
-};
-
-
-
-static const DLL_CHARACTERISTICS dll_characteristics_array[] = {
-  DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_HIGH_ENTROPY_VA,
-  DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_DYNAMIC_BASE,
-  DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_FORCE_INTEGRITY,
-  DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_NX_COMPAT,
-  DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_NO_ISOLATION,
-  DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_NO_SEH,
-  DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_NO_BIND,
-  DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_APPCONTAINER,
-  DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_WDM_DRIVER,
-  DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_GUARD_CF,
-  DLL_CHARACTERISTICS::IMAGE_DLL_CHARACTERISTICS_TERMINAL_SERVER_AWARE,
-};
-
-
 static const EXTENDED_WINDOW_STYLES extended_window_styles_array[] = {
   EXTENDED_WINDOW_STYLES::WS_EX_DLGMODALFRAME,
   EXTENDED_WINDOW_STYLES::WS_EX_NOPARENTNOTIFY,
@@ -345,19 +270,19 @@ class PE32 {
     using load_configuration_v10_t = load_configuration_v10<uint32_t>;
     using load_configuration_v11_t = load_configuration_v11<uint32_t>;
 
-    static_assert(sizeof(load_configuration_t)     == 0x40, "");
-    static_assert(sizeof(load_configuration_v0_t)  == 0x48, "");
-    static_assert(sizeof(load_configuration_v1_t)  == 0x5c, "");
-    static_assert(sizeof(load_configuration_v2_t)  == 0x68, "");
-    static_assert(sizeof(load_configuration_v3_t)  == 0x78, "");
-    static_assert(sizeof(load_configuration_v4_t)  == 0x80, "");
-    static_assert(sizeof(load_configuration_v5_t)  == 0x90, "");
-    static_assert(sizeof(load_configuration_v6_t)  == 0x98, "");
-    static_assert(sizeof(load_configuration_v7_t)  == 0xA0, "");
-    static_assert(sizeof(load_configuration_v8_t)  == 0xA4, "");
-    static_assert(sizeof(load_configuration_v9_t)  == 0xAC, "");
-    static_assert(sizeof(load_configuration_v10_t) == 0xB8, "");
-    static_assert(sizeof(load_configuration_v11_t) == 0xBC, "");
+    static_assert(sizeof(load_configuration_t)     == 0x40);
+    static_assert(sizeof(load_configuration_v0_t)  == 0x48);
+    static_assert(sizeof(load_configuration_v1_t)  == 0x5c);
+    static_assert(sizeof(load_configuration_v2_t)  == 0x68);
+    static_assert(sizeof(load_configuration_v3_t)  == 0x78);
+    static_assert(sizeof(load_configuration_v4_t)  == 0x80);
+    static_assert(sizeof(load_configuration_v5_t)  == 0x90);
+    static_assert(sizeof(load_configuration_v6_t)  == 0x98);
+    static_assert(sizeof(load_configuration_v7_t)  == 0xA0);
+    static_assert(sizeof(load_configuration_v8_t)  == 0xA4);
+    static_assert(sizeof(load_configuration_v9_t)  == 0xAC);
+    static_assert(sizeof(load_configuration_v10_t) == 0xB8);
+    static_assert(sizeof(load_configuration_v11_t) == 0xBC);
  };
 
 
@@ -381,19 +306,19 @@ class PE64 {
     using load_configuration_v10_t = load_configuration_v10<uint64_t>;
     using load_configuration_v11_t = load_configuration_v11<uint64_t>;
 
-    static_assert(sizeof(load_configuration_t)     == 0x60,  "");
-    static_assert(sizeof(load_configuration_v0_t)  == 0x70,  "");
-    static_assert(sizeof(load_configuration_v1_t)  == 0x94,  "");
-    static_assert(sizeof(load_configuration_v2_t)  == 0xA0,  "");
-    static_assert(sizeof(load_configuration_v3_t)  == 0xC0,  "");
-    static_assert(sizeof(load_configuration_v4_t)  == 0xD0,  "");
-    static_assert(sizeof(load_configuration_v5_t)  == 0xE8,  "");
-    static_assert(sizeof(load_configuration_v6_t)  == 0xF4,  "");
-    static_assert(sizeof(load_configuration_v7_t)  == 0x100, "");
-    static_assert(sizeof(load_configuration_v8_t)  == 0x108, "");
-    static_assert(sizeof(load_configuration_v9_t)  == 0x118, "");
-    static_assert(sizeof(load_configuration_v10_t) == 0x130, "");
-    static_assert(sizeof(load_configuration_v11_t) == 0x138, "");
+    static_assert(sizeof(load_configuration_t)     == 0x60);
+    static_assert(sizeof(load_configuration_v0_t)  == 0x70);
+    static_assert(sizeof(load_configuration_v1_t)  == 0x94);
+    static_assert(sizeof(load_configuration_v2_t)  == 0xA0);
+    static_assert(sizeof(load_configuration_v3_t)  == 0xC0);
+    static_assert(sizeof(load_configuration_v4_t)  == 0xD0);
+    static_assert(sizeof(load_configuration_v5_t)  == 0xE8);
+    static_assert(sizeof(load_configuration_v6_t)  == 0xF4);
+    static_assert(sizeof(load_configuration_v7_t)  == 0x100);
+    static_assert(sizeof(load_configuration_v8_t)  == 0x108);
+    static_assert(sizeof(load_configuration_v9_t)  == 0x118);
+    static_assert(sizeof(load_configuration_v10_t) == 0x130);
+    static_assert(sizeof(load_configuration_v11_t) == 0x138);
 };
 }
 

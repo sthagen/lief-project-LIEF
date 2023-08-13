@@ -433,18 +433,7 @@ Segment& Segment::operator-=(ELF_SEGMENT_FLAGS flag) {
   return *this;
 }
 
-bool Segment::operator==(const Segment& rhs) const {
-  if (this == &rhs) {
-    return true;
-  }
-  size_t hash_lhs = Hash::hash(*this);
-  size_t hash_rhs = Hash::hash(rhs);
-  return hash_lhs == hash_rhs;
-}
 
-bool Segment::operator!=(const Segment& rhs) const {
-  return !(*this == rhs);
-}
 
 
 span<uint8_t> Segment::writable_content() {
@@ -488,10 +477,10 @@ std::ostream& operator<<(std::ostream& os, const ELF::Segment& segment) {
      << std::setw(10) << segment.alignment()
      << std::endl;
 
-  if (segment.sections().size() > 0) {
+  if (!segment.sections().empty()) {
     os << "Sections in this segment :" << std::endl;
     for (const Section& section : segment.sections()) {
-      os << "\t" << section.name() << std::endl;
+      os << "  " << section.name() << std::endl;
     }
   }
   return os;

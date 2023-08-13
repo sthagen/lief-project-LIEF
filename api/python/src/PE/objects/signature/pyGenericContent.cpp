@@ -1,3 +1,4 @@
+
 /* Copyright 2017 - 2023 R. Thomas
  * Copyright 2017 - 2023 Quarkslab
  *
@@ -14,9 +15,8 @@
  * limitations under the License.
  */
 #include "PE/pyPE.hpp"
-#include "pySafeString.hpp"
 
-#include "LIEF/PE/PogoEntry.hpp"
+#include "LIEF/PE/signature/GenericContent.hpp"
 
 #include <string>
 #include <sstream>
@@ -25,24 +25,10 @@
 namespace LIEF::PE::py {
 
 template<>
-void create<PogoEntry>(nb::module_& m) {
-  nb::class_<PogoEntry, LIEF::Object>(m, "PogoEntry")
-    .def(nb::init<>())
+void create<GenericContent>(nb::module_& m) {
+  nb::class_<GenericContent, ContentInfo::Content>(m, "GenericContent");
 
-    .def_prop_rw("name",
-        [] (const PogoEntry& obj) {
-          return LIEF::py::safe_string(obj.name());
-        },
-        nb::overload_cast<const std::string&>(&PogoEntry::name))
-
-    .def_prop_rw("start_rva",
-        nb::overload_cast<>(&PogoEntry::start_rva, nb::const_),
-        nb::overload_cast<uint32_t>(&PogoEntry::start_rva))
-
-    .def_prop_rw("size",
-        nb::overload_cast<>(&PogoEntry::size, nb::const_),
-        nb::overload_cast<uint32_t>(&PogoEntry::size))
-
-    LIEF_DEFAULT_STR(LIEF::PE::PogoEntry);
 }
+
 }
+

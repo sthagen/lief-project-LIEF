@@ -115,7 +115,7 @@ void LangCodeItem::code_page(CODE_PAGES code_page) {
   ss << std::setfill('0') << std::setw(sizeof(uint16_t) * 2) << std::hex << static_cast<uint16_t>(code_page);
   if (auto res = u8tou16(ss.str())) {
     std::u16string key = this->key();
-    key.replace(4, 4, std::move(*res));
+    key.replace(4, 4, *res);
     this->key(key);
   } else {
     LIEF_WARN("Code page error");
@@ -132,7 +132,7 @@ void LangCodeItem::lang(RESOURCE_LANGS lang) {
 
   if (auto res = u8tou16(ss.str())) {
     std::u16string key = this->key();
-    key.replace(0, 4, std::move(*res));
+    key.replace(0, 4, *res);
     this->key(key);
   } else {
     LIEF_WARN("lang error");
@@ -153,7 +153,7 @@ void LangCodeItem::sublang(RESOURCE_SUBLANGS lang) {
 
   if (auto res = u8tou16(ss.str())) {
     std::u16string key = this->key();
-    key.replace(0, 4, std::move(*res));
+    key.replace(0, 4, *res);
     this->key(key);
   } else {
     LIEF_WARN("lang error");
@@ -171,18 +171,7 @@ void LangCodeItem::accept(Visitor& visitor) const {
 }
 
 
-bool LangCodeItem::operator==(const LangCodeItem& rhs) const {
-  if (this == &rhs) {
-    return true;
-  }
-  size_t hash_lhs = Hash::hash(*this);
-  size_t hash_rhs = Hash::hash(rhs);
-  return hash_lhs == hash_rhs;
-}
 
-bool LangCodeItem::operator!=(const LangCodeItem& rhs) const {
-  return !(*this == rhs);
-}
 
 std::ostream& operator<<(std::ostream& os, const LangCodeItem& item) {
   os << std::hex << std::left;

@@ -94,6 +94,7 @@ class LoadConfigurationV10;
 class LoadConfigurationV11;
 class Pogo;
 class PogoEntry;
+class Repro;
 
 //! Class that implements the Visitor pattern to output
 //! a JSON representation of a PE object
@@ -141,6 +142,8 @@ class JsonVisitor : public LIEF::JsonVisitor {
   void visit(const x509& x509)                            override;
   void visit(const SignerInfo& signerinfo)                override;
   void visit(const ContentInfo& contentinfo)              override;
+  void visit(const GenericContent& content)               override;
+  void visit(const SpcIndirectData& content)              override;
   void visit(const Attribute& attr)                       override;
   void visit(const ContentType& attr)                     override;
   void visit(const GenericType& attr)                     override;
@@ -169,6 +172,7 @@ class JsonVisitor : public LIEF::JsonVisitor {
 
   void visit(const Pogo& pogo)        override;
   void visit(const PogoEntry& entry)  override;
+  void visit(const Repro& entry)      override;
 
   void visit(const LIEF::Binary& binary)   override;
   void visit(const LIEF::Symbol& symbol)   override;

@@ -77,6 +77,8 @@ LIEF_PE_FORWARD(Signature)
 LIEF_PE_FORWARD(x509)
 LIEF_PE_FORWARD(SignerInfo)
 LIEF_PE_FORWARD(ContentInfo)
+LIEF_PE_FORWARD(GenericContent)
+LIEF_PE_FORWARD(SpcIndirectData)
 LIEF_PE_FORWARD(Attribute)
 LIEF_PE_FORWARD(ContentType)
 LIEF_PE_FORWARD(GenericType)
@@ -93,6 +95,8 @@ LIEF_PE_FORWARD(CodeIntegrity)
 LIEF_PE_FORWARD(LoadConfiguration)
 LIEF_PE_FORWARD(LoadConfigurationV0)
 LIEF_PE_FORWARD(LoadConfigurationV1)
+LIEF_PE_FORWARD(LoadConfigurationV10)
+LIEF_PE_FORWARD(LoadConfigurationV11)
 LIEF_PE_FORWARD(LoadConfigurationV2)
 LIEF_PE_FORWARD(LoadConfigurationV3)
 LIEF_PE_FORWARD(LoadConfigurationV4)
@@ -101,10 +105,9 @@ LIEF_PE_FORWARD(LoadConfigurationV6)
 LIEF_PE_FORWARD(LoadConfigurationV7)
 LIEF_PE_FORWARD(LoadConfigurationV8)
 LIEF_PE_FORWARD(LoadConfigurationV9)
-LIEF_PE_FORWARD(LoadConfigurationV10)
-LIEF_PE_FORWARD(LoadConfigurationV11)
 LIEF_PE_FORWARD(Pogo)
 LIEF_PE_FORWARD(PogoEntry)
+LIEF_PE_FORWARD(Repro)
 
 // ELF
 // ==================================
@@ -401,6 +404,12 @@ class LIEF_API Visitor {
   //! Method to visit a LIEF::PE::ContentType
   LIEF_PE_VISITABLE(ContentType)
 
+  //! Method to visit a LIEF::PE::GenericContent
+  LIEF_PE_VISITABLE(GenericContent)
+
+  //! Method to visit a LIEF::PE::SpcIndirectData
+  LIEF_PE_VISITABLE(SpcIndirectData)
+
   //! Method to visit a LIEF::PE::GenericType
   LIEF_PE_VISITABLE(GenericType)
 
@@ -475,6 +484,9 @@ class LIEF_API Visitor {
 
   //! Method to visit a LIEF::PE::PogoEntry
   LIEF_PE_VISITABLE(PogoEntry)
+
+  //! Method to visit a LIEF::PE::Repro
+  LIEF_PE_VISITABLE(Repro)
 
   // MachO part
   // ==========

@@ -40,6 +40,7 @@ template<typename PE_T>
 ok_error_t Parser::parse() {
 
   if (!parse_headers<PE_T>()) {
+    LIEF_WARN("Fail to parse regular PE headers");
     return make_error_code(lief_errors::parsing_error);
   }
 
@@ -49,30 +50,24 @@ ok_error_t Parser::parse() {
     binary_->optional_header_.computed_checksum_ = *opt_chksum;
   }
 
-  LIEF_DEBUG("[+] Processing DOS stub & Rich header");
-
   if (!parse_dos_stub()) {
-    LIEF_WARN("Fail to parse the DOS Stub");
+    LIEF_WARN("Fail to parse DOS Stub");
   }
 
   if (!parse_rich_header()) {
-    LIEF_WARN("Fail to parse the rich header");
+    LIEF_WARN("Fail to parse rich header");
   }
-
-  LIEF_DEBUG("[+] Processing sections");
 
   if (!parse_sections()) {
-    LIEF_WARN("Fail to parse the sections");
+    LIEF_WARN("Fail to parse sections");
   }
 
-  LIEF_DEBUG("[+] Processing data directories");
-
   if (!parse_data_directories<PE_T>()) {
-    LIEF_WARN("Fail to parse the data directories");
+    LIEF_WARN("Fail to parse data directories");
   }
 
   if (!parse_symbols()) {
-    LIEF_WARN("Fail to parse the symbols");
+    LIEF_WARN("Fail to parse symbols");
   }
 
   if (!parse_overlay()) {
@@ -88,7 +83,7 @@ ok_error_t Parser::parse_headers() {
 
   auto dos_hdr = stream_->peek<details::pe_dos_header>(0);
   if (!dos_hdr) {
-    LIEF_ERR("Can't read the Dos Header");
+    LIEF_ERR("Can't read the DOS Header");
     return make_error_code(dos_hdr.error());
   }
 
@@ -122,7 +117,7 @@ ok_error_t Parser::parse_data_directories() {
   using pe_optional_header = typename PE_T::pe_optional_header;
   const uint32_t directories_offset = binary_->dos_header().addressof_new_exeheader() +
                                       sizeof(details::pe_header) + sizeof(pe_optional_header);
-  const auto nbof_datadir = static_cast<uint32_t>(DATA_DIRECTORY::NUM_DATA_DIRECTORIES);
+  const auto nbof_datadir = DataDirectory::DEFAULT_NB;
   stream_->setpos(directories_offset);
 
   // WARNING: The PE specifications require that the data directory table ends
@@ -139,12 +134,12 @@ ok_error_t Parser::parse_data_directories() {
       LIEF_ERR("Can't read data directory at #{}", i);
       return make_error_code(lief_errors::read_error);
     }
-    const auto dir_type = static_cast<DATA_DIRECTORY>(i);
+    const auto dir_type = static_cast<DataDirectory::TYPES>(i);
     auto directory = std::make_unique<DataDirectory>(raw_dir, dir_type);
     if (directory->RVA() > 0) {
       const uint64_t offset = binary_->rva_to_offset(directory->RVA());
       directory->section_   = binary_->section_from_offset(offset);
-      if (directory->section_ == nullptr && dir_type != DATA_DIRECTORY::CERTIFICATE_TABLE) {
+      if (directory->section_ == nullptr && dir_type != DataDirectory::TYPES::CERTIFICATE_TABLE) {
         LIEF_WARN("Unable to find the section associated with {}", to_string(dir_type));
       }
     }
@@ -152,7 +147,7 @@ ok_error_t Parser::parse_data_directories() {
   }
 
   // Import Table
-  if (DataDirectory* import_data_dir = binary_->data_directory(DATA_DIRECTORY::IMPORT_TABLE)) {
+  if (DataDirectory* import_data_dir = binary_->data_directory(DataDirectory::TYPES::IMPORT_TABLE)) {
     if (import_data_dir->RVA() > 0 && config_.parse_imports)
     {
       LIEF_DEBUG("Processing Import Table");
@@ -164,21 +159,21 @@ ok_error_t Parser::parse_data_directories() {
   }
 
   // Exports
-  if (const DataDirectory* export_dir = binary_->data_directory(DATA_DIRECTORY::EXPORT_TABLE)) {
+  if (const DataDirectory* export_dir = binary_->data_directory(DataDirectory::TYPES::EXPORT_TABLE)) {
     if (export_dir->RVA() > 0 && config_.parse_exports) {
-      LIEF_DEBUG("[+] Processing Exports");
+      LIEF_DEBUG("Parsing Exports");
       parse_exports();
     }
   }
 
   // Signature
-  if (const DataDirectory* dir = binary_->data_directory(DATA_DIRECTORY::CERTIFICATE_TABLE)) {
+  if (const DataDirectory* dir = binary_->data_directory(DataDirectory::TYPES::CERTIFICATE_TABLE)) {
     if (dir->RVA() > 0 && config_.parse_signature) {
       parse_signature();
     }
   }
 
-  if (DataDirectory* dir = binary_->data_directory(DATA_DIRECTORY::TLS_TABLE)) {
+  if (DataDirectory* dir = binary_->data_directory(DataDirectory::TYPES::TLS_TABLE)) {
     if (dir->RVA() > 0) {
       if (Section* sec = dir->section()) {
         sec->add_type(PE_SECTION_TYPES::TLS);
@@ -187,9 +182,9 @@ ok_error_t Parser::parse_data_directories() {
     }
   }
 
-  if (DataDirectory* dir = binary_->data_directory(DATA_DIRECTORY::LOAD_CONFIG_TABLE)) {
+  if (DataDirectory* dir = binary_->data_directory(DataDirectory::TYPES::LOAD_CONFIG_TABLE)) {
     if (dir->RVA() > 0) {
-      LIEF_DEBUG("Processing LoadConfiguration");
+      LIEF_DEBUG("Parsing LoadConfiguration");
       if (Section* sec = dir->section()) {
         sec->add_type(PE_SECTION_TYPES::LOAD_CONFIG);
       }
@@ -197,9 +192,9 @@ ok_error_t Parser::parse_data_directories() {
     }
   }
 
-  if (DataDirectory* dir = binary_->data_directory(DATA_DIRECTORY::BASE_RELOCATION_TABLE)) {
+  if (DataDirectory* dir = binary_->data_directory(DataDirectory::TYPES::BASE_RELOCATION_TABLE)) {
     if (dir->RVA() > 0 && config_.parse_reloc) {
-      LIEF_DEBUG("Processing Relocations");
+      LIEF_DEBUG("Parsing Relocations");
       if (Section* sec = dir->section()) {
         sec->add_type(PE_SECTION_TYPES::RELOCATION);
       }
@@ -207,7 +202,7 @@ ok_error_t Parser::parse_data_directories() {
     }
   }
 
-  if (DataDirectory* dir = binary_->data_directory(DATA_DIRECTORY::DEBUG)) {
+  if (DataDirectory* dir = binary_->data_directory(DataDirectory::TYPES::DEBUG)) {
     if (dir->RVA() > 0) {
       if (Section* sec = dir->section()) {
         sec->add_type(PE_SECTION_TYPES::DEBUG);
@@ -216,9 +211,9 @@ ok_error_t Parser::parse_data_directories() {
     }
   }
 
-  if (DataDirectory* dir = binary_->data_directory(DATA_DIRECTORY::RESOURCE_TABLE)) {
+  if (DataDirectory* dir = binary_->data_directory(DataDirectory::TYPES::RESOURCE_TABLE)) {
     if (dir->RVA() > 0 && config_.parse_rsrc) {
-      LIEF_DEBUG("Processing Resources");
+      LIEF_DEBUG("Parsing Resources");
       if (Section* sec = dir->section()) {
         sec->add_type(PE_SECTION_TYPES::RESOURCE);
       }
@@ -226,7 +221,7 @@ ok_error_t Parser::parse_data_directories() {
     }
   }
 
-  if (DataDirectory* dir = binary_->data_directory(DATA_DIRECTORY::DELAY_IMPORT_DESCRIPTOR)) {
+  if (DataDirectory* dir = binary_->data_directory(DataDirectory::TYPES::DELAY_IMPORT_DESCRIPTOR)) {
     if (dir->RVA() > 0) {
       auto is_ok = parse_delay_imports<PE_T>();
       if (!is_ok) {
@@ -241,9 +236,9 @@ ok_error_t Parser::parse_data_directories() {
 
 template<typename PE_T>
 ok_error_t Parser::parse_import_table() {
-  using uint__ = typename PE_T::uint;
-  DataDirectory* import_dir = binary_->data_directory(DATA_DIRECTORY::IMPORT_TABLE);
-  DataDirectory* iat_dir    = binary_->data_directory(DATA_DIRECTORY::IAT);
+  using uint = typename PE_T::uint;
+  DataDirectory* import_dir = binary_->data_directory(DataDirectory::TYPES::IMPORT_TABLE);
+  DataDirectory* iat_dir    = binary_->data_directory(DataDirectory::TYPES::IAT);
 
   if (import_dir == nullptr || iat_dir == nullptr) {
     return make_error_code(lief_errors::not_found);
@@ -304,21 +299,21 @@ ok_error_t Parser::parse_import_table() {
                           binary_->rva_to_offset(import.import_address_table_rva()) :
                           0;
 
-    uint__ IAT = 0;
-    uint__ table = 0;
+    uint IAT = 0;
+    uint table = 0;
 
     if (IAT_offset > 0) {
-      if (auto res_iat = stream_->peek<uint__>(IAT_offset)) {
+      if (auto res_iat = stream_->peek<uint>(IAT_offset)) {
         IAT   = *res_iat;
         table = IAT;
-        IAT_offset += sizeof(uint__);
+        IAT_offset += sizeof(uint);
       }
     }
 
     if (LT_offset > 0) {
-      if (auto res_lt = stream_->peek<uint__>(LT_offset)) {
+      if (auto res_lt = stream_->peek<uint>(LT_offset)) {
         table      = *res_lt;
-        LT_offset += sizeof(uint__);
+        LT_offset += sizeof(uint);
       }
     }
 
@@ -329,7 +324,7 @@ ok_error_t Parser::parse_import_table() {
       entry.iat_value_ = IAT;
       entry.data_      = table > 0 ? table : IAT; // In some cases, ILT can be corrupted
       entry.type_      = type_;
-      entry.rva_       = import.import_address_table_RVA_ + sizeof(uint__) * (idx++);
+      entry.rva_       = import.import_address_table_RVA_ + sizeof(uint) * (idx++);
 
       if (!entry.is_ordinal()) {
         const size_t hint_off = binary_->rva_to_offset(entry.hint_name_rva());
@@ -357,9 +352,9 @@ ok_error_t Parser::parse_import_table() {
       }
 
       if (IAT_offset > 0) {
-        if (auto iat = stream_->peek<uint__>(IAT_offset)) {
+        if (auto iat = stream_->peek<uint>(IAT_offset)) {
           IAT = *iat;
-          IAT_offset += sizeof(uint__);
+          IAT_offset += sizeof(uint);
         } else {
           LIEF_ERR("Can't read the IAT value at 0x{:x}", IAT_offset);
           IAT = 0;
@@ -369,9 +364,9 @@ ok_error_t Parser::parse_import_table() {
       }
 
       if (LT_offset > 0) {
-        if (auto lt = stream_->peek<uint__>(LT_offset)) {
+        if (auto lt = stream_->peek<uint>(LT_offset)) {
           table = *lt;
-          LT_offset += sizeof(uint__);
+          LT_offset += sizeof(uint);
         } else {
           LIEF_ERR("Can't read the Lookup Table value at 0x{:x}", LT_offset);
           table = 0;
@@ -383,18 +378,17 @@ ok_error_t Parser::parse_import_table() {
     binary_->imports_.push_back(std::move(import));
   }
 
-  binary_->has_imports_ = !binary_->imports_.empty();
   return ok();
 }
 
 
 template<class PE_T>
 ok_error_t Parser::parse_delay_names_table(DelayImport& import, uint32_t names_offset) {
-  using uint__ = typename PE_T::uint;
+  using uint = typename PE_T::uint;
   ScopedStream nstream(*stream_, names_offset);
 
-  uint__ entry_val = 0;
-  if (auto res = stream_->read<uint__>()) {
+  uint entry_val = 0;
+  if (auto res = stream_->read<uint>()) {
     entry_val = *res;
   } else {
     LIEF_ERR("Can't read delay_imports.names_table[0]");
@@ -404,9 +398,9 @@ ok_error_t Parser::parse_delay_names_table(DelayImport& import, uint32_t names_o
   while (names_offset > 0 && entry_val > 0) {
     DelayImportEntry entry{entry_val, type_};
     // Index of the current entry (-1 as we start with a read())
-    const size_t index = (stream_->pos() - names_offset) / sizeof(uint__) - 1;
-    const uint32_t iat = index * sizeof(uint__);
-    if (auto res = stream_->peek<uint__>(iat)) {
+    const size_t index = (stream_->pos() - names_offset) / sizeof(uint) - 1;
+    const uint32_t iat = index * sizeof(uint);
+    if (auto res = stream_->peek<uint>(iat)) {
       entry.value_ = import.iat() + iat;
       entry.iat_value_  = *res;
       LIEF_DEBUG("  [{}].iat : 0x{:010x}", index, entry.iat_value_);
@@ -440,7 +434,7 @@ ok_error_t Parser::parse_delay_names_table(DelayImport& import, uint32_t names_o
       import.entries_.push_back(std::move(entry));
     }
 
-    if (auto res = stream_->read<uint__>()) {
+    if (auto res = stream_->read<uint>()) {
       entry_val = *res;
     } else {
       LIEF_ERR("Can't read the Name offset value at 0x{:x}", stream_->pos());
@@ -452,10 +446,10 @@ ok_error_t Parser::parse_delay_names_table(DelayImport& import, uint32_t names_o
 
 template<typename PE_T>
 ok_error_t Parser::parse_delay_imports() {
-  LIEF_DEBUG("[>] Parsing the Delay Import Table");
+  LIEF_DEBUG("Parsing Delay Import Table");
   std::string dll_name;
 
-  const DataDirectory* dir = binary_->data_directory(DATA_DIRECTORY::DELAY_IMPORT_DESCRIPTOR);
+  const DataDirectory* dir = binary_->data_directory(DataDirectory::TYPES::DELAY_IMPORT_DESCRIPTOR);
   if (dir == nullptr) {
     return make_error_code(lief_errors::not_found);
   }
@@ -527,7 +521,7 @@ ok_error_t Parser::parse_delay_imports() {
     if (names_offset > 0) {
       auto is_ok = parse_delay_names_table<PE_T>(import, names_offset);
       if (!is_ok) {
-        LIEF_WARN("[!] Delay imports names table parsed with errors ('{}')",
+        LIEF_WARN("Delay imports names table parsed with errors ('{}')",
                   to_string(get_error(is_ok)));
       }
     }
@@ -542,11 +536,11 @@ ok_error_t Parser::parse_delay_imports() {
 template<typename PE_T>
 ok_error_t Parser::parse_tls() {
   using pe_tls = typename PE_T::pe_tls;
-  using uint__ = typename PE_T::uint;
+  using uint = typename PE_T::uint;
 
-  LIEF_DEBUG("[+] Parsing TLS");
+  LIEF_DEBUG("Parsing TLS");
 
-  DataDirectory* tls_dir = binary_->data_directory(DATA_DIRECTORY::TLS_TABLE);
+  DataDirectory* tls_dir = binary_->data_directory(DataDirectory::TYPES::TLS_TABLE);
   if (tls_dir == nullptr) {
     return make_error_code(lief_errors::not_found);
   }
@@ -569,8 +563,8 @@ ok_error_t Parser::parse_tls() {
     const uint64_t start_data_rva = tls_header->RawDataStartVA - imagebase;
     const uint64_t stop_data_rva  = tls_header->RawDataEndVA - imagebase;
 
-    const uint__ start_template_offset  = binary_->rva_to_offset(start_data_rva);
-    const uint__ end_template_offset    = binary_->rva_to_offset(stop_data_rva);
+    const uint start_template_offset = binary_->rva_to_offset(start_data_rva);
+    const uint end_template_offset   = binary_->rva_to_offset(stop_data_rva);
 
     const size_t size_to_read = end_template_offset - start_template_offset;
 
@@ -588,7 +582,7 @@ ok_error_t Parser::parse_tls() {
     stream_->setpos(callbacks_offset);
     size_t count = 0;
     while (count++ < Parser::MAX_TLS_CALLBACKS) {
-      auto res_callback_rva = stream_->read<uint__>();
+      auto res_callback_rva = stream_->read<uint>();
       if (!res_callback_rva) {
         break;
       }
@@ -659,7 +653,7 @@ ok_error_t Parser::parse_load_config() {
 
   LIEF_DEBUG("[+] Parsing Load Config");
 
-  DataDirectory* load_config_dir = binary_->data_directory(DATA_DIRECTORY::LOAD_CONFIG_TABLE);
+  DataDirectory* load_config_dir = binary_->data_directory(DataDirectory::TYPES::LOAD_CONFIG_TABLE);
   if (load_config_dir == nullptr) {
     return make_error_code(lief_errors::not_found);
   }
@@ -801,7 +795,6 @@ ok_error_t Parser::parse_load_config() {
       }
   }
 
-  binary_->has_configuration_  = ld_conf != nullptr;
   binary_->load_configuration_ = std::move(ld_conf);
   return ok();
 }

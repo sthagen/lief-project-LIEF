@@ -21,6 +21,7 @@
 #include "LIEF/PE/ResourceNode.hpp"
 #include "LIEF/PE/DataDirectory.hpp"
 #include "LIEF/PE/TLS.hpp"
+#include "LIEF/PE/Debug.hpp"
 #include "LIEF/PE/Export.hpp"
 #include "LIEF/PE/RichHeader.hpp"
 #include "LIEF/PE/LoadConfigurations/LoadConfiguration.hpp"
@@ -57,6 +58,7 @@ void create<Binary>(nb::module_& m) {
   init_ref_iterator<Binary::it_delay_imports>(bin, "it_delay_imports");
   init_ref_iterator<Binary::it_symbols>(bin, "it_symbols");
   init_ref_iterator<Binary::it_const_signatures>(bin, "it_const_signatures");
+  init_ref_iterator<Binary::it_debug_entries>(bin, "it_debug");
 
   bin
     .def(nb::init<PE_TYPE>(),
@@ -314,8 +316,8 @@ void create<Binary>(nb::module_& m) {
         nb::keep_alive<0, 1>())
 
     .def("data_directory",
-        nb::overload_cast<DATA_DIRECTORY>(&Binary::data_directory),
-        "Return the " RST_CLASS_REF(lief.PE.DataDirectory) " object from the given " RST_CLASS_REF(lief.PE.DATA_DIRECTORY) " type"_doc,
+        nb::overload_cast<DataDirectory::TYPES>(&Binary::data_directory),
+        "Return the " RST_CLASS_REF(lief.PE.DataDirectory) " object from the given " RST_CLASS_REF(lief.PE.DataDirectory.TYPES) " type"_doc,
         "type"_a,
         nb::rv_policy::reference_internal)
 
@@ -372,6 +374,9 @@ void create<Binary>(nb::module_& m) {
         "Return the overlay content as a ``list`` of bytes"_doc,
         nb::rv_policy::reference_internal)
 
+    .def_prop_ro("overlay_offset", &Binary::overlay_offset,
+                 "Return the original overlay offset")
+
     .def_prop_rw("dos_stub",
         [] (Binary& self) {
           const span<const uint8_t> content = self.dos_stub();
@@ -406,7 +411,7 @@ void create<Binary>(nb::module_& m) {
         "Build the binary and write the result to the given ``output`` file"_doc,
         "output_path"_a)
 
-    LIEF_DEFAULT_STR(LIEF::PE::Binary);
+    LIEF_DEFAULT_STR(Binary);
 
 }
 

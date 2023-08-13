@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIEF_PE_WS2_32_DLL_LOOKUP_H_
-#define LIEF_PE_WS2_32_DLL_LOOKUP_H_
-
-#include "frozen.hpp"
+#ifndef LIEF_PE_WS2_32_DLL_LOOKUP_H
+#define LIEF_PE_WS2_32_DLL_LOOKUP_H
+#include <cstdint>
 
 namespace LIEF {
 namespace PE {
 
-const char* ws2_32_dll_lookup(uint32_t i) {
+inline const char* ws2_32_dll_lookup(uint32_t i) {
   switch(i) {
   case 0x001b: return "FreeAddrInfoW";
   case 0x0018: return "GetAddrInfoW";

@@ -25,15 +25,15 @@
 #include "LIEF/PE/signature/Signature.hpp"
 #include "LIEF/PE/signature/SignatureParser.hpp"
 #include "LIEF/PE/Binary.hpp"
-#include "LIEF/PE/CodeViewPDB.hpp"
 #include "LIEF/PE/DataDirectory.hpp"
 #include "LIEF/PE/EnumToString.hpp"
 #include "LIEF/PE/Export.hpp"
-#include "LIEF/PE/Export.hpp"
 #include "LIEF/PE/ExportEntry.hpp"
 #include "LIEF/PE/Parser.hpp"
-#include "LIEF/PE/Pogo.hpp"
-#include "LIEF/PE/PogoEntry.hpp"
+#include "LIEF/PE/debug/CodeViewPDB.hpp"
+#include "LIEF/PE/debug/Pogo.hpp"
+#include "LIEF/PE/debug/Repro.hpp"
+#include "LIEF/PE/debug/PogoEntry.hpp"
 #include "LIEF/PE/Relocation.hpp"
 #include "LIEF/PE/RelocationEntry.hpp"
 #include "LIEF/PE/ResourceData.hpp"
@@ -56,11 +56,6 @@
 
 namespace LIEF {
 namespace PE {
-
-constexpr size_t Parser::MAX_PADDING_SIZE;
-constexpr size_t Parser::MAX_TLS_CALLBACKS;
-constexpr size_t Parser::MAX_DLL_NAME_SIZE;
-constexpr size_t Parser::MAX_DATA_SIZE;
 
 Parser::~Parser() = default;
 Parser::Parser() = default;
@@ -129,10 +124,10 @@ ok_error_t Parser::parse_rich_header() {
   LIEF_DEBUG("Parsing rich header");
   span<const uint8_t> dos_stub = binary_->dos_stub();
 
-  SpanStream stream(dos_stub);
+  const SpanStream stream(dos_stub);
 
-  const auto it_rich = std::search(std::begin(dos_stub), std::end(dos_stub),
-                                   std::begin(details::Rich_Magic), std::end(details::Rich_Magic));
+  const auto* it_rich = std::search(std::begin(dos_stub), std::end(dos_stub),
+                                    std::begin(details::Rich_Magic), std::end(details::Rich_Magic));
 
   if (it_rich == std::end(dos_stub)) {
     LIEF_DEBUG("Rich header not found!");
@@ -187,8 +182,8 @@ ok_error_t Parser::parse_rich_header() {
       break;
     }
 
-    uint16_t build_number = value & 0xFFFF;
-    uint16_t id           = (value >> 16) & 0xFFFF;
+    const uint16_t build_number = value & 0xFFFF;
+    const uint16_t id           = (value >> 16) & 0xFFFF;
 
     LIEF_DEBUG("ID:           0x{:04x}", id);
     LIEF_DEBUG("Build Number: 0x{:04x}", build_number);
@@ -230,7 +225,7 @@ ok_error_t Parser::parse_sections() {
     }
     auto section = std::make_unique<Section>(raw_sec);
     uint32_t size_to_read = 0;
-    uint32_t offset = raw_sec.PointerToRawData;
+    const uint32_t offset = raw_sec.PointerToRawData;
     if (offset > 0) {
       first_section_offset = std::min(first_section_offset, offset);
     }
@@ -240,7 +235,7 @@ ok_error_t Parser::parse_sections() {
                    raw_sec.SizeOfRawData;
 
     if ((offset + size_to_read) > stream_->size()) {
-      uint32_t delta = (offset + size_to_read) - stream_->size();
+      const uint32_t delta = (offset + size_to_read) - stream_->size();
       size_to_read = size_to_read - delta;
     }
 
@@ -271,8 +266,9 @@ ok_error_t Parser::parse_sections() {
       }
       uint64_t padding_to_read = padding_size + hole_size;
       if (padding_to_read > Parser::MAX_PADDING_SIZE) {
-        LIEF_WARN("The padding size of section '{}' is huge. Only the first {} bytes will be taken"
-                  " into account", section->name(), Parser::MAX_PADDING_SIZE);
+        LIEF_WARN("The padding size of section '{}' is huge. "
+                  "Only the first {} bytes will be taken "
+                  "into account", section->name(), Parser::MAX_PADDING_SIZE);
         padding_to_read = Parser::MAX_PADDING_SIZE;
       }
 
@@ -294,14 +290,11 @@ ok_error_t Parser::parse_sections() {
 }
 
 
-//
-// parse relocations
-//
 ok_error_t Parser::parse_relocations() {
   static constexpr size_t MAX_RELOCATION_ENTRIES = 100000;
-  LIEF_DEBUG("== Parsing relocations ==");
+  LIEF_DEBUG("Parsing relocations");
 
-  const DataDirectory* reloc_dir = binary_->data_directory(DATA_DIRECTORY::BASE_RELOCATION_TABLE);
+  const DataDirectory* reloc_dir = binary_->data_directory(DataDirectory::TYPES::BASE_RELOCATION_TABLE);
 
   if (reloc_dir == nullptr) {
     return make_error_code(lief_errors::not_found);
@@ -357,17 +350,12 @@ ok_error_t Parser::parse_relocations() {
     res_relocation_headers = stream_->peek<details::pe_base_relocation_block>(current_offset);
   }
 
-  binary_->has_relocations_ = true;
   return ok();
 }
 
-
-//
-// parse ressources
-//
 ok_error_t Parser::parse_resources() {
-  LIEF_DEBUG("== Parsing resources ==");
-  const DataDirectory* res_dir = binary_->data_directory(DATA_DIRECTORY::RESOURCE_TABLE);
+  LIEF_DEBUG("Parsing resources");
+  const DataDirectory* res_dir = binary_->data_directory(DataDirectory::TYPES::RESOURCE_TABLE);
 
   if (res_dir == nullptr) {
     return make_error_code(lief_errors::not_found);
@@ -384,18 +372,15 @@ ok_error_t Parser::parse_resources() {
     return make_error_code(lief_errors::read_error);
   }
 
-  binary_->resources_     = parse_resource_node(*res_directory_table, offset, offset);
-  binary_->has_resources_ = binary_->resources_ != nullptr;
+  binary_->resources_ = parse_resource_node(*res_directory_table, offset, offset);
   return ok();
 }
 
-
-//
-// parse the resources tree
-//
-std::unique_ptr<ResourceNode> Parser::parse_resource_node(const details::pe_resource_directory_table& directory_table,
-                                          uint32_t base_offset, uint32_t current_offset, uint32_t depth) {
-
+std::unique_ptr<ResourceNode>
+Parser::parse_resource_node(const details::pe_resource_directory_table& directory_table,
+                            uint32_t base_offset, uint32_t current_offset,
+                            uint32_t depth)
+{
   const uint32_t numberof_ID_entries   = directory_table.NumberOfIDEntries;
   const uint32_t numberof_name_entries = directory_table.NumberOfNameEntries;
 
@@ -499,11 +484,8 @@ std::unique_ptr<ResourceNode> Parser::parse_resource_node(const details::pe_reso
   return directory;
 }
 
-//
-// parse string table
-//
 ok_error_t Parser::parse_string_table() {
-  LIEF_DEBUG("== Parsing string table ==");
+  LIEF_DEBUG("Parsing string table");
   uint32_t string_table_offset =
     binary_->header().pointerto_symbol_table() +
     binary_->header().numberof_symbols() * details::sizes::SYMBOL_16;
@@ -533,11 +515,8 @@ ok_error_t Parser::parse_string_table() {
 }
 
 
-//
-// parse Symbols
-//
 ok_error_t Parser::parse_symbols() {
-  LIEF_DEBUG("== Parsing symbols ==");
+  LIEF_DEBUG("Parsing symbols");
   uint32_t symbol_table_offset = binary_->header().pointerto_symbol_table();
   uint32_t nb_symbols          = binary_->header().numberof_symbols();
   uint32_t current_offset      = symbol_table_offset;
@@ -625,144 +604,172 @@ ok_error_t Parser::parse_symbols() {
 }
 
 
-//
-// parse Debug
-//
-
 ok_error_t Parser::parse_debug() {
-  LIEF_DEBUG("== Parsing Debug ==");
-  binary_->has_debug_ = true;
-  DataDirectory* dir = binary_->data_directory(DATA_DIRECTORY::DEBUG);
+  LIEF_DEBUG("Parsing debug directory");
+
+  DataDirectory* dir = binary_->data_directory(DataDirectory::TYPES::DEBUG);
   if (dir == nullptr) {
     return make_error_code(lief_errors::not_found);
   }
 
-  uint32_t debug_rva    = dir->RVA();
-  uint32_t debug_offset = binary_->rva_to_offset(debug_rva);
-  uint32_t debug_size   = dir->size();
+  const uint32_t debug_rva = dir->RVA();
+  uint32_t debug_off       = binary_->rva_to_offset(debug_rva);
+  const uint32_t debug_sz  = dir->size();
+  const uint32_t debug_end = debug_off + debug_sz;
 
-  for (size_t i = 0; (i + 1) * sizeof(details::pe_debug) <= debug_size; i++) {
-    auto res_debug_struct = stream_->peek<details::pe_debug>(debug_offset + i * sizeof(details::pe_debug));
-    if (!res_debug_struct) {
+  stream_->setpos(debug_off);
+  while (stream_->pos() < debug_end) {
+    auto res = stream_->read<details::pe_debug>();
+    if (!res) {
       break;
     }
-    binary_->debug_.push_back(*res_debug_struct);
-
-    DEBUG_TYPES type = binary_->debug().back().type();
-
+    const auto type = static_cast<Debug::TYPES>(res->Type);
+    LIEF_DEBUG("Type is: {}", to_string(type));
     switch (type) {
-      case DEBUG_TYPES::IMAGE_DEBUG_TYPE_CODEVIEW:
+      case Debug::TYPES::CODEVIEW:
         {
-          parse_debug_code_view(binary_->debug().back());
+          if (std::unique_ptr<Debug> cv = parse_code_view(*res)) {
+            binary_->debug_.push_back(std::move(cv));
+          } else {
+            LIEF_WARN("Can't parse PE CodeView");
+          }
           break;
         }
 
-      case DEBUG_TYPES::IMAGE_DEBUG_TYPE_POGO:
+      case Debug::TYPES::POGO:
         {
-          parse_debug_pogo(binary_->debug().back());
+          if (std::unique_ptr<Debug> pogo = parse_pogo(*res)) {
+            binary_->debug_.push_back(std::move(pogo));
+          } else {
+            LIEF_WARN("Can't parse PE POGO");
+          }
           break;
         }
 
-      case DEBUG_TYPES::IMAGE_DEBUG_TYPE_REPRO:
+      case Debug::TYPES::REPRO:
         {
-          binary_->is_reproducible_build_ = true;
+          if (std::unique_ptr<Debug> repro = parse_repro(*res)) {
+            binary_->debug_.push_back(std::move(repro));
+          } else {
+            LIEF_WARN("Can't parse PE Repro");
+          }
           break;
         }
 
       default:
-        {}
+        {
+          binary_->debug_.push_back(std::make_unique<Debug>(*res));
+          break;
+        }
     }
   }
   return ok();
 }
 
-ok_error_t Parser::parse_debug_code_view(Debug& debug_info) {
+std::unique_ptr<Debug> Parser::parse_code_view(const details::pe_debug& debug_info) {
   LIEF_DEBUG("Parsing Debug Code View");
+  const uint32_t debug_off = debug_info.PointerToRawData;
 
-  const uint32_t debug_off = debug_info.pointerto_rawdata();
-  auto res_sig = stream_->peek<uint32_t>(debug_off);
+  ScopedStream sscoped(*stream_, debug_off);
+
+  auto res_sig = sscoped->peek<uint32_t>(debug_off);
   if (!res_sig) {
-    return make_error_code(res_sig.error());
+    return nullptr;
   }
 
-  const auto signature = static_cast<CODE_VIEW_SIGNATURES>(*res_sig);
+  const auto signature = static_cast<CodeView::SIGNATURES>(*res_sig);
+  auto default_value = std::make_unique<CodeView>(debug_info, signature);
 
   switch (signature) {
-    case CODE_VIEW_SIGNATURES::CVS_PDB_70:
+    case CodeView::SIGNATURES::PDB_70:
       {
-        const auto pdb_s = stream_->peek<details::pe_pdb_70>(debug_off);
+        const auto pdb_s = sscoped->read<details::pe_pdb_70>();
         if (!pdb_s) {
-          break;
+          return default_value;
         }
 
-        CodeViewPDB::signature_t sig;
-        std::move(std::begin(pdb_s->signature), std::end(pdb_s->signature), std::begin(sig));
-
-        auto res_path = stream_->peek_string_at(debug_off + offsetof(details::pe_pdb_70, filename));
-        if (res_path) {
-          auto codeview = std::make_unique<CodeViewPDB>(CodeViewPDB::from_pdb70(sig, pdb_s->age, *res_path));
-          debug_info.code_view_ = std::move(codeview);
+        auto cv_pdb70 = std::make_unique<CodeViewPDB>(debug_info, *pdb_s);
+        if (auto fname = stream_->read_string()) {
+          cv_pdb70->filename(std::move(*fname));
         }
-        break;
+        return cv_pdb70;
       }
 
     default:
       {
-        LIEF_INFO("Signature {} is not implemented yet!", to_string(signature));
+        LIEF_INFO("CodeView signature '{}' is not implemented yet!",
+                  to_string(signature));
       }
   }
-  return ok();
+  return default_value;
 }
 
-ok_error_t Parser::parse_debug_pogo(Debug& debug_info) {
-  LIEF_DEBUG("== Parsing Debug POGO ==");
+std::unique_ptr<Debug> Parser::parse_pogo(const details::pe_debug& debug_info) {
+  LIEF_DEBUG("Parsing POGO");
+  const uint32_t debug_size = debug_info.SizeOfData;
+  const uint32_t debug_off  = debug_info.PointerToRawData;
+  const uint32_t debug_end  = debug_off + debug_size;
 
-  const uint32_t debug_size = debug_info.sizeof_data();
-  const uint32_t debug_off  = debug_info.pointerto_rawdata();
+  ScopedStream sscoped(*stream_, debug_off);
 
-  auto res_sig = stream_->peek<uint32_t>(debug_off);
+  auto res_sig = sscoped->read<uint32_t>();
   if (!res_sig) {
-    return make_error_code(res_sig.error());
+    return nullptr;
   }
-  const auto signature = static_cast<POGO_SIGNATURES>(*res_sig);
+
+  const auto signature = static_cast<Pogo::SIGNATURES>(*res_sig);
+  auto pogo = std::make_unique<Pogo>(debug_info, signature);
 
   switch (signature) {
-    case POGO_SIGNATURES::POGO_LCTG:
+    case Pogo::SIGNATURES::ZERO: // zero-signature may contain valid entries
+    case Pogo::SIGNATURES::LCTG:
       {
-        auto pogo_object = std::make_unique<Pogo>();
-        pogo_object->signature_ = signature;
-
-        uint32_t offset = sizeof(uint32_t);
-        while (offset + sizeof(details::pe_pogo) < debug_size) {
-          auto res_pogo = stream_->peek<details::pe_pogo>(debug_off + offset);
-          auto res_name = stream_->peek_string_at(debug_off + offset + offsetof(details::pe_pogo, name));
-          if (!res_pogo || !res_name) {
+        while (sscoped->pos() < debug_end) {
+          auto raw = sscoped->read<details::pe_pogo>();
+          if (!raw) {
             break;
           }
 
-          PogoEntry entry;
+          PogoEntry entry{raw->start_rva, raw->size};
+          if (auto name = sscoped->read_string()) {
+            entry.name(std::move(*name));
+          }
 
-          entry.start_rva_ = res_pogo->start_rva;
-          entry.size_      = res_pogo->size;
-          entry.name_      = std::move(*res_name);
-
-          // pogo entries are 4-bytes aligned
-          offset += offsetof(details::pe_pogo, name) + entry.name_.length() + 1;
-          offset += ((4 - offset) % 4);
-
-          pogo_object->entries_.push_back(std::move(entry));
+          pogo->add(std::move(entry));
+          sscoped->align(4);
         }
 
-        debug_info.pogo_ = std::move(pogo_object);
-        break;
+        return pogo;
       }
 
+    case Pogo::SIGNATURES::UNKNOWN:
     default:
       {
         LIEF_INFO("PGO with signature 0x{:x} is not implemented yet!", *res_sig);
       }
   }
-  return ok();
+  return pogo;
+}
+
+std::unique_ptr<Debug> Parser::parse_repro(const details::pe_debug& debug_info) {
+  LIEF_DEBUG("Parsing Debug Repro");
+  const uint32_t debug_size = debug_info.SizeOfData;
+  const uint32_t debug_off  = debug_info.PointerToRawData;
+  const uint32_t debug_end  = debug_off + debug_size;
+  ScopedStream sscoped(*stream_, debug_off);
+
+  auto res_size = sscoped->read<uint32_t>();
+  if (!res_size) {
+    return nullptr;
+  }
+  LIEF_DEBUG("Size: 0x{:x}", *res_size);
+
+  std::vector<uint8_t> hash;
+  if (!sscoped->read_data(hash, *res_size)) {
+    LIEF_INFO("Can't read debug reproducible build hash");
+  }
+
+  return std::make_unique<Repro>(debug_info, std::move(hash));
 }
 
 
@@ -799,11 +806,8 @@ inline result<uint32_t> name_table_value(BinaryStream& stream,
 }
 
 
-//
-// Parse Export
-//
 ok_error_t Parser::parse_exports() {
-  LIEF_DEBUG("== Parsing exports ==");
+  LIEF_DEBUG("Parsing exports");
   static constexpr uint32_t NB_ENTRIES_LIMIT   = 0x1000000;
   static constexpr size_t MAX_EXPORT_NAME_SIZE = 4096; // Because of C++ mangling
 
@@ -811,7 +815,7 @@ ok_error_t Parser::parse_exports() {
     uint32_t start;
     uint32_t end;
   };
-  const DataDirectory* export_dir = binary_->data_directory(DATA_DIRECTORY::EXPORT_TABLE);
+  const DataDirectory* export_dir = binary_->data_directory(DataDirectory::TYPES::EXPORT_TABLE);
 
   if (export_dir == nullptr) {
     return make_error_code(lief_errors::not_found);
@@ -980,12 +984,12 @@ ok_error_t Parser::parse_exports() {
 }
 
 ok_error_t Parser::parse_signature() {
-  LIEF_DEBUG("== Parsing signature ==");
+  LIEF_DEBUG("Parsing signature");
   static constexpr size_t SIZEOF_HEADER = 8;
 
   /*** /!\ In this data directory, RVA is used as an **OFFSET** /!\ ****/
   /*********************************************************************/
-  const DataDirectory* cert_dir = binary_->data_directory(DATA_DIRECTORY::CERTIFICATE_TABLE);
+  const DataDirectory* cert_dir = binary_->data_directory(DataDirectory::TYPES::CERTIFICATE_TABLE);
   if (cert_dir == nullptr) {
     return make_error_code(lief_errors::not_found);
   }
@@ -993,6 +997,7 @@ ok_error_t Parser::parse_signature() {
   const uint32_t signature_offset  = cert_dir->RVA();
   const uint32_t signature_size    = cert_dir->size();
   const uint64_t end_p = signature_offset + signature_size;
+
   LIEF_DEBUG("Signature Offset: 0x{:04x}", signature_offset);
   LIEF_DEBUG("Signature Size:   0x{:04x}", signature_size);
 
@@ -1052,7 +1057,7 @@ ok_error_t Parser::parse_signature() {
 
 
 ok_error_t Parser::parse_overlay() {
-  LIEF_DEBUG("== Parsing Overlay ==");
+  LIEF_DEBUG("Parsing Overlay");
   const uint64_t last_section_offset = std::accumulate(
       std::begin(binary_->sections_), std::end(binary_->sections_), uint64_t{ 0u },
       [] (uint64_t offset, const std::unique_ptr<Section>& section) {
@@ -1078,17 +1083,17 @@ result<uint32_t> Parser::checksum() {
    * (re)compute the checksum specified in OptionalHeader::CheckSum
    */
   ScopedStream chk_stream(*stream_, 0);
-  const uint32_t padding = stream_->size() % sizeof(uint16_t);
+  const uint32_t padding = chk_stream->size() % sizeof(uint16_t);
 
   LIEF_DEBUG("padding: {}", padding);
 
   uint32_t partial_sum = 0;
-  const uint64_t file_length = stream_->size();
+  const uint64_t file_length = chk_stream->size();
   uint64_t nb_chunk = (file_length + 1) >> 1; // Number of uint16_t chunks
 
-  while (*stream_) {
+  while (*chk_stream) {
     uint16_t chunk = 0;
-    if (auto res = stream_->read<uint16_t>()) {
+    if (auto res = chk_stream->read<uint16_t>()) {
       chunk = *res;
     } else {
       break;
@@ -1099,29 +1104,26 @@ result<uint32_t> Parser::checksum() {
   }
 
   if (nb_chunk > 0) {
-    if (auto res = stream_->read<uint8_t>()) {
+    if (auto res = chk_stream->read<uint8_t>()) {
       partial_sum += *res;
       partial_sum = (partial_sum >> 16) + (partial_sum & 0xffff);
     }
   }
 
   auto partial_sum_res = static_cast<uint16_t>(((partial_sum >> 16) + partial_sum) & 0xffff);
-  uint32_t binary_checksum = binary_->optional_header().checksum();
-  uint32_t adjust_sum_lsb = binary_checksum & 0xFFFF;
-  uint32_t adjust_sum_msb = binary_checksum >> 16;
+  const uint32_t binary_checksum = binary_->optional_header().checksum();
+  const uint32_t adjust_sum_lsb = binary_checksum & 0xFFFF;
+  const uint32_t adjust_sum_msb = binary_checksum >> 16;
 
-  partial_sum_res -= (partial_sum_res < adjust_sum_lsb);
+  partial_sum_res -= static_cast<int>(partial_sum_res < adjust_sum_lsb);
   partial_sum_res -= adjust_sum_lsb;
 
-  partial_sum_res -= (partial_sum_res < adjust_sum_msb);
+  partial_sum_res -= static_cast<int>(partial_sum_res < adjust_sum_msb);
   partial_sum_res -= adjust_sum_msb;
 
   return static_cast<uint32_t>(partial_sum_res) + file_length;
 }
 
-//
-// Return the Binary constructed
-//
 std::unique_ptr<Binary> Parser::parse(const std::string& filename,
                                       const ParserConfig& conf) {
   if (!is_pe(filename)) {
@@ -1131,7 +1133,6 @@ std::unique_ptr<Binary> Parser::parse(const std::string& filename,
   parser.init(conf);
   return std::move(parser.binary_);
 }
-
 
 std::unique_ptr<Binary> Parser::parse(std::vector<uint8_t> data,
                                       const ParserConfig& conf) {

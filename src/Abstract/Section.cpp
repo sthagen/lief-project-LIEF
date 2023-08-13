@@ -129,7 +129,7 @@ size_t Section::search(uint64_t integer, size_t pos, size_t size) const {
 size_t Section::search(const std::vector<uint8_t>& pattern, size_t pos) const {
   span<const uint8_t> content = this->content();
 
-  const auto it_found = std::search(
+  const auto* it_found = std::search(
       std::begin(content) + pos, std::end(content),
       std::begin(pattern), std::end(pattern));
 
@@ -179,7 +179,7 @@ std::vector<size_t> Section::search_all(const std::string& v) const {
 double Section::entropy() const {
   std::array<uint64_t, 256> frequencies = { {0} };
   span<const uint8_t> content = this->content();
-  if (content.size() == 0) {
+  if (content.empty()) {
     return 0.;
   }
   for (uint8_t x : content) {
@@ -202,18 +202,7 @@ void Section::accept(Visitor& visitor) const {
 }
 
 
-bool Section::operator==(const Section& rhs) const {
-  if (this == &rhs) {
-    return true;
-  }
-  size_t hash_lhs = AbstractHash::hash(*this);
-  size_t hash_rhs = AbstractHash::hash(rhs);
-  return hash_lhs == hash_rhs;
-}
 
-bool Section::operator!=(const Section& rhs) const {
-  return !(*this == rhs);
-}
 
 std::ostream& operator<<(std::ostream& os, const Section& entry) {
   os << std::hex;

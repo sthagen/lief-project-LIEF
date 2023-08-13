@@ -121,10 +121,6 @@ void ResourceVersion::type(uint16_t type) {
   type_ = type;
 }
 
-void ResourceVersion::key(const std::u16string& key) {
-  key_ = key;
-}
-
 void ResourceVersion::key(const std::string& key) {
   if (auto res = u8tou16(key)) {
     return this->key(std::move(*res));
@@ -161,18 +157,7 @@ void ResourceVersion::accept(Visitor& visitor) const {
 }
 
 
-bool ResourceVersion::operator==(const ResourceVersion& rhs) const {
-  if (this == &rhs) {
-    return true;
-  }
-  size_t hash_lhs = Hash::hash(*this);
-  size_t hash_rhs = Hash::hash(rhs);
-  return hash_lhs == hash_rhs;
-}
 
-bool ResourceVersion::operator!=(const ResourceVersion& rhs) const {
-  return !(*this == rhs);
-}
 
 std::ostream& operator<<(std::ostream& os, const ResourceVersion& version) {
   os << std::hex << std::left;

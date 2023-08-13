@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIEF_PE_MFC42U_DLL_LOOKUP_H_
-#define LIEF_PE_MFC42U_DLL_LOOKUP_H_
-
+#ifndef LIEF_PE_MFC42U_DLL_LOOKUP_H
+#define LIEF_PE_MFC42U_DLL_LOOKUP_H
+#include <cstdint>
 
 namespace LIEF {
 namespace PE {
 
-const char* mfc42u_dll_lookup(uint32_t i) {
+inline const char* mfc42u_dll_lookup(uint32_t i) {
   switch(i) {
   case 0x0005: return "?classCCachedDataPathProperty@CCachedDataPathProperty@@2UCRuntimeClass@@B";
   case 0x0006: return "?classCDataPathProperty@CDataPathProperty@@2UCRuntimeClass@@B";

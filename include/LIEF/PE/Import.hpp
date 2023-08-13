@@ -53,8 +53,9 @@ class LIEF_API Import : public Object {
   ~Import() override;
 
   Import(const Import& other);
-  Import& operator=(Import other);
-  void swap(Import& other);
+  Import(Import&& other);
+  Import& operator=(Import&& other);
+  Import& operator=(const Import& other);
 
   //! The index of the first forwarder reference
   uint32_t forwarder_chain() const;
@@ -97,14 +98,14 @@ class LIEF_API Import : public Object {
   void name(const std::string& name);
 
   //! Return the PE::DataDirectory associated with this import.
-  //! It should be the one at index PE::DATA_DIRECTORY::IMPORT_TABLE
+  //! It should be the one at index PE::DataDirectory::TYPES::IMPORT_TABLE
   //!
   //! If the data directory can't be found, return a nullptr
   DataDirectory*       directory();
   const DataDirectory* directory() const;
 
   //! Return the PE::DataDirectory associated associated with the IAT.
-  //! It should be the one at index PE::DATA_DIRECTORY::IAT
+  //! It should be the one at index PE::DataDirectory::TYPES::IAT
   //!
   //! If the data directory can't be found, return a nullptr
   DataDirectory*       iat_directory();
@@ -121,8 +122,6 @@ class LIEF_API Import : public Object {
 
   void accept(Visitor& visitor) const override;
 
-  bool operator==(const Import& rhs) const;
-  bool operator!=(const Import& rhs) const;
 
   LIEF_API friend std::ostream& operator<<(std::ostream& os, const Import& entry);
 

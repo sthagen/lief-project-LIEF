@@ -277,6 +277,24 @@ Signature SpcSpOpusInfo
 
 ----------
 
+Signature SpcIndirectData
+*************************
+
+.. doxygenclass:: LIEF::PE::SpcIndirectData
+  :project: lief
+
+
+----------
+
+Signature GenericContent
+************************
+
+.. doxygenclass:: LIEF::PE::GenericContent
+  :project: lief
+
+
+----------
+
 
 RsaInfo
 *******
@@ -481,6 +499,7 @@ Pogo
 
 ----------
 
+
 Pogo Entry
 **************
 
@@ -488,6 +507,15 @@ Pogo Entry
   :project: lief
 
 ----------
+
+Repro
+*****
+
+.. doxygenclass:: LIEF::PE::Repro
+  :project: lief
+
+----------
+
 
 Load Configuration
 ******************
@@ -602,12 +630,6 @@ Utilities
 Enums
 *****
 
-.. doxygenenum:: LIEF::PE::MACHINE_TYPES
-   :project: lief
-
-.. doxygenenum:: LIEF::PE::HEADER_CHARACTERISTICS
-   :project: lief
-
 .. doxygenenum:: LIEF::PE::SYMBOL_STORAGE_CLASS
    :project: lief
 
@@ -627,18 +649,6 @@ Enums
    :project: lief
 
 .. doxygenenum:: LIEF::PE::RELOCATIONS_ARM
-   :project: lief
-
-.. doxygenenum:: LIEF::PE::DATA_DIRECTORY
-   :project: lief
-
-.. doxygenenum:: LIEF::PE::SUBSYSTEM
-   :project: lief
-
-.. doxygenenum:: LIEF::PE::DLL_CHARACTERISTICS
-   :project: lief
-
-.. doxygenenum:: LIEF::PE::DEBUG_TYPES
    :project: lief
 
 .. doxygenenum:: LIEF::PE::RESOURCE_TYPES
