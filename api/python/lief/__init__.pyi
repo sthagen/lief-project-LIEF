@@ -212,7 +212,7 @@ class Relocation(Object):
 
 class Section(Object):
     content: memoryview
-    name: object
+    name: str | bytes
     offset: int
     size: int
     virtual_address: int
@@ -230,7 +230,7 @@ class Section(Object):
     @property
     def entropy(self) -> float: ...
     @property
-    def fullname(self) -> str: ...
+    def fullname(self) -> bytes: ...
 
 class Symbol(Object):
     name: object
