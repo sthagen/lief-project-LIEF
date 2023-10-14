@@ -39,7 +39,7 @@ if(NOT LIEF_OPT_MBEDTLS_EXTERNAL)
 
   set(SOURCE_DIR mbed_src)
   set(MBEDTLS_SOURCE_DIR "${SOURCE_DIR}")
-  set(MBEDTLS_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/${SOURCE_DIR}/include;${CMAKE_BINARY_DIR}/${SOURCE_DIR}/library")
+  set(MBEDTLS_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_DIR}/include;${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_DIR}/library")
 
   set(mbedtls_src_crypto
     "${MBEDTLS_SOURCE_DIR}/library/aes.c"
@@ -167,8 +167,8 @@ if(LIEF_EXTERNAL_SPDLOG)
   get_target_property(SPDLOG_INC_DIR spdlog::spdlog INTERFACE_INCLUDE_DIRECTORIES)
   target_include_directories(lief_spdlog SYSTEM INTERFACE ${SPDLOG_INC_DIR})
 else()
-  set(SPDLOG_VERSION 1.11.0)
-  set(SPDLOG_SHA256 SHA256=33f83c6b86ec0fbbd0eb0f4e980da6767494dc0ad063900bcfae8bc3e9c75f21)
+  set(SPDLOG_VERSION 1.12.0)
+  set(SPDLOG_SHA256 SHA256=6174bf8885287422a6c6a0312eb8a30e8d22bcfcee7c48a6d02d1835d7769232)
   set(SPDLOG_URL "${THIRD_PARTY_DIRECTORY}/spdlog-${SPDLOG_VERSION}.zip" CACHE STRING "URL to the spdlog source")
   ExternalProject_Add(lief_spdlog_project
     URL               ${SPDLOG_URL}
