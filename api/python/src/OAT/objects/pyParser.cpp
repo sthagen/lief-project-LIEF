@@ -16,6 +16,8 @@
 #include "OAT/pyOAT.hpp"
 
 #include "pyIOStream.hpp"
+#include "pyutils.hpp"
+#include "typing/InputParser.hpp"
 
 #include "LIEF/OAT/Parser.hpp"
 #include "LIEF/OAT/Binary.hpp"
@@ -48,13 +50,21 @@ void create<Parser>(nb::module_& m) {
     "raw"_a, nb::rv_policy::take_ownership);
 
   m.def("parse",
-    [] (nb::object byteio) -> nb::object {
-      if (auto stream = PyIOStream::from_python(std::move(byteio))) {
-        auto ptr = std::make_unique<PyIOStream>(std::move(*stream));
-        return nb::cast(Parser::parse(stream->content()));
+    [] (typing::InputParser obj) -> std::unique_ptr<Binary> {
+      if (auto path_str = path_to_str(obj)) {
+        return Parser::parse(std::move(*path_str));
       }
-      logging::log(logging::LOG_ERR, "Can't create a LIEF stream interface over the provided io");
-      return nb::none();
-    }, "io"_a, nb::rv_policy::take_ownership);
+
+      if (auto stream = PyIOStream::from_python(obj)) {
+        auto ptr = std::make_unique<PyIOStream>(std::move(*stream));
+        return Parser::parse(stream->content());
+      }
+      logging::log(logging::LOG_ERR,
+                   "LIEF parser interface does not support Python object: " +
+                   type2str(obj));
+      return nullptr;
+    },
+    "obj"_a,
+    nb::rv_policy::take_ownership);
 }
 }

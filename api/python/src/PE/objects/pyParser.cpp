@@ -22,7 +22,8 @@
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/unique_ptr.h>
 
-
+#include "typing/InputParser.hpp"
+#include "pyutils.hpp"
 #include "pyIOStream.hpp"
 #include "LIEF/logging.hpp"
 
@@ -48,17 +49,21 @@ void create<Parser>(nb::module_& m) {
     nb::rv_policy::take_ownership);
 
   m.def("parse",
-    [] (nb::object byteio, const ParserConfig&) -> nb::object {
-      if (auto stream = PyIOStream::from_python(std::move(byteio))) {
-        auto ptr = std::make_unique<PyIOStream>(std::move(*stream));
-        return nb::cast(PE::Parser::parse(std::move(ptr)));
+    [] (typing::InputParser obj, const ParserConfig&) -> std::unique_ptr<Binary> {
+      if (auto path_str = path_to_str(obj)) {
+        return Parser::parse(std::move(*path_str));
       }
-      logging::log(logging::LOG_ERR, "Can't create a LIEF stream interface over the provided io");
-      return nb::none();
+      if (auto stream = PyIOStream::from_python(obj)) {
+        auto ptr = std::make_unique<PyIOStream>(std::move(*stream));
+        return PE::Parser::parse(std::move(ptr));
+      }
+      logging::log(logging::LOG_ERR,
+                   "LIEF parser interface does not support Python object: " +
+                   type2str(obj));
+      return nullptr;
     },
-    "Parse the PE binary from the given Python IO interface and return a :class:`lief.PE.Binary` object"_doc,
-    "io"_a, "config"_a = ParserConfig::all(),
-    "parse(io: io.IOBase, config: lief.PE.ParserConfig = ...) -> lief.PE.Binary | None"_p,
+    "Parse the PE binary from the given parameter and return a :class:`lief.PE.Binary` object"_doc,
+    "obj"_a, "config"_a = ParserConfig::all(),
     nb::rv_policy::take_ownership);
 }
 

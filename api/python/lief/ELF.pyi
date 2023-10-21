@@ -13,6 +13,7 @@ import lief.ELF.Section # type: ignore
 import lief.ELF.Segment # type: ignore
 import lief.ELF.SymbolVersionDefinition # type: ignore
 import lief.ELF.SymbolVersionRequirement # type: ignore
+import os
 
 class ARCH:
     AARCH64: ClassVar[ARCH] = ...
@@ -416,7 +417,7 @@ class Binary(lief.Binary):
     def segment_from_offset(self, offset: int) -> lief.ELF.Segment: ...
     def segment_from_virtual_address(self, address: int) -> lief.ELF.Segment: ...
     def strip(self) -> None: ...
-    def virtual_address_to_offset(self, virtual_address: int) -> object: ...
+    def virtual_address_to_offset(self, virtual_address: int) -> Union[int,lief.lief_errors]: ...
     @overload
     def write(self, output: str) -> None: ...
     @overload
@@ -496,7 +497,7 @@ class Binary(lief.Binary):
     @property
     def pltgot_relocations(self) -> lief.ELF.Binary.it_filter_relocation: ...
     @property
-    def relocations(self) -> lief.ELF.Binary.it_relocations: ...
+    def relocations(self) -> lief.ELF.Binary.it_relocations: ...  # type: ignore
     @property
     def sections(self) -> lief.ELF.Binary.it_sections: ...  # type: ignore
     @property
@@ -506,7 +507,7 @@ class Binary(lief.Binary):
     @property
     def strings(self) -> list[Union[str,bytes]]: ...
     @property
-    def symbols(self) -> lief.ELF.Binary.it_dyn_static_symbols: ...
+    def symbols(self) -> lief.ELF.Binary.it_dyn_static_symbols: ...  # type: ignore
     @property
     def symbols_version(self) -> lief.ELF.Binary.it_symbols_version: ...
     @property
@@ -1037,13 +1038,13 @@ class DynamicEntryFlags(DynamicEntry):
     def flags(self) -> set[int]: ...
 
 class DynamicEntryLibrary(DynamicEntry):
-    name: object
+    name: Union[str,bytes]
     def __init__(self, library_name: str) -> None: ...
 
 class DynamicEntryRpath(DynamicEntry):
-    name: object
+    name: Union[str,bytes]
     paths: list[str]
-    rpath: object
+    rpath: Union[str,bytes]
     @overload
     def __init__(self, path: str = ...) -> None: ...
     @overload
@@ -1055,9 +1056,9 @@ class DynamicEntryRpath(DynamicEntry):
     def __isub__(self, arg: str, /) -> lief.ELF.DynamicEntryRpath: ...
 
 class DynamicEntryRunPath(DynamicEntry):
-    name: object
+    name: Union[str,bytes]
     paths: list[str]
-    runpath: object
+    runpath: Union[str,bytes]
     @overload
     def __init__(self, path: str = ...) -> None: ...
     @overload
@@ -1069,7 +1070,7 @@ class DynamicEntryRunPath(DynamicEntry):
     def __isub__(self, arg: str, /) -> lief.ELF.DynamicEntryRunPath: ...
 
 class DynamicSharedObject(DynamicEntry):
-    name: object
+    name: Union[str,bytes]
     def __init__(self, library_name: str) -> None: ...
 
 class ELF_CLASS:
@@ -2493,7 +2494,7 @@ class Segment(lief.Object):
     def __init__(self) -> None: ...
     def add(self, flag: lief.ELF.SEGMENT_FLAGS) -> None: ...
     @staticmethod
-    def from_raw(arg: bytes, /) -> object: ...
+    def from_raw(arg: bytes, /) -> Union[lief.ELF.Segment,lief.lief_errors]: ...
     @overload
     def has(self, flag: lief.ELF.SEGMENT_FLAGS) -> bool: ...
     @overload
@@ -2554,7 +2555,7 @@ class SymbolVersion(lief.Object):
     def local(self) -> lief.ELF.SymbolVersion: ...
 
 class SymbolVersionAux(lief.Object):
-    name: object
+    name: Union[str,bytes]
     def __init__(self, *args, **kwargs) -> None: ...
 
 class SymbolVersionAuxRequirement(SymbolVersionAux):
@@ -2615,4 +2616,4 @@ def parse(filename: str, config: lief.ELF.ParserConfig = ...) -> Optional[lief.E
 @overload
 def parse(raw: list[int], config: lief.ELF.ParserConfig = ...) -> Optional[lief.ELF.Binary]: ...
 @overload
-def parse(io: io.IOBase, config: lief.ELF.ParserConfig = ...) -> lief.ELF.Binary | None: ...
+def parse(obj: Union[io.IOBase|os.PathLike], config: lief.ELF.ParserConfig = ...) -> Optional[lief.ELF.Binary]: ...
