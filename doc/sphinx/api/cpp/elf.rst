@@ -182,14 +182,6 @@ Note
 ----------
 
 
-Note Details
-************
-
-.. doxygenclass:: LIEF::ELF::NoteDetails
-   :project: lief
-
-----------
-
 Core PrPsInfo
 *************
 
@@ -203,15 +195,6 @@ Core File
 *********
 
 .. doxygenclass:: LIEF::ELF::CoreFile
-   :project: lief
-
-----------
-
-
-Core File Entry
-***************
-
-.. doxygenstruct:: LIEF::ELF::CoreFileEntry
    :project: lief
 
 ----------
@@ -241,10 +224,10 @@ Core Auxiliary Vector
 
 ----------
 
-Android Note
-************
+Android Identity
+****************
 
-.. doxygenclass:: LIEF::ELF::AndroidNote
+.. doxygenclass:: LIEF::ELF::AndroidIdent
    :project: lief
 
 ----------
@@ -430,33 +413,6 @@ Dynamic symbols counting
 
 .. doxygenenum:: LIEF::ELF::DYNSYM_COUNT_METHODS
    :project: lief
-
-----------
-
-
-Note types
-~~~~~~~~~~
-
-.. doxygenenum:: LIEF::ELF::NOTE_TYPES
-   :project: lief
-
-----------
-
-Note Core types
-~~~~~~~~~~~~~~~
-
-.. doxygenenum:: LIEF::ELF::NOTE_TYPES_CORE
-   :project: lief
-
-----------
-
-
-Note ABIs
-~~~~~~~~~
-
-.. doxygenenum:: LIEF::ELF::NOTE_ABIS
-   :project: lief
-
 
 ----------
 
