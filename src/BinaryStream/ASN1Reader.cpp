@@ -24,7 +24,6 @@ inline void free_names(mbedtls_x509_name& names) {
 
 result<bool> ASN1Reader::is_tag(int tag) {
   size_t out = 0;
-  const uint8_t* cur_p = stream_.p();
   uint8_t* p           = stream_.p();
   const uint8_t* end   = stream_.end();
 
