@@ -23,11 +23,11 @@ jobs:
       SCCACHE_CACHE_SIZE: 2G
       SCCACHE_DIR: ${{ vars.SCCACHE_DIR }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.python-version }}
           architecture: ${{ matrix.arch }}
@@ -44,7 +44,7 @@ jobs:
           echo "date=$(/bin/date -u "+%Y-%m-%d-%H;%M;%S")" >> $GITHUB_OUTPUT
         shell: bash
       - name: Setup sccache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         continue-on-error: false
         with:
           path: ${{ vars.SCCACHE_DIR }}
@@ -57,13 +57,13 @@ jobs:
         run: |
           python ./scripts/windows/package_sdk.py
       - name: 'Upload SDK artifact'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}-sdk
           path: build/*.zip
           retention-days: 3
       - name: 'Upload install artifact'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}-install
           path: ${{ runner.temp }}/lief-install
@@ -83,11 +83,11 @@ jobs:
       SCCACHE_CACHE_SIZE: 2G
       SCCACHE_DIR: ${{ vars.SCCACHE_DIR }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python ${{ env.python-test-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.python-test-version }}
           architecture: ${{ matrix.arch }}
@@ -104,7 +104,7 @@ jobs:
           echo "date=$(/bin/date -u "+%Y-%m-%d-%H;%M;%S")" >> $GITHUB_OUTPUT
         shell: bash
       - name: Setup sccache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         continue-on-error: false
         with:
           path: ${{ vars.SCCACHE_DIR }}
@@ -158,11 +158,11 @@ jobs:
       SCCACHE_CACHE_SIZE: 2G
       SCCACHE_DIR: ${{ vars.SCCACHE_DIR }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.arch }}
@@ -180,7 +180,7 @@ jobs:
           echo "date=$(/bin/date -u "+%Y-%m-%d-%H;%M;%S")" >> $GITHUB_OUTPUT
         shell: bash
       - name: Save sccache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         continue-on-error: false
         with:
           path: ${{ vars.SCCACHE_DIR }}
@@ -188,7 +188,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.arch }}-sccache-${{ matrix.python-version }}
       - name: Download LIEF install dir
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: windows-${{ matrix.arch }}-install
           path: ~/lief-${{ matrix.arch }}-install
@@ -213,7 +213,7 @@ jobs:
           python -m pip -vvv wheel --wheel-dir=dist/ ./api/python
         shell: cmd
       - name: 'Upload Python artifacts [${{ matrix.python-version }}]'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}-wheel-${{ matrix.python-version }}
           path: dist/*.whl
@@ -223,12 +223,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-sdk, wheels]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
+          pattern: windows-*
+          merge-multiple: true
           path: ${{ runner.temp }}/artifacts
       - name: Deploy
         env:

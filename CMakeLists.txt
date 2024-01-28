@@ -106,7 +106,6 @@ add_subdirectory(src)
 
 if(NOT LIEF_PY_LIEF_EXT)
   add_library(LIEF::LIEF ALIAS LIB_LIEF)
-  set_target_properties(LIB_LIEF PROPERTIES EXCLUDE_FROM_ALL ON)
 endif()
 
 if(NOT LIEF_OPT_MBEDTLS_EXTERNAL)
@@ -503,7 +502,7 @@ if(LIEF_INSTALL)
   install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/LIEFConfig.cmake
           ${CMAKE_CURRENT_BINARY_DIR}/LIEFConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/LIEF/cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LIEF
     COMPONENT config)
 
   install(
@@ -520,7 +519,7 @@ if(LIEF_INSTALL)
   install(
     EXPORT LIEFExport
     NAMESPACE LIEF::
-    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/LIEF/cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LIEF
     FILE LIEFExport-${lib_type}.cmake
     COMPONENT config)
 
