@@ -5,6 +5,16 @@ Changelog
 -------------------------
 
 :ELF:
+  * The ``static_symbols`` API functions has been renamed in ``symtab_symbols``.
+
+    LIEF was naming symbols located in the ``.symtab`` sections as **static
+    symbols** in opposition to the ``.dynsym`` symbols. This naming can be
+    confusing since the concept of **static symbol** in a program is well
+    defined (i.e. ``static bool my_var``) and not applicable in this case.
+
+    **Therefore, the ``xxx_static_symbols`` API is has been renamed
+    ``xxx_symtab_symbol``.**
+
   * Re-scope ``DYNAMIC_TAGS`` into :class:`lief.ELF.DynamicEntry.TAG`
   * Re-scope ``E_TYPE`` into :class:`lief.ELF.Header.FILE_TYPE`
   * Re-scope ``VERSION`` into :class:`lief.ELF.Header.VERSION`
@@ -24,6 +34,9 @@ Changelog
   * Re-scope ``RELOCATION_PURPOSES`` into :class:`lief.ELF.Relocation.PURPOSE`
   * ``RELOC_x86_64``, ``RELOC_i386``, ... have been re-scoped **and merged**
     into :class:`lief.ELF.Relocation.TYPE`
+
+  * Add support for Android packed relocation format (``DT_ANDROID_REL{A}``)
+  * Add support for relative relocation format (``DT_RELR``)
 
 :CMake:
 

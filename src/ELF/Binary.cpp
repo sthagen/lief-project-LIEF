@@ -62,26 +62,27 @@
 
 #include "Binary.tcc"
 #include "Object.tcc"
+#include "internal_utils.hpp"
 
 namespace LIEF {
 namespace ELF {
 
 
 inline size_t get_relocation_sizeof(const Binary& bin, const Relocation& R) {
-  const bool is64    = (bin.type() == Header::CLASS::ELF64);
-  const bool is_rela = R.is_rela();
-
-  return is64 ?
-         (is_rela ? sizeof(details::Elf64_Rela) : sizeof(details::Elf64_Rel)) :
-         (is_rela ? sizeof(details::Elf32_Rela) : sizeof(details::Elf32_Rel));
+  const bool is64 = bin.type() == Header::CLASS::ELF64;
+  if (R.is_rel() || R.is_rela()) {
+    return is64 ?
+           (R.is_rela() ? sizeof(details::Elf64_Rela) : sizeof(details::Elf64_Rel)) :
+           (R.is_rela() ? sizeof(details::Elf32_Rela) : sizeof(details::Elf32_Rel));
+  }
+  LIEF_WARN("get_relocation_sizeof() only supports REL/RELA encoding");
+  return size_t(-1);
 }
 
 Binary::Binary() :
   LIEF::Binary(LIEF::Binary::FORMATS::ELF),
   sizing_info_{std::make_unique<sizing_info_t>()}
-{
-
-}
+{}
 
 size_t Binary::hash(const std::string& name) {
   if (type_ == Header::CLASS::ELF32) {
@@ -163,7 +164,7 @@ void Binary::remove(const DynamicEntry& entry) {
       });
 
   if (it_entry == std::end(dynamic_entries_)) {
-    LIEF_WARN("Can't find {} in the dynamic table. This entry can't be removed", entry);
+    LIEF_WARN("Can't find {} in the dynamic table. This entry can't be removed", to_string(entry));
     return;
   }
   dynamic_entries_.erase(it_entry);
@@ -259,6 +260,48 @@ void Binary::remove(Note::TYPE type) {
 }
 
 
+int64_t Binary::symtab_idx(const std::string& name) const {
+  if (symtab_symbols_.empty()) {
+    return -1;
+  }
+
+  auto it = std::find_if(symtab_symbols_.begin(), symtab_symbols_.end(),
+    [&name] (const std::unique_ptr<Symbol>& S) {
+      return S->name() == name;
+    }
+  );
+
+  if (it == symtab_symbols_.end()) {
+    return -1;
+  }
+
+  return std::distance(symtab_symbols_.begin(), it);
+}
+
+int64_t Binary::symtab_idx(const Symbol& sym) const {
+  return symtab_idx(sym.name());
+}
+
+int64_t Binary::dynsym_idx(const Symbol& sym) const {
+  return dynsym_idx(sym.name());
+}
+
+int64_t Binary::dynsym_idx(const std::string& name) const {
+  if (dynamic_symbols_.empty()) {
+    return -1;
+  }
+
+  auto it = std::find_if(dynamic_symbols_.begin(), dynamic_symbols_.end(),
+    [&name] (const std::unique_ptr<Symbol>& S) {
+      return S->name() == name;
+    }
+  );
+  if (it == dynamic_symbols_.end()) {
+    return -1;
+  }
+  return std::distance(dynamic_symbols_.begin(), it);
+}
+
 
 Symbol& Binary::export_symbol(const Symbol& symbol) {
 
@@ -309,7 +352,7 @@ Symbol& Binary::export_symbol(const std::string& symbol_name, uint64_t value) {
     return export_symbol(*s);
   }
 
-  s = get_static_symbol(symbol_name);
+  s = get_symtab_symbol(symbol_name);
   if (s != nullptr) {
     if (value > 0) {
       s->value(value);
@@ -348,7 +391,7 @@ Symbol& Binary::add_exported_function(uint64_t address, const std::string& name)
   }
 
   // Second: Check if a symbol with the given 'name' exists in the **static**
-  s = get_static_symbol(funcname);
+  s = get_symtab_symbol(funcname);
   if (s != nullptr) {
     s->type(Symbol::TYPE::FUNC);
     s->binding(Symbol::BINDING::GLOBAL);
@@ -399,22 +442,13 @@ Symbol* Binary::get_dynamic_symbol(const std::string& name) {
   return const_cast<Symbol*>(static_cast<const Binary*>(this)->get_dynamic_symbol(name));
 }
 
-bool Binary::has_static_symbol(const std::string& name) const {
+const Symbol* Binary::get_symtab_symbol(const std::string& name) const {
   const auto it_symbol = std::find_if(
-      std::begin(static_symbols_), std::end(static_symbols_),
+      std::begin(symtab_symbols_), std::end(symtab_symbols_),
       [&name] (const std::unique_ptr<Symbol>& s) {
         return s->name() == name;
       });
-  return it_symbol != std::end(static_symbols_);
-}
-
-const Symbol* Binary::get_static_symbol(const std::string& name) const {
-  const auto it_symbol = std::find_if(
-      std::begin(static_symbols_), std::end(static_symbols_),
-      [&name] (const std::unique_ptr<Symbol>& s) {
-        return s->name() == name;
-      });
-  if (it_symbol == std::end(static_symbols_)) {
+  if (it_symbol == std::end(symtab_symbols_)) {
     return nullptr;
   }
   return it_symbol->get();
@@ -459,19 +493,19 @@ Binary::string_list_t Binary::strings(size_t min_size) const {
   return list;
 }
 
-Symbol* Binary::get_static_symbol(const std::string& name) {
-  return const_cast<Symbol*>(static_cast<const Binary*>(this)->get_static_symbol(name));
+Symbol* Binary::get_symtab_symbol(const std::string& name) {
+  return const_cast<Symbol*>(static_cast<const Binary*>(this)->get_symtab_symbol(name));
 }
 
 
-std::vector<Symbol*> Binary::static_dyn_symbols() const {
+std::vector<Symbol*> Binary::symtab_dyn_symbols() const {
   std::vector<Symbol*> symbols;
-  symbols.reserve(static_symbols_.size() + dynamic_symbols_.size());
+  symbols.reserve(symtab_symbols_.size() + dynamic_symbols_.size());
   for (const std::unique_ptr<Symbol>& s : dynamic_symbols_) {
     symbols.push_back(s.get());
   }
 
-  for (const std::unique_ptr<Symbol>& s : static_symbols_) {
+  for (const std::unique_ptr<Symbol>& s : symtab_symbols_) {
     symbols.push_back(s.get());
   }
   return symbols;
@@ -481,13 +515,13 @@ std::vector<Symbol*> Binary::static_dyn_symbols() const {
 // --------
 
 Binary::it_exported_symbols Binary::exported_symbols() {
-  return {static_dyn_symbols(), [] (const Symbol* symbol) {
+  return {symtab_dyn_symbols(), [] (const Symbol* symbol) {
     return symbol->is_exported();
   }};
 }
 
 Binary::it_const_exported_symbols Binary::exported_symbols() const {
-  return {static_dyn_symbols(), [] (const Symbol* symbol) {
+  return {symtab_dyn_symbols(), [] (const Symbol* symbol) {
     return symbol->is_exported();
   }};
 }
@@ -498,52 +532,50 @@ Binary::it_const_exported_symbols Binary::exported_symbols() const {
 // --------
 
 Binary::it_imported_symbols Binary::imported_symbols() {
-  return {static_dyn_symbols(), [] (const Symbol* symbol) {
+  return {symtab_dyn_symbols(), [] (const Symbol* symbol) {
     return symbol->is_imported();
   }};
 }
 
 Binary::it_const_imported_symbols Binary::imported_symbols() const {
-  return {static_dyn_symbols(), [] (const Symbol* symbol) {
+  return {symtab_dyn_symbols(), [] (const Symbol* symbol) {
     return symbol->is_imported();
   }};
 }
 
 void Binary::remove_symbol(const std::string& name) {
-  remove_static_symbol(name);
+  remove_symtab_symbol(name);
   remove_dynamic_symbol(name);
 }
 
-void Binary::remove_static_symbol(const std::string& name) {
-  Symbol* sym = get_static_symbol(name);
+void Binary::remove_symtab_symbol(const std::string& name) {
+  Symbol* sym = get_symtab_symbol(name);
   if (sym == nullptr) {
-    LIEF_WARN("Can't find the static symbol '{}'. It won't be removed", name);
+    LIEF_WARN("Can't find the symtab symbol '{}'. It won't be removed", name);
     return;
   }
-  remove_static_symbol(sym);
+  remove_symtab_symbol(sym);
 }
 
-void Binary::remove_static_symbol(Symbol* symbol) {
+void Binary::remove_symtab_symbol(Symbol* symbol) {
   if (symbol == nullptr) {
     return;
   }
 
   const auto it_symbol = std::find_if(
-      std::begin(static_symbols_), std::end(static_symbols_),
+      std::begin(symtab_symbols_), std::end(symtab_symbols_),
       [symbol] (const std::unique_ptr<Symbol>& sym) {
         return *symbol == *sym;
       }
   );
 
-  if (it_symbol == std::end(static_symbols_)) {
-    LIEF_WARN("Can't find the static symbol '{}'. It won't be removed", symbol->name());
+  if (it_symbol == std::end(symtab_symbols_)) {
+    LIEF_WARN("Can't find the symtab symbol '{}'. It won't be removed", symbol->name());
     return;
   }
 
-  static_symbols_.erase(it_symbol);
+  symtab_symbols_.erase(it_symbol);
 }
-
-
 
 void Binary::remove_dynamic_symbol(const std::string& name) {
   Symbol* sym = get_dynamic_symbol(name);
@@ -667,6 +699,11 @@ Binary::it_const_dynamic_relocations Binary::dynamic_relocations() const {
 }
 
 Relocation& Binary::add_dynamic_relocation(const Relocation& relocation) {
+  if (!relocation.is_rel() && !relocation.is_rela()) {
+    LIEF_WARN("LIEF only supports regulard rel/rela relocations");
+    static Relocation None;
+    return None;
+  }
   auto relocation_ptr = std::make_unique<Relocation>(relocation);
   relocation_ptr->purpose(Relocation::PURPOSE::DYNAMIC);
   relocation_ptr->architecture_ = header().machine_type();
@@ -809,14 +846,14 @@ LIEF::Binary::relocations_t Binary::get_abstract_relocations() {
 
 LIEF::Binary::symbols_t Binary::get_abstract_symbols() {
   LIEF::Binary::symbols_t symbols;
-  symbols.reserve(dynamic_symbols_.size() + static_symbols_.size());
+  symbols.reserve(dynamic_symbols_.size() + symtab_symbols_.size());
   std::transform(std::begin(dynamic_symbols_), std::end(dynamic_symbols_),
                  std::back_inserter(symbols),
                  [] (std::unique_ptr<Symbol>& s) {
                   return s.get();
                  });
 
-  std::transform(std::begin(static_symbols_), std::end(static_symbols_),
+  std::transform(std::begin(symtab_symbols_), std::end(symtab_symbols_),
                  std::back_inserter(symbols),
                  [] (std::unique_ptr<Symbol>& s) {
                   return s.get();
@@ -875,7 +912,7 @@ Section* Binary::hash_section() {
 
 }
 
-Section* Binary::static_symbols_section() {
+Section* Binary::symtab_symbols_section() {
   const auto it_symtab_section = std::find_if(
       std::begin(sections_), std::end(sections_),
       [] (const std::unique_ptr<Section>& section) {
@@ -931,7 +968,7 @@ result<uint64_t> Binary::get_function_address(const std::string& func_name) cons
 }
 
 result<uint64_t> Binary::get_function_address(const std::string& func_name, bool demangled) const {
-  const auto it_symbol = std::find_if(std::begin(static_symbols_), std::end(static_symbols_),
+  const auto it_symbol = std::find_if(std::begin(symtab_symbols_), std::end(symtab_symbols_),
       [&func_name, demangled] (const std::unique_ptr<Symbol>& symbol) {
         std::string sname;
         if (demangled) {
@@ -945,7 +982,7 @@ result<uint64_t> Binary::get_function_address(const std::string& func_name, bool
                symbol->type() == Symbol::TYPE::FUNC;
       });
 
-  if (it_symbol == std::end(static_symbols_)) {
+  if (it_symbol == std::end(symtab_symbols_)) {
     return make_error_code(lief_errors::not_found);
   }
 
@@ -1519,7 +1556,7 @@ bool Binary::has_section_with_va(uint64_t va) const {
 }
 
 void Binary::strip() {
-  static_symbols_.clear();
+  symtab_symbols_.clear();
   Section* symtab = get(Section::TYPE::SYMTAB);
   if (symtab != nullptr) {
     remove(*symtab, /* clear */ true);
@@ -1527,9 +1564,9 @@ void Binary::strip() {
 }
 
 
-Symbol& Binary::add_static_symbol(const Symbol& symbol) {
-  static_symbols_.push_back(std::make_unique<Symbol>(symbol));
-  return *static_symbols_.back();
+Symbol& Binary::add_symtab_symbol(const Symbol& symbol) {
+  symtab_symbols_.push_back(std::make_unique<Symbol>(symbol));
+  return *symtab_symbols_.back();
 }
 
 
@@ -1831,12 +1868,12 @@ void Binary::shift_sections(uint64_t from, uint64_t shift) {
       continue;
     }
     if (section->file_offset() >= from) {
-      LIEF_DEBUG("[BEFORE] {}", *section);
+      LIEF_DEBUG("[BEFORE] {}", to_string(*section));
       section->file_offset(section->file_offset() + shift);
       if (section->virtual_address() > 0) {
         section->virtual_address(section->virtual_address() + shift);
       }
-      LIEF_DEBUG("[AFTER ] {}", *section);
+      LIEF_DEBUG("[AFTER ] {}", to_string(*section));
     }
   }
 }
@@ -1847,11 +1884,11 @@ void Binary::shift_segments(uint64_t from, uint64_t shift) {
 
   for (std::unique_ptr<Segment>& segment : segments_) {
     if (segment->file_offset() >= from) {
-      LIEF_DEBUG("[BEFORE] {}", *segment);
+      LIEF_DEBUG("[BEFORE] {}", to_string(*segment));
       segment->file_offset(segment->file_offset() + shift);
       segment->virtual_address(segment->virtual_address() + shift);
       segment->physical_address(segment->physical_address() + shift);
-      LIEF_DEBUG("[AFTER ] {}", *segment);
+      LIEF_DEBUG("[AFTER ] {}", to_string(*segment));
     }
   }
 }
@@ -1860,7 +1897,7 @@ void Binary::shift_dynamic_entries(uint64_t from, uint64_t shift) {
   LIEF_DEBUG("Shift dynamic entries by 0x{:x} from 0x{:x}", shift, from);
 
   for (std::unique_ptr<DynamicEntry>& entry : dynamic_entries_) {
-    LIEF_DEBUG("[BEFORE] {}", *entry);
+    LIEF_DEBUG("[BEFORE] {}", to_string(*entry));
     switch (entry->tag()) {
       case DynamicEntry::TAG::PLTGOT:
       case DynamicEntry::TAG::HASH:
@@ -1868,6 +1905,7 @@ void Binary::shift_dynamic_entries(uint64_t from, uint64_t shift) {
       case DynamicEntry::TAG::STRTAB:
       case DynamicEntry::TAG::SYMTAB:
       case DynamicEntry::TAG::RELA:
+      case DynamicEntry::TAG::RELR:
       case DynamicEntry::TAG::REL:
       case DynamicEntry::TAG::JMPREL:
       case DynamicEntry::TAG::INIT:
@@ -1876,7 +1914,6 @@ void Binary::shift_dynamic_entries(uint64_t from, uint64_t shift) {
       case DynamicEntry::TAG::VERDEF:
       case DynamicEntry::TAG::VERNEED:
         {
-
           if (entry->value() >= from) {
             entry->value(entry->value() + shift);
           }
@@ -1909,7 +1946,7 @@ void Binary::shift_dynamic_entries(uint64_t from, uint64_t shift) {
           //LIEF_DEBUG("{} not supported", to_string(entry->tag()));
         }
     }
-    LIEF_DEBUG("[AFTER ] {}", *entry);
+    LIEF_DEBUG("[AFTER ] {}", to_string(*entry));
   }
 }
 
@@ -1918,9 +1955,9 @@ void Binary::shift_symbols(uint64_t from, uint64_t shift) {
   LIEF_DEBUG("Shift symbols by 0x{:x} from 0x{:x}", shift, from);
   for (Symbol& symbol : symbols()) {
     if (symbol.value() >= from) {
-      LIEF_DEBUG("[BEFORE] {}", symbol);
+      LIEF_DEBUG("[BEFORE] {}", to_string(symbol));
       symbol.value(symbol.value() + shift);
-      LIEF_DEBUG("[AFTER ] {}", symbol);
+      LIEF_DEBUG("[AFTER ] {}", to_string(symbol));
     }
   }
 }
@@ -1931,48 +1968,19 @@ void Binary::shift_relocations(uint64_t from, uint64_t shift) {
 
   switch(arch) {
     case ARCH::ARM:
-      {
-        patch_relocations<ARCH::ARM>(from, shift);
-        break;
-      }
+      patch_relocations<ARCH::ARM>(from, shift); return;
 
     case ARCH::AARCH64:
-      {
-        patch_relocations<ARCH::AARCH64>(from, shift);
-        break;
-      }
+      patch_relocations<ARCH::AARCH64>(from, shift); return;
 
     case ARCH::X86_64:
-      {
-        patch_relocations<ARCH::X86_64>(from, shift);
-        break;
-      }
+      patch_relocations<ARCH::X86_64>(from, shift); return;
 
     case ARCH::I386:
-      {
-        patch_relocations<ARCH::I386>(from, shift);
-        break;
-      }
+      patch_relocations<ARCH::I386>(from, shift); return;
 
     case ARCH::PPC:
-      {
-        patch_relocations<ARCH::PPC>(from, shift);
-        break;
-      }
-
-      /*
-    case ARCH::PPC64:
-      {
-        patch_relocations<ARCH::PPC64>(from, shift);
-        break;
-      }
-
-      case ARCH::RISCV:
-        {
-          patch_relocations<ARCH::RISCV>(from, shift);
-          break;
-        }
-      */
+      patch_relocations<ARCH::PPC>(from, shift); return;
 
     default:
       {
@@ -2992,12 +3000,12 @@ uint64_t Binary::relocate_phdr_table_v2() {
       continue;
     }
     if (section->file_offset() >= from && section->type() != Section::TYPE::NOBITS) {
-      LIEF_DEBUG("[BEFORE] {}", *section);
+      LIEF_DEBUG("[BEFORE] {}", to_string(*section));
       section->file_offset(section->file_offset() + shift);
       if (section->virtual_address() > 0) {
         section->virtual_address(section->virtual_address() + shift);
       }
-      LIEF_DEBUG("[AFTER ] {}", *section);
+      LIEF_DEBUG("[AFTER ] {}", to_string(*section));
     }
   }
   return phdr_reloc_info_.new_offset;
@@ -3178,10 +3186,10 @@ std::ostream& Binary::print(std::ostream& os) const {
   os << std::endl;
 
 
-  os << "Static symbols" << std::endl;
+  os << "Symtab symbols" << std::endl;
   os << "==============" << std::endl;
 
-  for (const Symbol& symbol : static_symbols()) {
+  for (const Symbol& symbol : symtab_symbols()) {
     os << symbol << std::endl;
   }
 

@@ -39,6 +39,7 @@ class Binary;
 class Segment;
 class Symbol;
 class Note;
+class Relocation;
 
 //! Class which parses and transforms an ELF file into a ELF::Binary object
 class LIEF_API Parser : public LIEF::Parser {
@@ -96,12 +97,12 @@ class LIEF_API Parser : public LIEF::Parser {
   Parser(const Parser&)            = delete;
 
   protected:
-  Parser() = default;
+  Parser();
   Parser(std::unique_ptr<BinaryStream> stream, ParserConfig config);
   Parser(const std::string& file, ParserConfig config);
   Parser(const std::vector<uint8_t>& data, ParserConfig config);
 
-  ~Parser() override = default;
+  ~Parser() override;
 
   ok_error_t init();
 
@@ -161,7 +162,7 @@ class LIEF_API Parser : public LIEF::Parser {
   template<typename ELF_T>
   ok_error_t parse_dynamic_symbols(uint64_t offset);
 
-  //! Parse static Symbol
+  //! Parse symtab Symbol
   //!
   //! Parser find Symbols offset by using the file offset attribute of the
   //! ELF_SECTION_TYPES::SHT_SYMTAB Section.
@@ -170,7 +171,7 @@ class LIEF_API Parser : public LIEF::Parser {
   //!
   //! The section containing symbols name is found with the `link` attribute.
   template<typename ELF_T>
-  ok_error_t parse_static_symbols(uint64_t offset, uint32_t nb_symbols,
+  ok_error_t parse_symtab_symbols(uint64_t offset, uint32_t nb_symbols,
                                   const Section& string_section);
 
   //! Parse Dynamic relocations
@@ -187,6 +188,17 @@ class LIEF_API Parser : public LIEF::Parser {
   template<typename ELF_T, typename REL_T>
   ok_error_t parse_pltgot_relocations(uint64_t offset, uint64_t size);
 
+
+  //! Parse *relative* relocations
+  template<typename ELF_T>
+  ok_error_t parse_relative_relocations(uint64_t offset, uint64_t size);
+
+  //! Parse Android packed relocations
+  template<typename ELF_T>
+  ok_error_t parse_packed_relocations(uint64_t offset, uint64_t size);
+
+  template<typename ELF_T>
+  ok_error_t process_dynamic_table();
 
   //! Parse relocations using LIEF::ELF::Section.
   //! Section relocations are usually found in object files
@@ -240,6 +252,8 @@ class LIEF_API Parser : public LIEF::Parser {
 
   //! Check if the given Section is wrapped by the given segment
   static bool check_section_in_segment(const Section& section, const Segment& segment);
+
+  bool bind_symbol(Relocation& R);
 
   std::unique_ptr<BinaryStream> stream_;
   std::unique_ptr<Binary> binary_;
