@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2023 R. Thomas
- * Copyright 2017 - 2023 Quarkslab
+/* Copyright 2017 - 2024 R. Thomas
+ * Copyright 2017 - 2024 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -273,7 +273,7 @@ class LIEF_API Binary : public LIEF::Binary {
   //!
   //! @see Relocation
   bool has_relocations() const {
-    return relocations_.empty();
+    return !relocations_.empty();
   }
 
   //! Check if the current binary contains debug information
