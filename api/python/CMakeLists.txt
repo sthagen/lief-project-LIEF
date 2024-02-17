@@ -19,8 +19,8 @@ endif()
 if (LIEF_EXTERNAL_NANOBINDS)
   find_package(nanobind REQUIRED)
 else()
-  set(NANOBIND_VERSION 1.7.0.r8.gea62863)
-  set(NANOBIND_SHA256 SHA256=0605aae29b2c2e997c253557865a1f1afb2f4d573f53b6423f6e0c90a96bc11f)
+  set(NANOBIND_VERSION 1.8.0.r43.g45c2a74)
+  set(NANOBIND_SHA256 SHA256=a94f4a801cbe6befb2536f6140d8b280f975a63bd21247ad4894f5eff50209e4)
   set(NANOBIND_URL "${THIRD_PARTY_DIRECTORY}/nanobind-${NANOBIND_VERSION}.zip"
       CACHE STRING "URL to the Nanobind")
   FetchContent_Declare(nanobind
@@ -37,11 +37,18 @@ message(STATUS "Python lib:         ${Python_LIBRARIES}")
 message(STATUS "Python include:     ${Python_INCLUDE_DIRS}")
 message(STATUS "Python interpreter: ${Python_EXECUTABLE}")
 
+set(NANOBIND_OPT
+  NB_STATIC
+  NOMINSIZE
+)
+
+if (LIEF_PYTHON_STATIC)
+  list(APPEND NANOBIND_OPT NB_EXT_STATIC)
+endif()
+
 nanobind_add_module(
   pyLIEF
-  NB_STATIC
-  # Do not default to -Os
-  NOMINSIZE
+  ${NANOBIND_OPT}
 
   src/pyLIEF.cpp
 )
@@ -68,10 +75,18 @@ if(APPLE)
 endif()
 
 if (UNIX)
-  # Even on osx (c.f. EXT_SUFFIX from sysconfig)
-  set_target_properties(pyLIEF PROPERTIES SUFFIX ".so")
+  if (LIEF_PYTHON_STATIC)
+    set_target_properties(pyLIEF PROPERTIES SUFFIX ".a")
+  else()
+    # Even on osx (c.f. EXT_SUFFIX from sysconfig)
+    set_target_properties(pyLIEF PROPERTIES SUFFIX ".so")
+  endif()
 elseif(WIN32)
-  set_target_properties(pyLIEF PROPERTIES SUFFIX ".pyd")
+  if (LIEF_PYTHON_STATIC)
+    set_target_properties(pyLIEF PROPERTIES SUFFIX ".lib")
+  else()
+    set_target_properties(pyLIEF PROPERTIES SUFFIX ".pyd")
+  endif()
 endif()
 
 if (WIN32)
@@ -84,4 +99,18 @@ if(SKBUILD)
   else()
     install(TARGETS pyLIEF LIBRARY DESTINATION ${SKBUILD_PLATLIB_DIR}/lief/)
   endif()
+endif()
+
+if (LIEF_PYTHON_STATIC)
+  install(TARGETS nanobind-static pyLIEF
+          DESTINATION lib/python-${Python_VERSION})
+
+  install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lief
+    DESTINATION lib/python/typing
+    FILES_MATCHING
+    REGEX "(.*).(pyi)$")
+
+  install(DIRECTORY ${NB_DIR}/include/
+          DESTINATION include/)
 endif()

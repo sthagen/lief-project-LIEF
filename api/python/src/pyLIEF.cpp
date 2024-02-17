@@ -138,16 +138,32 @@ void init_json(nb::module_& m) {
   m.def("to_json", &LIEF::to_json);
 }
 
-
-}
-
-NB_MODULE(_lief, m) {
+void init(nb::module_& m) {
   lief_mod = &m;
   m.attr("__version__")   = nb::str(LIEF_VERSION);
   m.attr("__tag__")       = nb::str(LIEF_TAG);
   m.attr("__commit__")    = nb::str(LIEF_COMMIT);
   m.attr("__is_tagged__") = bool(LIEF_TAGGED);
   m.doc() = "LIEF Python API";
+
+  m.def("disable_leak_warning", [] {
+    nb::set_leak_warnings(false);
+  }, R"doc(
+  Disable nanobind warnings about leaked objects.
+  For instance:
+
+  .. code-block:: text
+
+      nanobind: leaked 45 instances!
+      nanobind: leaked 25 types!
+       - leaked type "lief._lief.FORMATS"
+       - ... skipped remainder
+      nanobind: leaked 201 functions!
+       - leaked function ""
+       - leaked function "export_symbol"
+       - ... skipped remainder
+      nanobind: this is likely caused by a reference counting issue in the binding code.
+  )doc");
 
   LIEF::py::init_python_sink();
 
@@ -187,4 +203,9 @@ NB_MODULE(_lief, m) {
 #if defined(LIEF_ART_SUPPORT)
   LIEF::ART::py::init(m);
 #endif
+}
+}
+
+NB_MODULE(_lief, m) {
+  LIEF::py::init(m);
 }
