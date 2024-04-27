@@ -58,7 +58,7 @@ Main features:
   * **Parsing**: LIEF can parse ELF, PE, MachO, OAT, DEX, VDEX, ART and provides an user-friendly API to access to format internals.
   * **Modify**: LIEF enables to modify some parts of these formats
   * **Abstract**: Three formats have common features like sections, symbols, entry point... LIEF factors them.
-  * **API**: LIEF can be used in C, C++ and Python
+  * **API**: LIEF can be used in C++, Python, Rust and C
 
 # Content
 
@@ -131,16 +131,37 @@ import lief
 
 # ELF
 binary = lief.parse("/usr/bin/ls")
-print(binary)
+for section in binary.sections:
+    print(section.name, section.virtual_address)
 
 # PE
 binary = lief.parse("C:\\Windows\\explorer.exe")
-print(binary)
+
+if rheader := pe.rich_header:
+    print(rheader.key)
 
 # Mach-O
 binary = lief.parse("/usr/bin/ls")
-print(binary)
+for fixup in binary.dyld_chained_fixups:
+    print(fixup)
 ```
+
+### Rust
+
+```rust
+use lief::Binary;
+use lief::pe::debug::Entries::CodeViewPDB;
+
+
+if let Some(Binary::PE(pe)) = Binary::parse(path.as_str()) {
+    for entry in pe.debug() {
+        if let CodeViewPDB(pdb_view) = entry {
+            println!("{}", pdb_view.filename());
+        }
+    }
+}
+```
+
 
 ### C++
 
@@ -150,17 +171,23 @@ print(binary)
 int main(int argc, char** argv) {
   // ELF
   if (std::unique_ptr<const LIEF::ELF::Binary> elf = LIEF::ELF::Parser::parse("/bin/ls")) {
-    std::cout << *elf << '\n';
+    for (const LIEF::ELF::Section& section : elf->sections()) {
+      std::cout << section->name() << ' ' << section->virtual_address() << '\n';
+    }
   }
 
   // PE
   if (std::unique_ptr<const LIEF::PE::Binary> pe = LIEF::PE::Parser::parse("C:\\Windows\\explorer.exe")) {
-    std::cout << *pe << '\n';
+    if (const LIEF::PE::RichHeader* rheader : pe->rich_header()) {
+      std::cout << rheader->key() << '\n';
+    }
   }
 
   // Mach-O
   if (std::unique_ptr<LIEF::MachO::FatBinary> macho = LIEF::MachO::Parser::parse("/bin/ls")) {
-    std::cout << *macho << '\n';
+    for (const LIEF::MachO::DyldChainedFixups& fixup : macho->dyld_chained_fixups()) {
+      std::cout << fixup << '\n';
+    }
   }
 
   return 0;
