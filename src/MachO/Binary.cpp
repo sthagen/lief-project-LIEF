@@ -21,6 +21,7 @@
 
 #include "Object.tcc"
 #include "Binary.tcc"
+#include "paging.hpp"
 
 #include "LIEF/Visitor.hpp"
 #include "LIEF/utils.hpp"
@@ -707,9 +708,7 @@ ok_error_t Binary::shift_linkedit(size_t width) {
 }
 
 uint32_t Binary::page_size() const {
-  const bool is_arm = header().cpu_type() == CPU_TYPES::CPU_TYPE_ARM ||
-                      header().cpu_type() == CPU_TYPES::CPU_TYPE_ARM64;
-  return is_arm ? 0x4000 : 0x1000;
+  return get_pagesize(*this);
 }
 
 void Binary::shift_command(size_t width, uint64_t from_offset) {
@@ -1952,43 +1951,35 @@ bool Binary::is_valid_addr(uint64_t address) const {
 
 
 Binary::range_t Binary::va_ranges() const {
-  const auto it_min = std::min_element(
-      std::begin(segments_), std::end(segments_),
-      [] (const SegmentCommand* lhs, const SegmentCommand* rhs) {
-        if (lhs->virtual_address() == 0 || rhs->virtual_address() == 0) {
-          return true;
-        }
-        return lhs->virtual_address() < rhs->virtual_address();
-      });
+  uint64_t min = uint64_t(-1);
+  uint64_t max = 0;
 
-  const auto it_max = std::min_element(
-      std::begin(segments_), std::end(segments_),
-      [] (const SegmentCommand* lhs, const SegmentCommand* rhs) {
-        return (lhs->virtual_address() + lhs->virtual_size()) > (rhs->virtual_address() + rhs->virtual_size());
-      });
+  for (const SegmentCommand* segment : segments_) {
+    min = std::min<uint64_t>(min, segment->virtual_address());
+    max = std::max(max, segment->virtual_address() + segment->virtual_size());
+  }
 
-  return {(*it_min)->virtual_address(), (*it_max)->virtual_address() + (*it_max)->virtual_size()};
+  if (min == uint64_t(-1)) {
+    return {0, 0};
+  }
+
+  return {min, max};
 }
 
 Binary::range_t Binary::off_ranges() const {
+  uint64_t min = uint64_t(-1);
+  uint64_t max = 0;
 
-  const auto it_min = std::min_element(
-      std::begin(segments_), std::end(segments_),
-      [] (const SegmentCommand* lhs, const SegmentCommand* rhs) {
-        if (lhs->file_offset() == 0 || rhs->file_offset() == 0) {
-          return true;
-        }
-        return lhs->file_offset() < rhs->file_offset();
-      });
+  for (const SegmentCommand* segment : segments_) {
+    min = std::min<uint64_t>(min, segment->file_offset());
+    max = std::max(max, segment->file_offset() + segment->file_size());
+  }
 
+  if (min == uint64_t(-1)) {
+    return {0, 0};
+  }
 
-  const auto it_max = std::min_element(
-      std::begin(segments_), std::end(segments_),
-      [] (const SegmentCommand* lhs, const SegmentCommand* rhs) {
-        return (lhs->file_offset() + lhs->file_size()) > (rhs->file_offset() + rhs->file_size());
-      });
-
-  return {(*it_min)->file_offset(), (*it_max)->file_offset() + (*it_max)->file_size()};
+  return {min, max};
 }
 
 

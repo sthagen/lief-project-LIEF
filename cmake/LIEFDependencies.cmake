@@ -167,8 +167,8 @@ if(LIEF_EXTERNAL_SPDLOG)
   get_target_property(SPDLOG_INC_DIR spdlog::spdlog INTERFACE_INCLUDE_DIRECTORIES)
   target_include_directories(lief_spdlog SYSTEM INTERFACE ${SPDLOG_INC_DIR})
 else()
-  set(SPDLOG_VERSION 1.12.0)
-  set(SPDLOG_SHA256 SHA256=6174bf8885287422a6c6a0312eb8a30e8d22bcfcee7c48a6d02d1835d7769232)
+  set(SPDLOG_VERSION 1.14.0)
+  set(SPDLOG_SHA256 SHA256=2cd8a65885e7937fdd046b181eed7e95d61bab7006bd0fb7b9c766185ed3e0ae)
   set(SPDLOG_URL "${THIRD_PARTY_DIRECTORY}/spdlog-${SPDLOG_VERSION}.zip" CACHE STRING "URL to the spdlog source")
   ExternalProject_Add(lief_spdlog_project
     URL               ${SPDLOG_URL}
@@ -230,8 +230,8 @@ endif()
 # utfcpp
 # ------
 if(NOT LIEF_OPT_UTFCPP_EXTERNAL)
-  set(UTFCPP_VERSION 3.2.1)
-  set(UTFCPP_SHA256 SHA256=04dacc4717d1ef9741f8254d1c56faf57a514684923ec35b2b98378ef016b87a)
+  set(UTFCPP_VERSION 4.0.5)
+  set(UTFCPP_SHA256 SHA256=91c9134a0d1c45be05ad394147cc8fda044f8313f23dc60d9ac5371175a8eff1)
   set(UTFCPP_URL "${THIRD_PARTY_DIRECTORY}/utfcpp-${UTFCPP_VERSION}.zip" CACHE STRING "URL to UTFCPP")
   ExternalProject_Add(lief_utfcpp
     URL               ${UTFCPP_URL}
