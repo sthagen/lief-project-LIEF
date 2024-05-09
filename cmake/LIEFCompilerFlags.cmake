@@ -42,6 +42,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     # GCC specific flags
   endif()
 
+  if (LIEF_DISABLE_EXCEPTIONS)
+      target_compile_options(LIB_LIEF PRIVATE -fno-exceptions)
+  endif()
+
 endif()
 
 if(MSVC AND NOT CLANG_CL)
@@ -104,6 +108,7 @@ if(MSVC AND NOT CLANG_CL)
     -we4238 # Promote 'nonstandard extension used : class rvalue used as lvalue' to error.
 
     -wd4530 # Supress C++ exception handler used, but unwind semantics are not enabled
+    -wd4251 # remove: needs to have dll-interface to be used by clients of class
   )
 
   set(msvc_warning_flags "/W4 ${msvc_warning_flags}")
@@ -112,6 +117,14 @@ if(MSVC AND NOT CLANG_CL)
   foreach(flag ${msvc_warning_flags})
     append("${flag}" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
   endforeach(flag)
+
+  if (LIEF_DISABLE_EXCEPTIONS)
+      string(REGEX REPLACE " /EHsc" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+      string(REGEX REPLACE " /EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+      string(REGEX REPLACE " /EHc" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+      string(REGEX REPLACE " /EHc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+      target_compile_options(LIB_LIEF PRIVATE /EHsc-)
+  endif()
 endif()
 
 # Speed up MSVC build
