@@ -1,6 +1,4 @@
-/* Copyright 2017 - 2024 R. Thomas
- * Copyright 2017 - 2024 Quarkslab
- * Copyright 2017 - 2021 K. Nakagawa
+/* Copyright 2024 R. Thomas
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +12,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef LIEF_PROFILING_UTILS_H
+#define LIEF_PROFILING_UTILS_H
+#include <spdlog/stopwatch.h>
+#include <spdlog/fmt/chrono.h>
+#include "logging.hpp"
+#include <chrono>
 
-#include <utility>
-#include <iomanip>
-
-#include "LIEF/utils.hpp"
-
-#include "LIEF/Visitor.hpp"
-
-#include "LIEF/PE/resources/ResourceStringTable.hpp"
+using std::chrono::duration_cast;
 
 namespace LIEF {
-namespace PE {
+class Profile {
+  public:
+  explicit Profile(std::string msg) :
+    msg_(std::move(msg))
+  {
+    sw_.reset();
+  }
 
-
-void ResourceStringTable::accept(Visitor& visitor) const {
-  visitor.visit(*this);
+  ~Profile() {
+    LIEF_DEBUG("{}: {}",
+        msg_, duration_cast<std::chrono::milliseconds>(sw_.elapsed()));
+  }
+  private:
+  spdlog::stopwatch sw_;
+  std::string msg_;
+};
 }
-
-std::ostream& operator<<(std::ostream& os, const ResourceStringTable& string_table) {
-  os << u16tou8(string_table.name()) << '\n';
-  return os;
-}
-
-}
-}
+#endif

@@ -17,7 +17,7 @@
 
 #include "logging.hpp"
 
-#include "LIEF/BinaryStream/VectorStream.hpp"
+#include "LIEF/BinaryStream/BinaryStream.hpp"
 #include "LIEF/PE/LoadConfigurations.hpp"
 #include "LIEF/PE/Parser.hpp"
 #include "LIEF/PE/Binary.hpp"
@@ -41,12 +41,6 @@ ok_error_t Parser::parse() {
   if (!parse_headers<PE_T>()) {
     LIEF_WARN("Fail to parse regular PE headers");
     return make_error_code(lief_errors::parsing_error);
-  }
-
-  if (auto opt_chksum = checksum()) {
-    LIEF_DEBUG("Checksum               : 0x{:06x}", *opt_chksum);
-    LIEF_DEBUG("OptionalHeader.checksum: 0x{:06x}", binary_->optional_header().checksum());
-    binary_->optional_header_.computed_checksum_ = *opt_chksum;
   }
 
   if (!parse_dos_stub()) {
@@ -664,7 +658,7 @@ ok_error_t Parser::parse_load_config() {
     return make_error_code(lief_errors::read_error);
   }
 
-  const uint32_t size = std::move(*res);
+  const uint32_t size = *res;
   size_t current_size = 0;
   auto version_found = LoadConfiguration::VERSION::UNKNOWN;
 
