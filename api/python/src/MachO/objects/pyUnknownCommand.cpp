@@ -13,23 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "LIEF/PE/debug/PogoEntry.hpp"
-#include "LIEF/Visitor.hpp"
+#include <string>
+#include <sstream>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/array.h>
 
-#include "spdlog/fmt/fmt.h"
+#include "LIEF/MachO/UnknownCommand.hpp"
 
-namespace LIEF {
-namespace PE {
+#include "MachO/pyMachO.hpp"
 
-void PogoEntry::accept(Visitor& visitor) const {
-  visitor.visit(*this);
+namespace LIEF::MachO::py {
+
+template<>
+void create<UnknownCommand>(nb::module_& m) {
+
+  nb::class_<UnknownCommand, LoadCommand>(m, "UnknownCommand",
+      "Generic class when the command is not recognized by LIEF"_doc)
+
+    .def_prop_ro("original_command",
+        nb::overload_cast<>(&UnknownCommand::original_command, nb::const_))
+
+    LIEF_DEFAULT_STR(UnknownCommand);
 }
 
-std::ostream& operator<<(std::ostream& os, const PogoEntry& entry) {
-  os << fmt::format("0x{:04x}-0x{:04x} {}", entry.start_rva(), entry.size(),
-                                            entry.name());
-  return os;
 }
-
-} // namespace PE
-} // namespace LIEF

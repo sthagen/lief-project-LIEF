@@ -1,5 +1,4 @@
-/* Copyright 2017 - 2024 R. Thomas
- * Copyright 2017 - 2024 Quarkslab
+/* Copyright 2024 R. Thomas
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "LIEF/PE/debug/PogoEntry.hpp"
-#include "LIEF/Visitor.hpp"
-
-#include "spdlog/fmt/fmt.h"
-
+#include "LIEF/range.hpp"
+#include <spdlog/fmt/fmt.h>
 namespace LIEF {
-namespace PE {
 
-void PogoEntry::accept(Visitor& visitor) const {
-  visitor.visit(*this);
-}
-
-std::ostream& operator<<(std::ostream& os, const PogoEntry& entry) {
-  os << fmt::format("0x{:04x}-0x{:04x} {}", entry.start_rva(), entry.size(),
-                                            entry.name());
+std::ostream& operator<<(std::ostream& os, const range_t& range) {
+  os << fmt::format("[0x{:06x}, 0x{:06x}]", range.low, range.high);
   return os;
 }
 
-} // namespace PE
-} // namespace LIEF
+}

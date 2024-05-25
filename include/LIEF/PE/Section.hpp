@@ -21,7 +21,6 @@
 #include <set>
 
 #include "LIEF/visibility.h"
-#include "LIEF/iterators.hpp"
 #include "LIEF/Abstract/Section.hpp"
 #include "LIEF/enums.hpp"
 #include "LIEF/PE/enums.hpp"
@@ -48,7 +47,7 @@ class LIEF_API Section : public LIEF::Section {
   using LIEF::Section::name;
   static constexpr size_t MAX_SECTION_NAME = 8;
 
-  enum class CHARACTERISTICS: size_t  {
+  enum class CHARACTERISTICS: uint64_t  {
     TYPE_NO_PAD            = 0x00000008,
     CNT_CODE               = 0x00000020,
     CNT_INITIALIZED_DATA   = 0x00000040,
@@ -87,14 +86,14 @@ class LIEF_API Section : public LIEF::Section {
   };
 
   Section(const details::pe_section& header);
-  Section();
+  Section() = default;
   Section(const std::vector<uint8_t>& data,
           const std::string& name = "", uint32_t characteristics = 0);
   Section(const std::string& name);
 
-  Section& operator=(const Section&);
-  Section(const Section&);
-  ~Section() override;
+  Section& operator=(const Section&) = default;
+  Section(const Section&) = default;
+  ~Section() override = default;
 
   //! Return the size of the data in the section.
   uint32_t sizeof_raw_data() const;
@@ -145,8 +144,8 @@ class LIEF_API Section : public LIEF::Section {
     return number_of_linenumbers_;
   }
 
-  //! Characteristics of the section: it gives information about
-  //! the permissions of the section when mapped. It can also provides
+  //! Characteristics of the section: it provides information about
+  //! the permissions of the section when mapped. It can also provide
   //! information about the *purpose* of the section (contain code, BSS-like, ...)
   uint32_t characteristics() const {
     return characteristics_;

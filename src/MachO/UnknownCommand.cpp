@@ -1,5 +1,4 @@
-/* Copyright 2017 - 2024 R. Thomas
- * Copyright 2017 - 2024 Quarkslab
+/* Copyright 2024 R. Thomas
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "LIEF/PE/debug/PogoEntry.hpp"
+#include "LIEF/MachO/UnknownCommand.hpp"
 #include "LIEF/Visitor.hpp"
 
-#include "spdlog/fmt/fmt.h"
+#include <spdlog/fmt/fmt.h>
 
-namespace LIEF {
-namespace PE {
+namespace LIEF::MachO {
 
-void PogoEntry::accept(Visitor& visitor) const {
+void UnknownCommand::accept(Visitor& visitor) const {
   visitor.visit(*this);
 }
 
-std::ostream& operator<<(std::ostream& os, const PogoEntry& entry) {
-  os << fmt::format("0x{:04x}-0x{:04x} {}", entry.start_rva(), entry.size(),
-                                            entry.name());
+std::ostream& UnknownCommand::print(std::ostream& os) const {
+  LoadCommand::print(os);
+  os << fmt::format("Original Command: {}", original_command()) << '\n';
   return os;
 }
 
-} // namespace PE
-} // namespace LIEF
+}

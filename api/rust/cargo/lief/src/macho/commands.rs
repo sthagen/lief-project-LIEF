@@ -26,6 +26,7 @@ pub mod thread_command;
 pub mod two_level_hints;
 pub mod uuid;
 pub mod version_min;
+pub mod unknown;
 
 pub use build_version::BuildVersion;
 pub use code_signature::CodeSignature;
@@ -52,6 +53,7 @@ pub use thread_command::ThreadCommand;
 pub use two_level_hints::TwoLevelHints;
 pub use uuid::UUID;
 pub use version_min::VersionMin;
+pub use unknown::Unknown;
 
 use crate::common::FromFFI;
 use crate::{declare_iterator, to_slice};
@@ -112,6 +114,8 @@ pub enum LoadCommandTypes {
     VersionMinMacOSX,
     VersionMinTvOS,
     VersionMinWatchOS,
+
+    LiefUnknown,
     Unknown(u64),
 }
 impl LoadCommandTypes {
@@ -169,6 +173,8 @@ impl LoadCommandTypes {
     const LC_VERSION_MIN_MACOSX: u64 = 0x00000024;
     const LC_VERSION_MIN_TVOS: u64 = 0x0000002F;
     const LC_VERSION_MIN_WATCHOS: u64 = 0x00000030;
+
+    const LIEF_UNKNOWN: u64 = 0xffee0001;
 
     pub fn from_value(value: u64) -> Self {
         match value {
@@ -228,6 +234,7 @@ impl LoadCommandTypes {
             LoadCommandTypes::LC_VERSION_MIN_MACOSX => LoadCommandTypes::VersionMinMacOSX,
             LoadCommandTypes::LC_VERSION_MIN_TVOS => LoadCommandTypes::VersionMinTvOS,
             LoadCommandTypes::LC_VERSION_MIN_WATCHOS => LoadCommandTypes::VersionMinWatchOS,
+            LoadCommandTypes::LIEF_UNKNOWN => LoadCommandTypes::LiefUnknown,
             _ => LoadCommandTypes::Unknown(value),
         }
     }
@@ -261,6 +268,7 @@ pub enum Commands<'a> {
     TwoLevelHints(TwoLevelHints<'a>),
     UUID(UUID<'a>),
     VersionMin(VersionMin<'a>),
+    Unknown(Unknown<'a>),
 }
 
 impl<'a> Commands<'a> {
@@ -443,6 +451,13 @@ impl<'a> Commands<'a> {
                     std::mem::transmute::<From, To>(ffi_entry)
                 };
                 Commands::VersionMin(VersionMin::from_ffi(raw))
+            } else if ffi::MachO_UnknownCommand::classof(cmd_ref) {
+                let raw = {
+                    type From = cxx::UniquePtr<ffi::MachO_Command>;
+                    type To = cxx::UniquePtr<ffi::MachO_UnknownCommand>;
+                    std::mem::transmute::<From, To>(ffi_entry)
+                };
+                Commands::Unknown(Unknown::from_ffi(raw))
             } else {
                 Commands::Generic(Generic::from_ffi(ffi_entry))
             }

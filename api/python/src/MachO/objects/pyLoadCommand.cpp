@@ -61,6 +61,7 @@ void create<LoadCommand>(nb::module_& m) {
 
   enum_<LoadCommand::TYPE>(cls, "TYPE")
   #define PY_ENUM(x) to_string(x), x
+    .value(PY_ENUM(LoadCommand::TYPE::UNKNOWN))
     .value(PY_ENUM(LoadCommand::TYPE::SEGMENT))
     .value(PY_ENUM(LoadCommand::TYPE::SYMTAB))
     .value(PY_ENUM(LoadCommand::TYPE::SYMSEG))
@@ -115,6 +116,7 @@ void create<LoadCommand>(nb::module_& m) {
     .value(PY_ENUM(LoadCommand::TYPE::DYLD_EXPORTS_TRIE))
     .value(PY_ENUM(LoadCommand::TYPE::DYLD_CHAINED_FIXUPS))
     .value(PY_ENUM(LoadCommand::TYPE::FILESET_ENTRY))
+    .value(PY_ENUM(LoadCommand::TYPE::LIEF_UNKNOWN))
   #undef PY_ENUM
   ;
 
