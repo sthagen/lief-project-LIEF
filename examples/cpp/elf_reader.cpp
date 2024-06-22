@@ -24,7 +24,7 @@ using namespace LIEF::ELF;
 
 int main(int argc, char **argv) {
 
-  LIEF::logging::set_level(LIEF::logging::LOGGING_LEVEL::LOG_DEBUG);
+  LIEF::logging::set_level(LIEF::logging::LEVEL::DEBUG);
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " <ELF binary>" << '\n';
     return EXIT_FAILURE;
@@ -114,26 +114,6 @@ int main(int argc, char **argv) {
       std::cout << note << '\n';
     }
   }
-
-
-
-  //std::cout << "== Symbol Version ==" << '\n';
-  //std::vector<SymbolVersion>* symbolsVersion = binary->get_symbol_version();
-  //for (const auto &symVersion : *symbolsVersion) {
-  //  std::cout << symVersion << '\n';
-  //}
-
-
-  //std::cout << "== Symbols Version Requirement ==" << '\n';
-  //std::vector<SymbolVersionRequirement> *symR = binary->get_symbol_version_requirement();
-  //for (SymbolVersionRequirement &symbolR : *symR) {
-  //  std::cout << symbolR << '\n' << '\n';
-  //  auto symAux = symbolR.get_auxiliary_symbols();
-  //  for (auto &symbolAux : symAux) {
-  //    std::cout << *symbolAux << '\n';
-  //  }
-  //  std::cout << '\n';
-  //}
 
   return 0;
 
