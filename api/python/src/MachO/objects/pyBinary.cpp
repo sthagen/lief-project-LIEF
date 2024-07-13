@@ -17,6 +17,7 @@
 #include <sstream>
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/unique_ptr.h>
 #include "nanobind/extra/memoryview.hpp"
 
 #include "LIEF/MachO/Binary.hpp"
@@ -54,6 +55,8 @@
 #include "LIEF/MachO/TwoLevelHints.hpp"
 #include "LIEF/MachO/UUIDCommand.hpp"
 #include "LIEF/MachO/VersionMin.hpp"
+
+#include "LIEF/ObjC/Metadata.hpp"
 
 #include "pyErr.hpp"
 #include "MachO/pyMachO.hpp"
@@ -656,6 +659,22 @@ void create<Binary>(nb::module_& m) {
                  Return True if the **stack** is flagged as non-executable. False
                  otherwise.
                  )doc"_doc)
+
+    .def_prop_ro("support_arm64_ptr_auth", &Binary::support_arm64_ptr_auth,
+      R"doc(
+      Check if the binary is supporting ARM64 pointer authentication (arm64e)
+      )doc"
+    )
+
+    .def_prop_ro("objc_metadata", &Binary::objc_metadata,
+      R"doc(
+      Return Objective-C metadata info if present
+
+      .. warning::
+
+        This is only available with the extended version of LIEF.
+      )doc"_doc
+    )
 
     .def("__getitem__",
         nb::overload_cast<LoadCommand::TYPE>(&Binary::operator[]),

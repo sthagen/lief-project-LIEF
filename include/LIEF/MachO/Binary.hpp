@@ -32,6 +32,10 @@
 
 namespace LIEF {
 
+namespace objc {
+class Metadata;
+}
+
 //! Namespace related to the LIEF's Mach-O module
 namespace MachO {
 
@@ -700,6 +704,9 @@ class LIEF_API Binary : public LIEF::Binary  {
   //! Add a symbol in LC_SYMTAB command of the current binary
   Symbol* add_local_symbol(uint64_t address, const std::string& name);
 
+  //! Return Objective-C metadata if present
+  std::unique_ptr<objc::Metadata> objc_metadata() const;
+
   template<class T>
   LIEF_LOCAL bool has_command() const;
 
@@ -754,6 +761,13 @@ class LIEF_API Binary : public LIEF::Binary  {
   //! Otherwise, it returns 0
   uint64_t memory_base_address() const {
     return in_memory_base_addr_;
+  }
+
+  // Check if the binary is supporting ARM64 pointer authentication (arm64e)
+  bool support_arm64_ptr_auth() const {
+    static constexpr auto CPU_SUBTYPE_ARM64E = 2;
+    return header().cpu_type() == Header::CPU_TYPE::ARM64 &&
+           (header().cpu_subtype() & ~Header::CPU_SUBTYPE_MASK) == CPU_SUBTYPE_ARM64E;
   }
 
   uint32_t page_size() const;
