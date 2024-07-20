@@ -4,6 +4,17 @@ Changelog
 0.15.0 - Not Released Yet
 -------------------------
 
+:Extended:
+
+  .. note::
+
+    See: https://extended.lief.re and :ref:`extended-intro`
+
+  * Add support for DWARF: :ref:`extended-dwarf`
+  * Add support for PDB: :ref:`extended-pdb`
+  * Add support for Objective-C: :ref:`extended-objc`
+
+
 :Repo:
   * ``master`` branch has been renamed ``main``
 
@@ -11,6 +22,23 @@ Changelog
   * First (beta) release of the bindings (c.f. :ref:`lief_rust_bindings`)
 
 :ELF:
+  * Add support to create custom notes (:issue:`1026`):
+
+    .. code-block:: python
+
+      elf: lief.ELF.Binary = ...
+
+      elf += lief.ELF.Note.create(
+          name="my-custom-note",
+          original_type=lief.ELF.Note.TYPE.UNKNOWN,
+          description=list(b"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed"),
+          section_name=".lief.note.custom"
+      )
+
+      config = lief.ELF.Builder.config_t()
+      config.notes = True
+      elf.write("/tmp/new-binary.elf", config)
+
   * Add :meth:`lief.ELF.Binary.get_relocated_dynamic_array` which allows
     to get a **relocated** view of the of init/fini entries. This function can
     handy ELF init array/fini array functions are defined through relocations.
@@ -50,6 +78,15 @@ Changelog
   * Add support for relative relocation format (``DT_RELR``)
 
 :PE:
+  * Authenticode:
+    Add partial support for the following PKCS #7 attributes:
+
+      - ``1.3.6.1.4.1.311.3.3.1 - Ms-CounterSign`` (:class:`lief.PE.MsCounterSign`)
+      - ``1.3.6.1.4.1.311.10.3.28 - Ms-ManifestBinaryID`` (:class:`lief.PE.MsManifestBinaryID`)
+      - ``1.3.6.1.4.1.311.2.6.1 - SPC_RELAXED_PE_MARKER_CHECK_OBJID`` (:class:`lief.PE.SpcRelaxedPeMarkerCheck`)
+      - ``1.2.840.113549.1.9.16.2.47 - SIGNING_CERTIFICATE_V2`` (:class:`lief.PE.SigningCertificateV2`)
+
+    - ``1.2.840.113549.1.9.16.1.4 - PKCS#9 TSTInfo`` (:class:`lief.PE.PKCS9TSTInfo`)
 
   * Add :attr:`lief.PE.CodeViewPDB.guid` attribute (:issue:`480`)
   * Move ``lief.PE.OptionalHeader.computed_checksum`` to :meth:`lief.PE.Binary.compute_checksum`
@@ -253,7 +290,7 @@ Changelog
 
 :Abstraction:
 
-    * `LIEF::EXE_FORMATS` is now scoped in `LIEF::Binary::FORMATS`
+    * ``LIEF::EXE_FORMATS`` is now scoped in ``LIEF::Binary::FORMATS``
     * All the `Binary` classes now implement `classof`:
 
       .. code-block:: cpp

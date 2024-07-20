@@ -23,18 +23,8 @@
 namespace LIEF {
 namespace PE {
 
-static constexpr const char SPC_INDIRECT_DATA_OBJID[] = "1.3.6.1.4.1.311.2.1.4";
-
-SpcIndirectData::SpcIndirectData() :
-  ContentInfo::Content(SPC_INDIRECT_DATA_OBJID)
-{}
-
 void SpcIndirectData::accept(Visitor& visitor) const {
   visitor.visit(*this);
-}
-
-bool SpcIndirectData::classof(const ContentInfo::Content* content) {
-  return content->content_type() == SPC_INDIRECT_DATA_OBJID;
 }
 
 void SpcIndirectData::print(std::ostream& os) const {

@@ -303,7 +303,7 @@ Signature::VERIFICATION_FLAGS Signature::check(VERIFICATION_CHECKS checks) const
     std::begin(original_raw_signature_) + content_info_end_
   };
 
-  const std::vector<uint8_t> content_info_hash = Signature::hash(std::move(raw_content_info), digest_algo);
+  const std::vector<uint8_t> content_info_hash = Signature::hash(raw_content_info, digest_algo);
 
 
   // Copy authenticated attributes
@@ -355,15 +355,8 @@ Signature::VERIFICATION_FLAGS Signature::check(VERIFICATION_CHECKS checks) const
    * CounterSignature Checks
    */
   const auto* counter = static_cast<const PKCS9CounterSignature*>(signer.get_unauth_attribute(Attribute::TYPE::PKCS9_COUNTER_SIGNATURE));
-  bool has_ms_counter_sig = false;
-  for (const Attribute& attr : signer.unauthenticated_attributes()) {
-    if (attr.type() == Attribute::TYPE::GENERIC_TYPE) {
-      if (static_cast<const GenericType&>(attr).oid() == /* Ms-CounterSign */ "1.3.6.1.4.1.311.3.3.1") {
-        has_ms_counter_sig = true;
-        break;
-      }
-    }
-  }
+  bool has_ms_counter_sig = signer.get_unauth_attribute(Attribute::TYPE::MS_COUNTER_SIGN) != nullptr;
+
   bool timeless_signature = false;
   if (counter != nullptr) {
     VERIFICATION_FLAGS cs_flags = verify_ts_counter_signature(signer, *counter, checks);
@@ -552,7 +545,6 @@ std::ostream& operator<<(std::ostream& os, const Signature& signature) {
   const ContentInfo& cinfo = signature.content_info();
   os << fmt::format("Version:             {:d}\n", signature.version());
   os << fmt::format("Digest Algorithm:    {}\n", to_string(signature.digest_algorithm()));
-
   if (SpcIndirectData::classof(&cinfo.value())) {
     const auto& spc_indirect_data = static_cast<const SpcIndirectData&>(cinfo.value());
     os << fmt::format("Content Info Digest: {}\n", hex_dump(spc_indirect_data.digest()));
